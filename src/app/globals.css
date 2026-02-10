@@ -1,0 +1,618 @@
+@import "tailwindcss";
+@import "@fontsource/jetbrains-mono";
+
+/* ============================================
+   CORTEX SYSTEM - DESIGN TOKENS
+   ============================================ */
+
+:root {
+  /* Core Backgrounds */
+  --bg-primary: #0B0F14;
+  --bg-surface-1: #11161D;
+  --bg-surface-2: #151B23;
+  --bg-surface-3: #1A222C;
+
+  /* Accents */
+  --accent-primary: #4F8CFF;
+  --accent-secondary: #8BE9FD;
+  --danger: #FF6B6B;
+  --success: #50FA7B;
+  --warning: #FFB86C;
+
+  /* Borders */
+  --border-default: #1E2630;
+  --border-hover: #2A3440;
+  --border-active: #3A4450;
+
+  /* Text */
+  --text-primary: #E5E7EB;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+
+  /* Spacing (8px grid) */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", var(--font-geist-mono), monospace;
+
+  /* Motion */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Glow colors */
+  --glow-primary-rgb: 79, 140, 255;
+  --glow-success-rgb: 80, 250, 123;
+  --glow-accent-rgb: 139, 233, 253;
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --context-width: 320px;
+}
+
+/* ── Light Theme ─────────────────────────── */
+html.light {
+  --bg-primary: #F8F9FB;
+  --bg-surface-1: #FFFFFF;
+  --bg-surface-2: #F0F1F4;
+  --bg-surface-3: #E5E7EB;
+
+  --accent-primary: #3B6FD9;
+  --accent-secondary: #2DA8B5;
+  --danger: #DC4444;
+  --success: #22A94E;
+  --warning: #D4890B;
+
+  --border-default: #D1D5DB;
+  --border-hover: #B0B8C4;
+  --border-active: #9CA3AF;
+
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-muted: #6B7280;
+
+  --glow-primary-rgb: 59, 111, 217;
+  --glow-success-rgb: 34, 169, 78;
+  --glow-accent-rgb: 45, 168, 181;
+}
+
+@theme inline {
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Subtle noise texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ============================================
+   TYPOGRAPHY SYSTEM
+   ============================================ */
+
+.text-header {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.text-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.text-body {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.text-metric {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+}
+
+/* ============================================
+   SURFACE COMPONENTS
+   ============================================ */
+
+.surface-1 {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+}
+
+.surface-2 {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+}
+
+.surface-3 {
+  background: var(--bg-surface-3);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+}
+
+/* Glow effect for active states */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(79, 140, 255, 0.15);
+}
+
+.glow-success {
+  box-shadow: 0 0 20px rgba(80, 250, 123, 0.15);
+}
+
+/* Focus ring utility */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.surface-interactive {
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.surface-interactive:hover {
+  border-color: var(--border-hover);
+}
+
+/* ============================================
+   LAYOUT UTILITIES
+   ============================================ */
+
+.app-grid {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr var(--context-width);
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  background: var(--bg-surface-1);
+  border-right: 1px solid var(--border-default);
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-panel {
+  height: 100vh;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.context-panel {
+  background: var(--bg-surface-1);
+  border-left: 1px solid var(--border-default);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* ============================================
+   BADGE SYSTEM
+   ============================================ */
+
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.badge-success {
+  background: rgba(80, 250, 123, 0.15);
+  color: var(--success);
+}
+
+.badge-danger {
+  background: rgba(255, 107, 107, 0.15);
+  color: var(--danger);
+}
+
+.badge-info {
+  background: rgba(79, 140, 255, 0.15);
+  color: var(--accent-primary);
+}
+
+.badge-warning {
+  background: rgba(255, 184, 108, 0.15);
+  color: var(--warning);
+}
+
+/* ============================================
+   NAVIGATION STYLES
+   ============================================ */
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  margin: 0 var(--space-1);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--bg-surface-2);
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   LOG CONSOLE STYLES
+   ============================================ */
+
+.log-entry {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 0;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.log-timestamp {
+  color: var(--text-muted);
+  min-width: 80px;
+}
+
+.log-level-info { color: var(--accent-primary); }
+.log-level-warn { color: var(--warning); }
+.log-level-error { color: var(--danger); }
+.log-level-success { color: var(--success); }
+
+/* Log fade mask */
+.log-fade-mask {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
+}
+
+/* ============================================
+   MOBILE TOP BAR
+   ============================================ */
+
+.mobile-topbar {
+  display: none;
+}
+
+/* ============================================
+   RESPONSIVE (Collapse context panel on smaller screens)
+   ============================================ */
+
+@media (max-width: 1200px) {
+  .app-grid {
+    grid-template-columns: var(--sidebar-width) 1fr;
+  }
+  
+  .context-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+  
+  .sidebar {
+    display: none;
+  }
+
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-surface-1);
+    border-bottom: 1px solid var(--border-default);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .main-panel {
+    height: auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-2);
+  }
+}
+
+/* ============================================
+   MICRO-INTERACTIONS — Project Card Glow
+   ============================================ */
+
+.project-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  transition:
+    border-color var(--transition-smooth),
+    box-shadow var(--transition-smooth),
+    transform var(--transition-fast);
+}
+
+.project-card-glow {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  border-radius: inherit;
+  transition: opacity var(--transition-smooth);
+  pointer-events: none;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(var(--glow-primary-rgb), 0.08),
+    transparent 40%
+  );
+  z-index: 0;
+}
+
+.project-card:hover,
+.project-card--active {
+  border-color: rgba(var(--glow-primary-rgb), 0.3);
+  box-shadow:
+    0 0 20px rgba(var(--glow-primary-rgb), 0.06),
+    0 0 60px rgba(var(--glow-primary-rgb), 0.03),
+    inset 0 0 30px rgba(var(--glow-primary-rgb), 0.02);
+}
+
+.project-card:hover .project-card-glow,
+.project-card--active .project-card-glow {
+  opacity: 1;
+}
+
+/* ============================================
+   MICRO-INTERACTIONS — Tech Tag Hover Elevation
+   ============================================ */
+
+.tech-tag {
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+  cursor: default;
+}
+
+.tech-tag:hover {
+  background: rgba(var(--glow-primary-rgb), 0.12);
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   MICRO-INTERACTIONS — Metric Card Glow
+   ============================================ */
+
+.surface-interactive {
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-smooth);
+}
+
+.surface-interactive:hover {
+  border-color: var(--border-hover);
+}
+
+/* ============================================
+   MICRO-INTERACTIONS — Context Panel Slide
+   ============================================ */
+
+.context-panel {
+  transition: transform var(--transition-smooth);
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.context-panel .animate-in {
+  animation: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Staggered section reveal inside context panel */
+.context-panel .space-y-6 > div:nth-child(1) { animation: fade-up 0.3s 0.05s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.context-panel .space-y-6 > div:nth-child(2) { animation: fade-up 0.3s 0.10s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.context-panel .space-y-6 > div:nth-child(3) { animation: fade-up 0.3s 0.15s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.context-panel .space-y-6 > div:nth-child(4) { animation: fade-up 0.3s 0.20s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.context-panel .space-y-6 > div:nth-child(5) { animation: fade-up 0.3s 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.context-panel .space-y-6 > div:nth-child(6) { animation: fade-up 0.3s 0.30s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* ============================================
+   MICRO-INTERACTIONS — Badge Pulse on Hover
+   ============================================ */
+
+.badge {
+  transition: box-shadow var(--transition-fast);
+}
+
+.badge:hover {
+}
+
+.badge-success:hover {
+  box-shadow: 0 0 10px rgba(var(--glow-success-rgb), 0.2);
+}
+
+.badge-info:hover {
+  box-shadow: 0 0 10px rgba(var(--glow-primary-rgb), 0.2);
+}
+
+/* ============================================
+   MICRO-INTERACTIONS — Nav Item Active Glow
+   ============================================ */
+
+.nav-item.active {
+  position: relative;
+}
+
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent-primary);
+  box-shadow: 0 0 8px rgba(var(--glow-primary-rgb), 0.4);
+}
+
+/* ============================================
+   MICRO-INTERACTIONS — Log Entry Hover
+   ============================================ */
+
+.log-entry-interactive {
+  transition: background var(--transition-fast);
+  border-radius: 4px;
+}
+
+.log-entry-interactive:hover {
+  background: rgba(var(--glow-primary-rgb), 0.04);
+}
+
+/* ============================================
+   UTILITY — Reduced Motion
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .project-card:hover {
+    box-shadow: none;
+  }
+
+  .tech-tag:hover {
+    transform: none;
+  }
+}
+
+/* ============================================
+   BOOT — Fullscreen Landing
+   ============================================ */
+
+.boot-fullscreen {
+  height: 100vh;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-primary);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+}
+
+.boot-fullscreen::-webkit-scrollbar {
+  width: 6px;
+}
+.boot-fullscreen::-webkit-scrollbar-track {
+  background: transparent;
+}
+.boot-fullscreen::-webkit-scrollbar-thumb {
+  background-color: var(--border-default);
+  border-radius: 3px;
+}
+
+/* Blinking cursor for typewriter */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.animate-blink {
+  animation: blink 0.7s step-end infinite;
+}
