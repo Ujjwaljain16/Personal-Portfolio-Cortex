@@ -35,9 +35,27 @@ function githubEventToLog(event: any): LogEntry | null {
                 message: `[${repo}] pushed ${count} commit${count !== 1 ? "s" : ""} to ${branch}${msg ? ` — ${msg}` : ""}`,
             };
         }
+        case "PublicEvent":
+            return {
+                id: event.id,
+                timestamp: ts,
+                level: "info",
+                message: `[${repo}] is now public`,
+            };
         case "CreateEvent": {
             const refType = event.payload?.ref_type ?? "branch";
             const ref = event.payload?.ref ?? "";
+
+            // Handle repository creation (ref_type is 'repository')
+            if (refType === "repository") {
+                return {
+                    id: event.id,
+                    timestamp: ts,
+                    level: "success",
+                    message: `[${repo}] created repository`,
+                };
+            }
+
             return {
                 id: event.id,
                 timestamp: ts,
