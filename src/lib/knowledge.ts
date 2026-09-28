@@ -15,9 +15,9 @@ export function serializeKnowledge(): string {
     sections.push("# ACTIVE PROJECTS\n");
     for (const p of projects) {
         sections.push(`## ${p.name} [${p.status}]`);
-        sections.push(p.description);
+        sections.push(p.tagline);
         sections.push(`Tech: ${p.tech.join(", ")}`);
-        sections.push(`Architecture: ${p.architectureSummary}`);
+        sections.push(`Architecture: ${p.approach.join(" ")}`);
         sections.push("");
     }
 

@@ -47,6 +47,7 @@ export function CommandPalette() {
     const commands = useMemo<CommandItem[]>(() => {
         const nav: CommandItem[] = [
             { id: "nav-home", label: "Home", icon: Power, category: "Navigate", action: () => router.push("/"), keywords: ["landing", "boot", "about"] },
+            { id: "nav-projects", label: "Projects", icon: Activity, category: "Navigate", action: () => router.push("/projects"), keywords: ["work", "portfolio", "featured"] },
             { id: "nav-system", label: "System Overview", icon: Activity, category: "Navigate", action: () => router.push("/system"), keywords: ["dashboard", "metrics", "status"] },
             { id: "nav-decisions", label: "Decisions", icon: GitBranch, category: "Navigate", action: () => router.push("/decisions"), keywords: ["adr", "architecture", "tradeoff"] },
             { id: "nav-experiments", label: "Experiments", icon: FlaskConical, category: "Navigate", action: () => router.push("/experiments"), keywords: ["hypothesis", "test", "variant"] },
@@ -58,10 +59,10 @@ export function CommandPalette() {
         const projectCmds: CommandItem[] = projects.map(p => ({
             id: `proj-${p.id}`,
             label: p.name,
-            sublabel: p.status,
+            sublabel: p.tagline,
             icon: Activity,
             category: "Projects",
-            action: () => router.push("/system"),
+            action: () => router.push(`/projects/${p.id}`),
             keywords: [...p.tech.map(t => t.toLowerCase()), p.status],
         }));
 

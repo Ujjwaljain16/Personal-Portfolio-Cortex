@@ -1,184 +1,507 @@
+/**
+ * Portfolio projects.
+ *
+ * Every claim here was checked against the repository itself (code, tests,
+ * result files) — see `evidence[].source` for the file. Where something is
+ * unfinished, unmeasured or planned-only, it is listed under `limitations`
+ * instead of being left out. Numbers without a benchmark behind them are not
+ * quoted.
+ */
+
+export type ProjectTier = "flagship" | "more";
+export type ProjectStatus = "ongoing" | "shipped" | "prototype" | "in-progress";
+
+export interface Evidence {
+    text: string;
+    /** Path inside `repo` (resolved to a GitHub blob link). */
+    source?: string;
+}
+
+export interface ProjectLink {
+    label: string;
+    href: string;
+}
+
 export interface Project {
     id: string;
     name: string;
-    status: "active" | "stable" | "archived" | "in-dev";
-    description: string;
+    tier: ProjectTier;
+    tagline: string;
+    status: ProjectStatus;
+    /** How it came about, stated plainly (hackathon, course, team, personal). */
+    origin: string;
+    period: string;
+    problem: string;
+    approach: string[];
+    evidence: Evidence[];
+    limitations: string[];
     tech: string[];
-    architectureSummary: string;
-    link?: string;
+    /** `owner/name` on GitHub. */
     repo: string;
+    links: ProjectLink[];
 }
 
+export interface AlsoBuilt {
+    name: string;
+    repo: string;
+    line: string;
+}
+
+const gh = (repo: string) => `https://github.com/${repo}`;
+
 export const projects: Project[] = [
+    // ─── Flagship ──────────────────────────────────────────────────────────
     {
-        id: "agentbrake",
-        name: "AgentBrake",
-        status: "active",
-        description:
-            "Safety control plane for AI agents that enforces real-time policy evaluation on tool calls using a transparent MCP proxy.",
-        tech: [
-            "TypeScript",
-            "Node.js",
-            "Docker",
-            "JSON-RPC",
-            "YAML Policy Engine"
+        id: "recoveryos",
+        name: "RecoveryOS",
+        tier: "flagship",
+        tagline: "Recovers failed payments: an LLM may recommend, but only a deterministic policy engine may act.",
+        status: "prototype",
+        origin: "Razorpay Buildathon, Track 03",
+        period: "Aug–Sep 2026",
+        problem:
+            "Failed payments can often be recovered by retrying at the right time and channel, but a wrong retry costs money. The system separates diagnosis from authority: an AI can suggest what to do, but it cannot move money.",
+        approach: [
+            "An LLM investigator diagnoses each failed payment and may recommend an action. A deterministic policy and expected-value engine decides whether that action is allowed.",
+            "An idempotent executor performs the action and replans from the outcome. Work is coordinated with Redis streams and workers on PostgreSQL, with a scheduler lease and reclaim.",
+            "A Next.js dashboard shows a control tower, per-payment replanning, an audit explorer and experiment results.",
         ],
-        architectureSummary:
-            "AI safety control plane designed to enforce real-time policy constraints on agent tool execution. Built around a transparent MCP proxy that intercepts and evaluates JSON-RPC tool calls before forwarding. Includes semantic filtering, budget enforcement, circuit breakers, and human-in-the-loop approvals. Designed to prevent unsafe agent actions while maintaining operational flexibility.",
-        link: "https://github.com/Ujjwaljain16/AgentBrake",
-        repo: "Ujjwaljain16/AgentBrake"
+        evidence: [
+            {
+                text: "Execution is idempotent: an idempotency key plus a PostgreSQL advisory lock, with a unique-constraint backstop. An integration test races two real threads against it.",
+                source: "services/execution_engine/idempotency.py",
+            },
+            {
+                text: "A test walks the syntax tree to prove that execution code cannot reference the AI recommendation.",
+                source: "tests/integration/test_diagnosis_has_no_decision_authority.py",
+            },
+            {
+                text: "Razorpay webhook signatures are verified with HMAC-SHA256 and a constant-time comparison.",
+                source: "integrations/razorpay/webhooks.py",
+            },
+            {
+                text: "555 test functions across unit, integration, evaluation and performance suites, run against real PostgreSQL sessions. CI runs lint, security gates, unit and integration jobs.",
+            },
+            {
+                text: "Multi-seed simulator evaluation over 5 seeds: mean incremental recovery of ₹73,181.78 (95% CI ₹52.9k to ₹93.4k), with the payment-level superset property holding on every seed. A script regenerates the result file.",
+                source: "tests/evaluation/multi_seed_runner.py",
+            },
+        ],
+        limitations: [
+            "Benchmarks run against a simulator I wrote, not real payment traffic.",
+            "Real-model evidence is small: 4 payments and 2 real Gemini recommendations.",
+            "Most of the measured lift comes from the deterministic engine, not the LLM. AI fusion is off by default.",
+            "No live demo (it needs PostgreSQL and Redis). Screenshots are in the repository.",
+        ],
+        tech: ["Python", "FastAPI", "PostgreSQL", "Alembic", "Redis Streams", "Next.js", "Gemini", "Razorpay", "Prometheus", "Docker"],
+        repo: "Ujjwaljain16/RecoveryOS",
+        links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/RecoveryOS") }],
     },
     {
-        id: "ecommerce-backend",
-        name: "E-commerce Backend",
-        status: "in-dev",
-        description:
-            "Distributed microservices backend implementing an event-driven e-commerce system with GraphQL gateway, gRPC services, and Kafka-based workflows.",
-        tech: [
-            "Go",
-            "gRPC",
-            "GraphQL",
-            "Kafka",
-            "PostgreSQL",
-            "Redis",
-            "Elasticsearch",
-            "Kubernetes"
+        id: "minidb",
+        name: "MiniDB",
+        tier: "flagship",
+        tagline: "A relational database built from scratch: B+ tree, buffer pool, SQL, optimizer, locking and crash recovery.",
+        status: "prototype",
+        origin: "Course capstone (two people)",
+        period: "Jun 2026",
+        problem:
+            "Understand how a relational database really works by building the whole stack: storage, indexing, SQL, query optimization, concurrency control and recovery from crashes.",
+        approach: [
+            "Storage: slotted-page heap files, a disk-backed B+ tree (split, merge, borrow, bulk load) and an LRU-K buffer pool.",
+            "Query path: SQL is parsed with sql-parser-cst, then goes through my own binder, a cost-based planner (ANALYZE statistics, EXPLAIN) and Volcano-style plus vectorized executors.",
+            "Transactions: strict two-phase locking with a wait-for-graph deadlock detector, and write-ahead logging with ARIES-style analysis, redo and undo recovery plus checkpoints.",
         ],
-        architectureSummary:
-            "Distributed microservices backend designed to orchestrate commerce workflows through event-driven communication. Built around gRPC services coordinated by a GraphQL gateway and Kafka event streams. Includes Redis caching, Prometheus instrumentation, centralized logging, and containerized deployment across Docker and Kubernetes. Designed to model scalable service boundaries with observable system behavior.",
-        link: "https://github.com/Ujjwaljain16/E-commerce-Backend",
-        repo: "Ujjwaljain16/E-commerce-Backend"
-    },
-    {
-        id: "campussync",
-        name: "CampusSync",
-        status: "active",
-        description:
-            "Multi-tenant credential issuance and verification system for universities and recruiters, built around W3C Verifiable Credentials.",
-        tech: [
-            "Next.js 15",
-            "React 19",
-            "TypeScript",
-            "PostgreSQL",
-            "Supabase",
-            "Gemini 1.5",
-            "Tesseract.js"
+        evidence: [
+            {
+                text: "133 tests in 26 suites pass. They include a crash matrix that simulates failures between a WAL flush and a page flush, a 1,000-operation SQL fuzz test against a reference model, and deadlock tests.",
+                source: "MiniDB_Projects/Team_ARIES_Recovery/tests/integration/crash_matrix.test.ts",
+            },
+            {
+                text: "A 683-line disk-backed B+ tree with split, merge, borrow and bulk-load, and its root persisted through the catalog.",
+                source: "MiniDB_Projects/Team_ARIES_Recovery/src/index/BPlusTree.ts",
+            },
+            {
+                text: "The buffer pool flushes the log up to a page's LSN before writing the page (write-ahead logging), and recovery runs analysis, redo and undo passes.",
+                source: "MiniDB_Projects/Team_ARIES_Recovery/src/recovery/CrashRecovery.ts",
+            },
+            {
+                text: "Lock manager with shared and exclusive modes, FIFO queues and upgrades. The deadlock detector aborts the youngest transaction in a cycle.",
+                source: "MiniDB_Projects/Team_ARIES_Recovery/src/concurrency/LockManager.ts",
+            },
+            {
+                text: "Benchmarks are scripts, not screenshots. The vectorized executor reached about 1.2 to 2.2× over the Volcano one, not the 10× I aimed for, and the benchmark doc explains why.",
+                source: "MiniDB_Projects/Team_ARIES_Recovery/docs/BENCHMARKS.md",
+            },
         ],
-        architectureSummary:
-            "Credential trust infrastructure designed to manage verifiable academic credentials across multiple organizations. Built around a layered SaaS architecture with centralized middleware and database-enforced isolation using Row-Level Security. Includes cryptographic credential issuance, AI-assisted OCR pipelines, and role-based access control. Designed to guarantee data integrity and prevent cross-tenant leakage at scale.",
-        link: "https://github.com/Ujjwaljain16/CampusSync",
-        repo: "Ujjwaljain16/CampusSync"
+        limitations: [
+            "An educational engine, not production software, built with a teammate for a course.",
+            "No MVCC. The catalog file is not protected by the WAL. Recovery does not write compensation log records.",
+            "The real project sits in a nested folder of the repository, so the repo root can be confusing.",
+        ],
+        tech: ["TypeScript", "Node.js", "Jest", "sql-parser-cst"],
+        repo: "Ujjwaljain16/MiniDB",
+        links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/MiniDB") }],
     },
     {
         id: "fuze",
         name: "Fuze",
-        status: "active",
-        description:
-            "AI-driven knowledge intelligence system that transforms saved content into a semantic, project-aware knowledge base with unified recommendation orchestration.",
-        tech: [
-            "Python",
-            "Flask",
-            "React",
-            "PostgreSQL",
-            "pgvector",
-            "Redis",
-            "Gemini API",
-            "SentenceTransformers"
+        tier: "flagship",
+        tagline: "Semantic bookmark manager: pgvector search, a worker pipeline, and recommendations gated by regression tests.",
+        status: "ongoing",
+        origin: "Personal project, ongoing",
+        period: "Jul 2025 – present · 455 commits",
+        problem:
+            "Saved bookmarks and posts pile up across tabs and apps and can't be searched by meaning.",
+        approach: [
+            "RQ workers on Redis extract content and compute 384-dimension MiniLM embeddings, which are stored in PostgreSQL with pgvector.",
+            "Search uses HNSW indexes built concurrently through Alembic migrations and exposed as Postgres search functions. Recommendations are a two-stage pipeline: ANN candidate retrieval, then re-ranking.",
+            "Changes to ranking roll out behind feature flags and shadow evaluation, with a golden-dataset regression test in CI.",
         ],
-        architectureSummary:
-            "AI knowledge intelligence system designed to transform fragmented content into a contextual recommendation engine. Built around semantic embeddings with pgvector and a unified orchestration layer routing across multiple recommendation strategies. Includes multi-layer caching, background processing workers, and encrypted per-user API key management. Designed to deliver low-latency AI insights while maintaining system resilience.",
-        link: "https://github.com/Ujjwaljain16/Fuze",
-        repo: "Ujjwaljain16/Fuze"
-    },
-    {
-        id: "migratedb",
-        name: "migrateDB",
-        status: "stable",
-        description:
-            "TypeScript-first database migration engine with dependency-aware execution, rollback safety, and multi-database support.",
-        tech: [
-            "TypeScript",
-            "Node.js",
-            "CLI",
-            "PostgreSQL",
-            "MySQL",
-            "SQLite"
+        evidence: [
+            {
+                text: "HNSW indexes (m=16, ef_construction=64) built with CREATE INDEX CONCURRENTLY inside an Alembic migration.",
+                source: "backend/alembic/versions/0003_hnsw_indexes.py",
+            },
+            {
+                text: "A golden-set regression test requires NDCG@10 and MRR of at least 0.85 on a small four-query set.",
+                source: "backend/tests/test_golden_dataset_regression.py",
+            },
+            {
+                text: "Reliability primitives: a circuit breaker, a distributed lock, an event and unit-of-work layer, and account lockout.",
+                source: "backend/core/circuit_breaker.py",
+            },
+            {
+                text: "About 207 test functions in 65 files, 7 GitHub Actions workflows, 10 migrations and 6 ADRs.",
+            },
+            {
+                text: "Local benchmark (400 seeded rows, local PostgreSQL, 30 iterations): ANN search p50 0.64 ms and p99 1.02 ms; embedding generation on a cache miss p50 99 ms.",
+            },
         ],
-        architectureSummary:
-            "Developer tooling infrastructure designed to manage database schema evolution safely across environments. Built around dependency-aware migration execution using topological sorting and adapter-based database drivers. Includes checksum verification, transaction safety, environment filtering, and database-level locking. Designed to ensure deterministic migrations with zero runtime overhead.",
-        link: "https://www.npmjs.com/package/@ujjwaljain16/migratedb",
-        repo: "Ujjwaljain16/migratedb"
-    },
-    {
-        id: "sheetsync",
-        name: "SheetSync",
-        status: "stable",
-        description:
-            "Resilient ETL pipeline that converts Google Sheets inputs into ACID-compliant PostgreSQL data streams with automated validation and transactional safety.",
-        tech: [
-            "Node.js",
-            "Express",
-            "PostgreSQL",
-            "Google Apps Script",
-            "Docker",
-            "Joi Validation"
+        limitations: [
+            "The hosted backend on Hugging Face Spaces is paused, so the live frontend cannot complete requests. Run it locally with the Quick Start.",
+            "Some optimisation figures in the repository docs have no benchmark behind them, so they are not repeated here.",
+            "The golden set is only four queries: a regression guard, not a quality claim.",
         ],
-        architectureSummary:
-            "Resilient ETL pipeline designed to convert spreadsheet inputs into ACID-compliant relational data streams. Built around Node.js streaming processors with Apps Script triggers and a centralized API gateway. Includes idempotent writes, transactional inbox patterns, materialized analytics views, and retry-based resilience. Designed to transform unreliable manual data entry into validated, production-safe workflows.",
-        link: "https://github.com/Ujjwaljain16/SheetSync",
-        repo: "Ujjwaljain16/SheetSync"
+        tech: ["Python", "Flask", "PostgreSQL", "pgvector", "Redis", "RQ", "SentenceTransformers", "React", "Alembic", "GitHub Actions"],
+        repo: "Ujjwaljain16/Fuze",
+        links: [
+            { label: "Source on GitHub", href: gh("Ujjwaljain16/Fuze") },
+            { label: "Frontend (backend offline)", href: "https://itsfuze.vercel.app" },
+        ],
     },
     {
         id: "sse-observatory",
         name: "SSE-Observatory",
-        status: "in-dev",
-        description:
-            "Real-time Server-Sent Events debugging tool with advanced filtering, time-travel playback, and proxy-based stream inspection.",
-        tech: [
-            "React",
-            "TypeScript",
-            "Vite",
-            "Tailwind CSS",
-            "EventSource API"
+        tier: "flagship",
+        tagline: "A browser-based debugger for Server-Sent Events: query language, replay, and multi-tab stream sharing.",
+        status: "prototype",
+        origin: "Personal project",
+        period: "Feb–Mar 2026",
+        problem:
+            "Debugging an SSE stream usually means curl and scrolling logs. There is no easy way to filter, correlate or replay a live stream.",
+        approach: [
+            "A SharedWorker multiplexes one SSE connection across browser tabs, with reconnect backoff.",
+            "User-written interceptors run in a sandboxed worker pool with a 100 ms timeout and are terminated if they hang.",
+            "Events are filtered with a recursive-descent query language (AND, OR, parentheses) compiled to closures. A canvas timeline and time-travel playback (seek, step, return to live) support replay.",
+            "An Express proxy handles CORS and auth headers, with an SSRF guard, rate limiting and short-lived one-time tickets.",
         ],
-        architectureSummary:
-            "Real-time stream debugging tool designed to inspect and replay high-volume Server-Sent Event pipelines. Built around an EventSource ingestion layer with a ring-buffer event store and time-travel playback engine. Includes proxy-based authentication handling, query-language filtering, and replayable timelines for deep inspection. Designed to provide visibility and control when debugging asynchronous event systems.",
-        link: "https://github.com/Ujjwaljain16/SSE-Observatory",
-        repo: "Ujjwaljain16/SSE-Observatory"
+        evidence: [
+            {
+                text: "One shared SSE connection per stream across tabs, with reconnect backoff.",
+                source: "src/workers/sharedSSEWorker.ts",
+            },
+            {
+                text: "Interceptors are isolated in workers and killed on timeout.",
+                source: "src/utils/interceptorSandbox.ts",
+            },
+            {
+                text: "Recursive-descent parser that compiles queries into predicate functions.",
+                source: "src/utils/queryParser.ts",
+            },
+            {
+                text: "Server-side SSRF guard (private-IP and hostname checks) and rate limiting in the proxy.",
+                source: "server.js",
+            },
+            {
+                text: "About 103 unit tests plus 18 Playwright end-to-end tests, including reconnect-storm, memory-pressure and worker-death scenarios.",
+            },
+        ],
+        limitations: [
+            "Events are held in a capped array (1,000) rather than a true ring buffer.",
+            "No CI workflow yet.",
+        ],
+        tech: ["TypeScript", "React", "Vite", "Web Workers", "SharedWorker", "IndexedDB", "Express", "Vitest", "Playwright"],
+        repo: "Ujjwaljain16/SSE-Observatory",
+        links: [
+            { label: "Live demo", href: "https://sse-observatory.vercel.app" },
+            { label: "Source on GitHub", href: gh("Ujjwaljain16/SSE-Observatory") },
+        ],
+    },
+
+    // ─── More projects ─────────────────────────────────────────────────────
+    {
+        id: "bhttp-1",
+        name: "BHTTP-1",
+        tier: "more",
+        tagline: "A binary, HTTP-like protocol over persistent TCP, written in Go with a spec, server, client and chaos proxy.",
+        status: "prototype",
+        origin: "Personal project",
+        period: "Sep 2026",
+        problem:
+            "Learn what HTTP does for you by designing a small binary protocol and making its parser survive hostile input.",
+        approach: [
+            "A 12-byte frame header (length, type, flags, stream id) with request, response, data and error frames.",
+            "A reference server (bserve), a client (bcurl), a chaos proxy (bchaos) that splits reads to one byte and injects unknown frames, and independent Python interop clients.",
+        ],
+        evidence: [
+            {
+                text: "Frame length is validated before any allocation, and unknown frame types are skipped by their length.",
+                source: "internal/frame/reader.go",
+            },
+            { text: "Four fuzz targets, and the Go test suite (about 370 test runs) passes." },
+            { text: "Written spec, wire-format document and an annotated hexdump of a real captured exchange." },
+        ],
+        limitations: ["Version 1 handles one request at a time: no multiplexing and no TLS.", "Standard library only; not deployed."],
+        tech: ["Go", "Python", "Docker"],
+        repo: "Ujjwaljain16/BHTTP-1-HTTP-in-Binary",
+        links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/BHTTP-1-HTTP-in-Binary") }],
     },
     {
-        id: "httpserver",
-        name: "HttpServer",
-        status: "stable",
-        description:
-            "Multi-threaded HTTP/1.1 server built from scratch using Python's standard library, focused on concurrency control, security hardening, and observability.",
-        tech: [
-            "Python",
-            "Sockets",
-            "Threading",
-            "HTTP/1.1",
-            "Prometheus Metrics"
+        id: "gitissue",
+        name: "GitIssue",
+        tier: "more",
+        tagline: "Duplicate GitHub issue detection: signed webhooks into Redis Streams into pgvector search.",
+        status: "prototype",
+        origin: "Personal project",
+        period: "Mar 2026 · two days",
+        problem: "Large repositories accumulate duplicate issues. Find likely duplicates when an issue arrives.",
+        approach: [
+            "Webhooks are HMAC-verified and pushed onto a Redis Stream. Workers process them at-least-once and reclaim stalled messages, with a dead-letter stream for failures.",
+            "Issues are embedded (384 dimensions) into PostgreSQL with an HNSW index alongside a full-text index, and scored with semantic, keyword, structural and label signals.",
         ],
-        architectureSummary:
-            "Low-level networking system designed to implement HTTP/1.1 behavior using Python standard libraries. Built around a bounded thread pool with custom request parsing and connection lifecycle management. Includes rate limiting, path validation, structured logging, and Prometheus-compatible metrics exposure. Designed to demonstrate controlled concurrency, security hardening, and observability without external frameworks.",
-        repo: "Ujjwaljain16/HttpServer"
+        evidence: [
+            {
+                text: "Redis Streams consumer groups with XAUTOCLAIM reclaim and a dead-letter stream.",
+                source: "app/queue/redis_stream.py",
+            },
+            { text: "115 tests collected across 20 files, including hybrid scoring, worker processing and webhook signatures." },
+        ],
+        limitations: [
+            "Built in two days. The evaluation set is tiny (20 labels), so I don't quote precision or recall.",
+            "No CI and not deployed.",
+        ],
+        tech: ["Python", "FastAPI", "Redis Streams", "PostgreSQL", "pgvector", "sentence-transformers", "Docker"],
+        repo: "Ujjwaljain16/GitIssue",
+        links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/GitIssue") }],
+    },
+    {
+        id: "lexis-ai",
+        name: "Lexis AI",
+        tier: "more",
+        tagline: "Adaptive learning platform: turns a PDF into a concept graph and a personalised study plan.",
+        status: "prototype",
+        origin: "Team project (4 contributors)",
+        period: "Jun 2026",
+        problem: "Textbooks are linear, but learners aren't. Build a prerequisite graph from a book and plan study around what each learner already knows.",
+        approach: [
+            "A resumable, checkpointed LLM pipeline extracts concepts and relationships from a PDF. PostgreSQL is the source of truth and Neo4j holds the graph projection.",
+            "Cycles in the prerequisite graph are detected with Kahn's algorithm; the curriculum is a topological plan. Mastery uses FSRS spaced repetition.",
+        ],
+        evidence: [
+            { text: "About 78% of the commits are mine; a teammate wrote quiz gating and a landing page, among other parts." },
+            { text: "38 backend tests pass (assessment walk, curriculum planner, FSRS mastery, chunking)." },
+        ],
+        limitations: [
+            "An evaluation harness and nine golden datasets exist, but no results are committed, so I don't claim evaluation numbers.",
+            "No CI, and part of the architecture doc is out of date.",
+        ],
+        tech: ["Python", "FastAPI", "PostgreSQL", "Neo4j", "Gemini", "Next.js", "Docker"],
+        repo: "Ujjwaljain16/GenAI-34",
+        links: [
+            { label: "Live demo", href: "https://gen-ai-34.vercel.app" },
+            { label: "Source on GitHub", href: gh("Ujjwaljain16/GenAI-34") },
+        ],
+    },
+    {
+        id: "agentbrake",
+        name: "AgentBrake",
+        tier: "more",
+        tagline: "A stdio proxy that intercepts an AI agent's MCP tool calls and enforces policies before they run.",
+        status: "shipped",
+        origin: "Personal project, one-day build",
+        period: "Feb 2026",
+        problem: "Agents get tools such as file access and shell. Enforce limits on those calls without modifying the agent.",
+        approach: [
+            "The proxy spawns the MCP server as a child process, parses JSON-RPC on stdin, runs each tool call through a chain of policy classes, then forwards or blocks it.",
+            "Policies are configured in YAML validated with zod: per-tool allow/deny rules on arguments, rate and budget limits.",
+        ],
+        evidence: [
+            {
+                text: "Per-argument regex allow and deny rules, so a tool can be allowed while sensitive paths are blocked.",
+                source: "src/policy/policies/GranularAccessPolicy.ts",
+            },
+            { text: "22 unit tests pass. Published to npm as agentbrake, with rogue-agent attack demos in the repository." },
+        ],
+        limitations: [
+            "Only the allow/block policies and regex argument filtering work end to end.",
+            "The circuit breaker and the human-approval flow are scaffolding: nothing reports failures to the breaker, and approve/deny is not wired to any interface.",
+            "The budget policy counts calls at a flat cost; it does not track tokens or real spend.",
+        ],
+        tech: ["TypeScript", "Node.js", "zod", "Jest", "Docker"],
+        repo: "Ujjwaljain16/AgentBrake",
+        links: [
+            { label: "Source on GitHub", href: gh("Ujjwaljain16/AgentBrake") },
+            { label: "Package on npm", href: "https://www.npmjs.com/package/agentbrake" },
+        ],
+    },
+    {
+        id: "migratedb",
+        name: "migrateDB",
+        tier: "more",
+        tagline: "A TypeScript migration CLI and library with dependency-ordered execution, published to npm.",
+        status: "shipped",
+        origin: "Personal project",
+        period: "Nov–Dec 2025",
+        problem: "Migrations often depend on each other, and file-name order doesn't express that.",
+        approach: [
+            "Migrations declare dependencies with a comment annotation. A depth-first topological sort orders them and detects cycles and missing dependencies.",
+            "A single-row lock table prevents concurrent runs. Migrations are checksummed with SHA-256, can be filtered by environment and run in dry-run mode.",
+        ],
+        evidence: [
+            { text: "Integration tests run against real PostgreSQL through Testcontainers, and CI and release workflows are set up." },
+            { text: "Published to npm as @ujjwaljain16/migratedb (v1.0.1). About 327 downloads over its lifetime." },
+        ],
+        limitations: [
+            "The source repository is currently private; only the npm package is public.",
+            "MySQL and SQLite adapters exist but are not tested. The lock has no stale-lock timeout, so a crashed run needs the lock row deleted by hand.",
+            "Database drivers are peer dependencies that recent npm versions install automatically, so \"zero dependencies\" only describes direct dependencies.",
+        ],
+        tech: ["TypeScript", "Node.js", "PostgreSQL", "MySQL", "SQLite", "Testcontainers"],
+        repo: "Ujjwaljain16/migratedb",
+        links: [{ label: "Package on npm", href: "https://www.npmjs.com/package/@ujjwaljain16/migratedb" }],
+    },
+    {
+        id: "campussync",
+        name: "CampusSync",
+        tier: "more",
+        tagline: "Multi-tenant certificate verification for universities and recruiters.",
+        status: "prototype",
+        origin: "Personal project",
+        period: "Sep–Dec 2025 · 165 commits",
+        problem: "Certificates are checked by hand and are easy to forge, so recruiters can't trust the ones they receive.",
+        approach: [
+            "Students upload certificates; Gemini vision extracts the fields and regular expressions normalise them; faculty approve.",
+            "Approved certificates are issued as signed credentials (RS256 JWS in a W3C-VC-shaped JSON) with revocation and public verification.",
+        ],
+        evidence: [
+            { text: "101 API route files (138 handlers), guarded by role checks." },
+            { text: "About 98 test cases across 6 files, and 8 architecture documents." },
+        ],
+        limitations: [
+            "Credentials are JWT-style, not full W3C proofs, and signing keys are held in memory.",
+            "Tesseract.js is installed but unused; extraction runs on Gemini only.",
+            "The database migrations were removed from the main branch, so the row-level-security policies live only in git history.",
+        ],
+        tech: ["Next.js", "TypeScript", "Supabase", "PostgreSQL", "Gemini", "Vitest"],
+        repo: "Ujjwaljain16/CampusSync",
+        links: [
+            { label: "Live demo", href: "https://campusync1.vercel.app" },
+            { label: "Source on GitHub", href: gh("Ujjwaljain16/CampusSync") },
+        ],
+    },
+    {
+        id: "ecommerce-backend",
+        name: "E-commerce Backend",
+        tier: "more",
+        tagline: "Go microservices over gRPC: three of five planned services are built and tested.",
+        status: "in-progress",
+        origin: "Personal project",
+        period: "Dec 2025 – Jan 2026 · 64 commits",
+        problem: "Practise service boundaries, gRPC and per-service testing by building the pieces of an online store.",
+        approach: [
+            "Account (9 RPCs, bcrypt and JWT), catalog and order services, each with its own PostgreSQL schema and migrations.",
+            "Each service exposes Prometheus metrics through a gRPC interceptor.",
+        ],
+        evidence: [
+            { text: "About 109 test functions, including Testcontainers PostgreSQL integration tests, and CI that runs tests with the race detector." },
+            {
+                text: "The plan for the remaining services is written down.",
+                source: "ROADMAP.md",
+            },
+        ],
+        limitations: [
+            "Payment, notification, the GraphQL gateway, Kafka, Redis, Elasticsearch and Kubernetes are planned, not built.",
+            "The order service trusts client-supplied prices instead of checking the catalog.",
+        ],
+        tech: ["Go", "gRPC", "PostgreSQL", "Prometheus", "Docker", "Testcontainers"],
+        repo: "Ujjwaljain16/E-commerce-Backend",
+        links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/E-commerce-Backend") }],
     },
     {
         id: "spentsmart",
         name: "SpentSmart",
-        status: "active",
-        description:
-            "Privacy-first UPI expense tracker built for the Indian ecosystem with fully local data storage and offline-first architecture.",
-        tech: [
-            "React Native",
-            "Expo",
-            "TypeScript",
-            "UPI Intent API",
-            "Biometric Authentication"
+        tier: "more",
+        tagline: "A privacy-first Android UPI expense tracker with a custom Kotlin native module and no backend.",
+        status: "shipped",
+        origin: "Personal project",
+        period: "Jan–Feb 2026 · 65 commits",
+        problem: "Expense trackers usually read SMS or link bank accounts. Track UPI payments without either, and keep all data on the device.",
+        approach: [
+            "A Kotlin Expo module queries PackageManager for UPI apps and launches them by package, and shares QR images through a FileProvider.",
+            "Data lives in local storage behind an optional biometric lock. A pending-payment flow watches deep links and the clipboard, and asks the user to confirm.",
         ],
-        architectureSummary:
-            "Privacy-first mobile architecture designed to track UPI expenses entirely on-device without cloud dependencies. Built around local-first storage with modular service layers handling analytics, security context, and UPI intent flows. Includes biometric authentication, offline-first state management, and isolated transaction handling. Designed to prioritize user privacy while maintaining responsive mobile performance.",
-        link: "https://github.com/Ujjwaljain16/SpentSmart",
-        repo: "Ujjwaljain16/SpentSmart"
+        evidence: [
+            { text: "Three APK releases (v1.0.0, v2.0.0, v2.01) on GitHub Releases." },
+            { text: "Nine phone screenshots are in the repository README." },
+        ],
+        limitations: [
+            "No automated tests.",
+            "Payment \"verification\" is a time-based confidence heuristic, not real payment status.",
+            "Android only.",
+        ],
+        tech: ["React Native", "Expo", "TypeScript", "Kotlin"],
+        repo: "Ujjwaljain16/SpentSmart",
+        links: [
+            { label: "Releases (APK)", href: "https://github.com/Ujjwaljain16/SpentSmart/releases" },
+            { label: "Source on GitHub", href: gh("Ujjwaljain16/SpentSmart") },
+        ],
     },
 ];
+
+/** Smaller builds: one line each, no detail page. */
+export const alsoBuilt: AlsoBuilt[] = [
+    {
+        name: "TypeAheadX",
+        repo: "Ujjwaljain16/TypeAheadX",
+        line: "Autocomplete service with a consistent-hash ring over three Redis nodes and decayed trending scores. Rebalancing from 3 to 4 nodes moved 26% of keys versus 75% for modulo hashing (from the repo's benchmark script). Course project.",
+    },
+    {
+        name: "NevUpAI",
+        repo: "Ujjwaljain16/NevUpAI",
+        line: "Event-driven trade analytics backend with exactly-once processing on Redis Streams. A k6 write smoke test at 100 virtual users measured p95 of about 27.8 ms. Hackathon build.",
+    },
+    {
+        name: "HttpServer",
+        repo: "Ujjwaljain16/HttpServer",
+        line: "HTTP/1.1 server on raw sockets in Python: a bounded worker pool that returns 503 when saturated, per-IP rate limiting and a Prometheus endpoint. Student project.",
+    },
+];
+
+export const featuredProjects = projects.filter((p) => p.tier === "flagship");
+export const moreProjects = projects.filter((p) => p.tier === "more");
+
+export function getProject(id: string): Project | undefined {
+    return projects.find((p) => p.id === id);
+}
+
+export function sourceUrl(repo: string, path: string): string {
+    return `https://github.com/${repo}/blob/HEAD/${path}`;
+}
+
+export const STATUS_LABEL: Record<ProjectStatus, string> = {
+    ongoing: "ONGOING",
+    shipped: "SHIPPED",
+    prototype: "PROTOTYPE",
+    "in-progress": "IN PROGRESS",
+};

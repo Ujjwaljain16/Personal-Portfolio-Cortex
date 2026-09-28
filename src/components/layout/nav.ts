@@ -4,6 +4,7 @@ import {
     FlaskConical,
     GitBranch,
     Home,
+    Layers,
     MessageSquare,
     Rocket,
     type LucideIcon,
@@ -17,6 +18,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
     { href: "/", label: "home", icon: Home },
+    { href: "/projects", label: "projects", icon: Layers },
     { href: "/system", label: "system", icon: Activity },
     { href: "/decisions", label: "decisions", icon: GitBranch },
     { href: "/experiments", label: "experiments", icon: FlaskConical },

@@ -52,9 +52,12 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var d=localStorage.getItem("pos-darkMode");if(d!==null&&!JSON.parse(d)){document.documentElement.classList.add("light")}}catch(e){}})();`,
+            __html: `(function(){var r=document.documentElement;try{var d=localStorage.getItem("pos-darkMode");if(d!==null&&!JSON.parse(d)){r.classList.add("light")}}catch(e){}try{if(localStorage.getItem("pos-booted-v3")||window.matchMedia("(prefers-reduced-motion: reduce)").matches){r.dataset.boot="skip"}}catch(e){}})();`,
           }}
         />
+        <noscript>
+          <style>{`.boot-overlay{display:none}`}</style>
+        </noscript>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
