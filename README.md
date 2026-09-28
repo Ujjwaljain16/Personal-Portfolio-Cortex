@@ -1,120 +1,74 @@
 # CORTEX
 
-> Engineering Portfolio • Control Plane Interface • System Thinking
+The source of my engineering portfolio: <https://ujjwaljain.vercel.app>
 
-CORTEX is my engineering portfolio designed as a live system dashboard instead of a traditional project showcase.
+It is built as a small "control plane" interface, but the content is the point. Every project claim, decision and
+measurement on the site was checked against the repository it came from, and where something is unfinished, unmeasured or
+was later found to be wrong, the site says so.
 
-It presents my work the way I naturally think about software:  
-as **connected systems**, evolving decisions, and observable engineering signals.
+## What is on the site
 
-This is not a list of projects.  
-It is a **control plane for my engineering identity**.
-
----
-
-## What You’re Looking At
-
-CORTEX visualizes my engineering ecosystem through a monitoring-style interface:
-
-- Active systems and current focus
-- Architecture decisions and tradeoffs
-- Experiments and prototypes
-- Deployment and shipping signals
-- Deep technical writing
-
-Every module represents a layer of how I build, think, and iterate.
-
----
-
-## Core Modules
-
-| Module | Description |
-|--------|-------------|
-| `/system` | High-level portfolio overview and live engineering signals |
-| `/decisions` | Architecture Decision Records and reasoning |
-| `/experiments` | Exploration, research, and iteration history |
-| `/deployments` | Shipping activity and production velocity |
-| `/blogs` | Technical breakdowns and retrospectives |
-| `/ask` | Context-aware AI trained on my engineering patterns |
-
----
-
-## Philosophy
-
-**Portfolio as Infrastructure**  
-My work is shown as a system, not a slideshow.
-
-**Signal Over Presentation**  
-Focus on engineering clarity rather than visual noise.
-
-**Context First**  
-High-level insight upfront, deep technical layers on demand.
-
-**Built Like Production Software**  
-Strong typing, structured data, predictable architecture.
-
----
+| Route | What it shows |
+| --- | --- |
+| `/` | Summary, lessons from projects that went wrong, open-source work |
+| `/projects`, `/projects/[id]` | Projects with the problem, approach, evidence (linked to files) and limitations |
+| `/decisions` | Decision records: context, alternatives, what happened, how each was checked |
+| `/investigations` | Benchmarks and root-cause analyses with method, result and the source of every number |
+| `/deployments` | What is published and where, linked to the related records |
+| `/blogs`, `/blogs/[slug]` | Technical write-ups (Markdown) with published and updated dates |
+| `/system` | Live GitHub activity (public data only; revalidated every 10 minutes) |
+| `/ask` | Chat over the engineering record, backed by Gemini and a public-repository knowledge source |
+| `/experiments` | Redirects to `/investigations` |
 
 ## Stack
 
-**Frontend**
-- Next.js 15
-- TypeScript (strict)
-- TailwindCSS
-- Framer Motion
-- Lucide Icons
+Next.js 16 (App Router, React Server Components, React Compiler), React 19, TypeScript in strict mode, Tailwind CSS 4,
+framer-motion, `react-markdown`, the Vercel AI SDK with Gemini for `/api/ask`. There is no database: all content is typed
+data in `src/data`, validated at build time.
 
-**State & Content**
-- Zustand global state
-- Markdown-driven content
-- Zod schema validation
-
-**Intelligence**
-- Lightweight RAG-style context injection
-- Structured knowledge modeling
-
----
-
-## Run Locally
+## Run it
 
 ```bash
-npm install
+npm ci
+cp .env.example .env.local   # every variable is optional except for /ask
 npm run dev
-npm run build
-npm start
 ```
----
 
-**Why This Exists**
+| Command | Purpose |
+| --- | --- |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint |
+| `npm run validate:data` | Checks projects, records, posts and links (needs Node 22.18+) |
+| `npm run build` | Production build |
 
-Traditional portfolios show outcomes.
-CORTEX shows systems in motion how decisions evolve, how projects connect, and how engineering actually happens behind the scenes.
+CI (`.github/workflows/ci.yml`) runs typecheck, lint, data validation, the build and a scan for credentials in the build
+output.
 
-The interface is the documentation.
+## Environment variables
 
----
+| Variable | Used by | Notes |
+| --- | --- | --- |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | `/api/ask` | Server only |
+| `DEVIN_API_KEY` | `/api/ask` | Server only; retrieval over four public repositories |
+| `GITHUB_TOKEN` | `/system` | Optional; a token with no permissions, only to raise the rate limit |
 
-## Design Principles
+Nothing is prefixed with `NEXT_PUBLIC_`, so no secret can reach the client bundle.
 
-- **Systems Thinking**  
-  Every project is part of a larger engineering graph, not an isolated build.
+## How the content is kept honest
 
-- **Observability First**  
-  Status, evolution, and intent are visible at a glance.
+- `src/data/projects.ts`, `records.ts`, `openSource.ts` and `blogPosts.ts` are the only sources of content.
+- `scripts/validate-data.mjs` fails CI on missing fields, evidence links to hosts that are not allowed, records
+  without at least two pieces of evidence, or dates that do not parse.
+- Decision and investigation records say whether the reasoning was written down at the time or reconstructed from history,
+  and whether the numbers were measured or reproduced.
+- Where a project used an AI coding assistant, the project page says so.
 
-- **Minimal Noise**  
-  Information density is intentional. Nothing exists without purpose.
+## `/api/ask`
 
-- **Built With Intent**  
-  Even as a portfolio, CORTEX follows production-grade engineering practices.
+A POST endpoint that streams a Gemini answer. Requests are limited to 32 KB, 24 messages and 500 characters per question,
+and rate limited per IP and globally (in memory, so per server instance). Only the text of user messages is used. Retrieval
+runs over an allowlist of public repositories, and the answer is required to cite its sources or say it has no data.
 
----
+## Layout
 
-## Notes
-
-CORTEX is a personal project and an evolving interface.  
-Modules, signals, and architecture will continue to grow alongside my engineering journey.
-
----
-
-> Built to reflect how I think, not just what I build.
+See [ARCHITECTURE.md](ARCHITECTURE.md).

@@ -18,9 +18,7 @@ import {
     ArrowRight,
     Command,
 } from "lucide-react";
-import { decisions, investigations } from "@/data/records";
-import { projects } from "@/data/projects";
-import { BLOG_POSTS } from "@/data/blogPosts";
+import type { SearchEntry } from "@/lib/searchIndex";
 
 export const PALETTE_EVENT = "cortex:palette";
 
@@ -40,7 +38,14 @@ interface CommandItem {
  * a listbox; the active option is exposed through aria-activedescendant, focus
  * stays in the input, Escape closes, and focus returns to whatever opened it.
  */
-export function CommandPalette() {
+const CATEGORY_ICON: Record<SearchEntry["category"], React.ElementType> = {
+    Projects: Layers,
+    Writing: BookOpen,
+    Decisions: GitBranch,
+    Investigations: FlaskConical,
+};
+
+export function CommandPalette({ entries }: { entries: SearchEntry[] }) {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -80,44 +85,14 @@ export function CommandPalette() {
             { id: "nav-ask", label: "Ask", icon: MessageSquare, category: "Navigate", action: go("/ask"), keywords: ["chat", "ai", "question"] },
         ];
 
-        const projectCmds: CommandItem[] = projects.map((p) => ({
-            id: `proj-${p.id}`,
-            label: p.name,
-            sublabel: p.tagline,
-            icon: Layers,
-            category: "Projects",
-            action: go(`/projects/${p.id}`),
-            keywords: [...p.tech.map((t) => t.toLowerCase()), p.status],
-        }));
-
-        const postCmds: CommandItem[] = BLOG_POSTS.map((post) => ({
-            id: `post-${post.slug}`,
-            label: post.title,
-            sublabel: post.date,
-            icon: BookOpen,
-            category: "Writing",
-            action: go(`/blogs/${post.slug}`),
-            keywords: post.tags.map((t) => t.toLowerCase()),
-        }));
-
-        const decisionCmds: CommandItem[] = decisions.map((d) => ({
-            id: `dec-${d.id}`,
-            label: d.title,
-            sublabel: d.project,
-            icon: GitBranch,
-            category: "Decisions",
-            action: go(`/decisions#${d.id}`),
-            keywords: [d.project.toLowerCase(), d.status ?? ""],
-        }));
-
-        const investigationCmds: CommandItem[] = investigations.map((e) => ({
-            id: `inv-${e.id}`,
-            label: e.title,
-            sublabel: e.project,
-            icon: FlaskConical,
-            category: "Investigations",
-            action: go(`/investigations#${e.id}`),
-            keywords: [e.project.toLowerCase(), e.verdict ?? ""],
+        const contentCmds: CommandItem[] = entries.map((e) => ({
+            id: e.id,
+            label: e.label,
+            sublabel: e.sublabel,
+            icon: CATEGORY_ICON[e.category],
+            category: e.category,
+            action: go(e.href),
+            keywords: e.keywords,
         }));
 
         const actions: CommandItem[] = [
@@ -125,8 +100,8 @@ export function CommandPalette() {
             { id: "act-github", label: "Open GitHub profile", icon: ArrowRight, category: "Actions", action: () => window.open("https://github.com/Ujjwaljain16", "_blank", "noopener"), keywords: ["code", "repo"] },
         ];
 
-        return [...nav, ...projectCmds, ...postCmds, ...decisionCmds, ...investigationCmds, ...actions];
-    }, [router]);
+        return [...nav, ...contentCmds, ...actions];
+    }, [router, entries]);
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();

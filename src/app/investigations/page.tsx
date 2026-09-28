@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { RecordsBrowser } from "@/components/records/RecordsBrowser";
+import { RecordCard } from "@/components/records/RecordCard";
+import { toListItem } from "@/components/records/toListItem";
 import { investigations } from "@/data/records";
 import { pageMetadata } from "@/lib/seo";
 
@@ -27,7 +29,7 @@ export default function InvestigationsPage() {
                     .
                 </p>
             </header>
-            <RecordsBrowser records={investigations} />
+            <RecordsBrowser records={investigations.map((r) => toListItem(r, <RecordCard record={r} />))} />
         </div>
     );
 }

@@ -1,9 +1,7 @@
-"use client";
-
-import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { EngineeringRecord, EvidenceType } from "@/data/records";
+import { RecordDeepLink } from "@/components/records/RecordDeepLink";
 
 const OUTCOME: Record<string, { label: string; className: string }> = {
     adopted: { label: "ADOPTED", className: "text-(--success)" },
@@ -41,25 +39,12 @@ function formatDate(iso: string) {
 }
 
 export function RecordCard({ record }: { record: EngineeringRecord }) {
-    const ref = useRef<HTMLDetailsElement>(null);
     const outcome = OUTCOME[record.kind === "decision" ? (record.status ?? "adopted") : (record.verdict ?? "inconclusive")];
-
-    // Deep links: /decisions#some-id opens and scrolls to that record.
-    useEffect(() => {
-        function openIfLinked() {
-            if (window.location.hash === `#${record.id}` && ref.current) {
-                ref.current.open = true;
-                ref.current.scrollIntoView({ block: "start" });
-            }
-        }
-        openIfLinked();
-        window.addEventListener("hashchange", openIfLinked);
-        return () => window.removeEventListener("hashchange", openIfLinked);
-    }, [record.id]);
 
     return (
         <article id={record.id} className="scroll-mt-4">
-            <details ref={ref} className="disclosure surface-1">
+            <RecordDeepLink id={record.id} />
+            <details className="disclosure surface-1">
                 <summary className="p-4">
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                         <div className="min-w-0">

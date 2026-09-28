@@ -1,72 +1,65 @@
-# ARCHITECTURE // CORTEX v2.0
+# Architecture
 
-> **System Design & Component Overview**
+## Shape of the app
 
-## 1. Design Philosophy
-
-CORTEX is designed as a **Single Page Application (SPA) hybrid**, leveraging Next.js App Router for server-side optimization while maintaining a persistent, app-like state on the client.
-
-The core architectural goal is **"Fluid Context"**—the ability to traverse between different domains (Architecture, Decisions, Code) without losing the user's mental model of the system.
-
-## 2. Tech Stack
-
--   **Runtime:** Node.js (Next.js 15)
--   **Language:** TypeScript (Strict Mode)
--   **UI Engine:** React 19 + Framer Motion
--   **State Management:** Zustand
--   **Styling:** TailwindCSS (Utility-first)
-
-## 3. Core Components
-
-### 3.1. The Shell (`layout.tsx`)
-The application shell enforces the "OS" metaphor. It persists across route transitions and manages global concerns:
--   **Sidebar:** Main navigation rail.
--   **ContextPanel:** Dynamic right-rail that changes content based on the active route and hover interactions.
--   **StatusBar:** Real-time health signals (simulated or real).
-
-### 3.2. Context Engine (`ContextPanel.tsx`)
-A unique pattern where the active route *injects* content into the global context panel.
--   **Mechanism:** Components use `useSystemStore` to set `contextPanelContent` on mount or hover.
--   **Benefit:** Decouples the main view (list of items) from the detail view (context panel), allowing for a high-density "master-detail" interface without easy-to-miss modals.
-
-### 3.3. Boot Sequence (`BootSequence.tsx`)
-A purely aesthetic but functionally important flow that sets the "Engineering Terminal" tone.
--   Uses `localStorage` to persist boot state (preventing repetitive animations).
--   Wraps the entire application children.
-
-## 4. Data Architecture
-
-Data is treated as **Static Knowledge**, co-located with the code.
-
--   **`src/data/`**: Source of truth for all modules.
-    -   `decisions.ts`: ADRs (Architecture Decision Records).
-    -   `experiments.ts`: Hypothesis and results.
-    -   `deployments.ts`: Release log.
-    -   `blogPosts.ts`: Technical articles.
-
-*Why not a database?*
-For this scale, a database adds latency and complexity. TypeScript files provide instant compilation-time validation and zero-latency reads.
-
-## 5. Intelligent Simulation (`/ask`)
-
-The "CTO Simulation" features a lightweight RAG (Retrieval-Augmented Generation) system.
-
--   **`knowledge.ts`**: A flattened, token-optimized text representation of the entire system's state (projects, decisions, philosophy).
--   **Prompt Engineering:** The system prompt instructs the LLM to roleplay as the specific engineer (Ujjwal), using *only* the provided context and refusing to hallucinate.
-
-## 6. Directory Structure
+A static-first Next.js App Router site. Almost every page is a server component rendered at build time; the only dynamic
+route is `/api/ask`, and `/system` is incremental (revalidated every 10 minutes). There is no database and no client state
+library.
 
 ```
 src/
-├── app/                 # Next.js App Router pages
-├── components/          # React components
-│   ├── layout/          # Shell (Sidebar, ContextPanel)
-│   ├── landing/         # Boot & Home
-│   ├── system/          # Architecture viz
-│   ├── decisions/       # ADR list & detail
-│   ├── experiments/     # Metrics & charts
-│   └── deployments/     # Release timeline
-├── data/                # Static data (The "Database")
-├── lib/                 # Utilities, hooks, stores
-└── styles/              # Global CSS & Tailwind config
+  app/            routes, metadata, sitemap, robots, Open Graph image
+    api/ask/      streaming chat endpoint
+  components/
+    layout/       shell, sidebar, mobile nav, command palette
+    records/      decision and investigation cards and filters
+    projects/ deployments/ home/ system/ ask/ landing/
+  data/           typed content: projects, records, posts, deployments, open source
+  lib/            seo helpers, GitHub client (server only), rate limiter, search index
+scripts/          validate-data.mjs (runs in CI)
 ```
+
+## Content is data
+
+Everything shown on the site comes from typed modules in `src/data`. `scripts/validate-data.mjs` imports them (Node type
+stripping) and fails the build on structural problems: required fields, evidence hosts, minimum evidence per record,
+resolvable related-record ids and date formats.
+
+`records.ts` holds the decisions and investigations. It was generated once from verified research and is now edited by
+hand; each record carries its evidence links, how it was checked, whether its reasoning was `recorded` or `reconstructed`,
+and, for investigations, the numbers with their sources.
+
+## Rendering and bundle rules
+
+- Record cards are server components. Only the filter bar (`RecordsBrowser`) and a tiny deep-link helper
+  (`RecordDeepLink`) are client components, and they receive the rendered cards as children, so record text never enters
+  the client bundle.
+- The command palette is mounted on every page. It receives a slim index (`lib/searchIndex.ts`, built in `layout.tsx`)
+  instead of importing the full data, which keeps the shared bundle small.
+- `react-markdown` and the AI SDK are only needed by `/ask`, so they load only there.
+- Fonts are self-hosted through `next/font` (Geist for text, JetBrains Mono for code and labels).
+- Heavy pages (`/decisions`, `/investigations`) render every record collapsed inside `<details>`, so they work without
+  JavaScript. The cost is page size, about 140 KB and 95 KB gzipped.
+
+## Accessibility
+
+Skip link and focus target for `<main>`; native `<details>` for disclosures; the command palette is a modal dialog with a
+combobox and listbox, focus is trapped while open and restored on close; framer-motion honours `prefers-reduced-motion`
+through `MotionConfig`; colour tokens were checked with axe in both themes.
+
+## SEO
+
+`lib/seo.ts` builds page metadata (canonical URL, Open Graph, Twitter) and JSON-LD (Person, Article). `sitemap.ts` lists
+static routes, projects and posts; `robots.ts` disallows `/api/`.
+
+## `/api/ask`
+
+Validates the body (size, message count, question length), rate limits by IP and globally, keeps only user text, retrieves
+context through the Devin MCP `ask_wiki_question` tool over an allowlist of public repositories, and streams a Gemini answer
+that must cite its sources or say it has no data. Secrets are read server side only.
+
+## Known limits
+
+- The rate limiter is in memory, so limits are per server instance.
+- `/ask` retrieval covers four repositories; newer projects are not in its allowlist yet.
+- Records were verified when they were written; a later change in a source repository is not detected automatically.

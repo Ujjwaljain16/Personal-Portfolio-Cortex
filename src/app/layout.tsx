@@ -1,17 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { SITE_URL } from "@/lib/site";
 import { DEFAULT_DESCRIPTION, SITE_NAME } from "@/lib/seo";
 import { LayoutShell } from "@/components/layout/LayoutShell";
+import { buildSearchIndex } from "@/lib/searchIndex";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
 });
 
@@ -64,9 +65,9 @@ export default function RootLayout({
         </noscript>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <LayoutShell>{children}</LayoutShell>
+        <LayoutShell searchEntries={buildSearchIndex()}>{children}</LayoutShell>
       </body>
     </html>
   );

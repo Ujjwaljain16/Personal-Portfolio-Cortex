@@ -5,6 +5,7 @@ import { MotionConfig } from "framer-motion";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { CommandPalette } from "@/components/layout/CommandPalette";
+import type { SearchEntry } from "@/lib/searchIndex";
 
 const SkipLink = () => (
     <a href="#main" className="skip-link">
@@ -12,7 +13,7 @@ const SkipLink = () => (
     </a>
 );
 
-export function LayoutShell({ children }: { children: React.ReactNode }) {
+export function LayoutShell({ children, searchEntries }: { children: React.ReactNode; searchEntries: SearchEntry[] }) {
     const pathname = usePathname();
     const isHome = pathname === "/";
 
@@ -24,7 +25,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
             {isHome ? (
                 // The home page renders its own <main id="main">.
                 <div className="boot-fullscreen">
-                    <CommandPalette />
+                    <CommandPalette entries={searchEntries} />
                     {children}
                 </div>
             ) : (
@@ -36,7 +37,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
                     <main id="main" tabIndex={-1} className="main-panel">
                         {children}
                     </main>
-                    <CommandPalette />
+                    <CommandPalette entries={searchEntries} />
                 </div>
             )}
         </MotionConfig>

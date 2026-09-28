@@ -1,8 +1,6 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { RecordCard } from "@/components/records/RecordCard";
-import type { EngineeringRecord } from "@/data/records";
 
 const ALL = "all";
 
@@ -40,9 +38,20 @@ function FilterSelect({
     );
 }
 
-const outcomeOf = (r: EngineeringRecord) => (r.kind === "decision" ? r.status : r.verdict) ?? "adopted";
+/**
+ * One entry per record: only the fields the filters need, plus the card,
+ * which is rendered on the server. The record text itself never enters the
+ * client bundle.
+ */
+export interface RecordListItem {
+    id: string;
+    project: string;
+    outcome: string;
+    provenance: string;
+    card: React.ReactNode;
+}
 
-export function RecordsBrowser({ records }: { records: EngineeringRecord[] }) {
+export function RecordsBrowser({ records }: { records: RecordListItem[] }) {
     const [project, setProject] = useState(ALL);
     const [outcome, setOutcome] = useState(ALL);
     const [provenance, setProvenance] = useState(ALL);
@@ -50,7 +59,7 @@ export function RecordsBrowser({ records }: { records: EngineeringRecord[] }) {
     const options = useMemo(
         () => ({
             projects: [...new Set(records.map((r) => r.project))].sort().map((v) => ({ value: v, label: v })),
-            outcomes: [...new Set(records.map(outcomeOf))].sort().map((v) => ({ value: v, label: v })),
+            outcomes: [...new Set(records.map((r) => r.outcome))].sort().map((v) => ({ value: v, label: v })),
         }),
         [records]
     );
@@ -60,7 +69,7 @@ export function RecordsBrowser({ records }: { records: EngineeringRecord[] }) {
             records.filter(
                 (r) =>
                     (project === ALL || r.project === project) &&
-                    (outcome === ALL || outcomeOf(r) === outcome) &&
+                    (outcome === ALL || r.outcome === outcome) &&
                     (provenance === ALL || r.provenance === provenance)
             ),
         [records, project, outcome, provenance]
@@ -97,7 +106,7 @@ export function RecordsBrowser({ records }: { records: EngineeringRecord[] }) {
                 <ol className="space-y-3">
                     {visible.map((r) => (
                         <li key={r.id}>
-                            <RecordCard record={r} />
+                            {r.card}
                         </li>
                     ))}
                 </ol>
