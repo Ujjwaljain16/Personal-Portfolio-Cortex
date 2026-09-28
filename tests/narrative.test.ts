@@ -4,6 +4,7 @@ import { records, getRecord } from "@/data/records";
 import { diagrams } from "@/data/diagrams";
 import { charts } from "@/data/charts";
 import { nowItems, nowUpdated } from "@/data/now";
+import { mergedPRs, openPRs } from "@/data/openSource";
 import { takeaway } from "@/components/projects/RelatedRecords";
 import { pageMetadata } from "@/lib/seo";
 
@@ -64,7 +65,7 @@ describe("Now section", () => {
         expect(nowUpdated).toMatch(/^\d{4}-\d{2}-\d{2}$/);
         expect(nowItems.length).toBeGreaterThan(0);
         for (const item of nowItems) {
-            if (/^https:\/\//.test(item.href)) continue;
+            if (!item.href || /^https:\/\//.test(item.href)) continue;
             const [path, anchor] = item.href.split("#");
             if (path.startsWith("/projects/")) expect(projectIds.has(path.split("/")[2]), item.href).toBe(true);
             if (anchor) expect(getRecord(anchor), item.href).toBeDefined();
@@ -87,5 +88,20 @@ describe("pageMetadata with its own image", () => {
         const meta = pageMetadata({ title: "X", description: "d", path: "/x", ownImage: true });
         expect(meta.openGraph).not.toHaveProperty("images");
         expect(meta.twitter).not.toHaveProperty("images");
+    });
+});
+
+describe("Now section and open pull requests", () => {
+    it("lists every open pull request from the open-source data", () => {
+        for (const pr of openPRs) expect(nowItems.some((i) => i.href === pr.url), pr.url).toBe(true);
+    });
+
+    it("links only to public places: no private repositories", () => {
+        for (const item of nowItems) expect(item.href ?? "", item.text).not.toMatch(/OSS-Hunter/i);
+    });
+
+    it("keeps open pull requests distinct from merged ones", () => {
+        const merged = new Set(mergedPRs.map((p) => p.url));
+        for (const pr of openPRs) expect(merged.has(pr.url), pr.url).toBe(false);
     });
 });

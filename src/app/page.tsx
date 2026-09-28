@@ -6,7 +6,7 @@ import { Now } from "@/components/home/Now";
 import { ProjectCard } from "@/components/system/ProjectCard";
 import { BLOG_POSTS } from "@/data/blogPosts";
 import { featuredProjects, projects } from "@/data/projects";
-import { countByProject, inReview, mergedPRs } from "@/data/openSource";
+import { countByProject, mergedPRs, openPRs } from "@/data/openSource";
 import { formatDate } from "@/lib/utils";
 import { jsonLd, personJsonLd } from "@/lib/seo";
 
@@ -177,18 +177,24 @@ export default function HomePage() {
                                 </li>
                             ))}
                         </ul>
-                        <p className="text-[14px] text-(--text-secondary)">
-                            <span className="font-mono text-(--text-muted)">In review: </span>
-                            <a
-                                href={inReview.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-(--accent-primary) hover:underline"
-                            >
-                                {inReview.project} #{inReview.number}, {inReview.title} ↗
-                            </a>
-                            . {inReview.note}
-                        </p>
+                        <div className="space-y-2 text-[14px] text-(--text-secondary)">
+                            <p className="font-mono text-(--text-muted)">Open now</p>
+                            <ul className="space-y-2">
+                                {openPRs.map((pr) => (
+                                    <li key={pr.url}>
+                                        <a
+                                            href={pr.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-(--accent-primary) hover:underline"
+                                        >
+                                            {pr.project} #{pr.number}, {pr.title} ↗
+                                        </a>
+                                        . {pr.note}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     </section>
 
                     {/* Lessons */}

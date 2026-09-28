@@ -18,7 +18,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const strict = process.argv.includes("--strict");
 
 const { projects, alsoBuilt } = await import("../src/data/projects.ts");
-const { mergedPRs, inReview } = await import("../src/data/openSource.ts");
+const { mergedPRs, openPRs } = await import("../src/data/openSource.ts");
 const { deployments } = await import("../src/data/deployments.ts");
 const { BLOG_POSTS } = await import("../src/data/blogPosts.ts");
 const { records } = await import("../src/data/records.ts");
@@ -81,7 +81,7 @@ const knownNames = new Set([...projects.map((p) => p.name), ...alsoBuilt.map((a)
 // ─── Open source ─────────────────────────────────────────────
 unique(mergedPRs, "url", "openSource");
 const today = new Date().toISOString().slice(0, 10);
-for (const pr of [...mergedPRs, inReview]) {
+for (const pr of [...mergedPRs, ...openPRs]) {
     const w = `openSource[${pr.project}#${pr.number}]`;
     const m = /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)$/.exec(pr.url);
     if (!m) err(w, `url "${pr.url}" is not a GitHub pull request`);

@@ -112,13 +112,38 @@ export const mergedPRs: MergedPR[] = [
     },
 ];
 
-export const inReview = {
-    project: "Vitest",
-    number: 9662,
-    title: "Add mergeTests utility to compose TestAPI fixtures",
-    note: "Open. The maintainer has requested changes to the tests.",
-    url: "https://github.com/vitest-dev/vitest/pull/9662",
-};
+/** Pull requests that are open right now. Move one to `mergedPRs` (with its merge date) when it lands. */
+export interface OpenPR {
+    project: string;
+    number: number;
+    title: string;
+    note: string;
+    url: string;
+}
+
+export const openPRs: OpenPR[] = [
+    {
+        project: "Apache Superset",
+        number: 43985,
+        title: "Vary SQL Lab ad-hoc query cache key by effective RLS predicates",
+        note: "Open and approved by a reviewer; not merged yet.",
+        url: "https://github.com/apache/superset/pull/43985",
+    },
+    {
+        project: "Apache Superset",
+        number: 44248,
+        title: "Fall back to the lean Dockerfile target when publishing a pre-#44100 release",
+        note: "Open and approved by a reviewer; not merged yet.",
+        url: "https://github.com/apache/superset/pull/44248",
+    },
+    {
+        project: "Vitest",
+        number: 9662,
+        title: "Add mergeTests utility to compose TestAPI fixtures",
+        note: "Open. The maintainer has requested changes to the tests.",
+        url: "https://github.com/vitest-dev/vitest/pull/9662",
+    },
+];
 
 export function countByProject(): { project: string; count: number }[] {
     const counts = new Map<string, number>();
