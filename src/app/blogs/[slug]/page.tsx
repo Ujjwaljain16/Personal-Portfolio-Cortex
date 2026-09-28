@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import Link from "next/link";
 import { BLOG_POSTS } from "@/data/blogPosts";
@@ -13,7 +13,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;
     const post = BLOG_POSTS.find((p) => p.slug === slug);
-    if (!post) return {};
+    if (!post || post.migratedTo) return {};
     return pageMetadata({
         title: post.title,
         description: post.excerpt,
@@ -30,6 +30,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     const { slug } = await params;
     const post = BLOG_POSTS.find((p) => p.slug === slug);
     if (!post) notFound();
+    // This post's home moved to Medium; the archived `content` below is never rendered.
+    if (post.migratedTo) permanentRedirect(post.migratedTo);
 
     return (
         <div className="max-w-3xl pb-10">

@@ -24,7 +24,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: p.tier === "flagship" ? 0.8 : 0.6,
     }));
 
-    const postPages: MetadataRoute.Sitemap = BLOG_POSTS.map((post) => ({
+    // A post that redirects to Medium is not a page of this site's own, so it is left out.
+    const postPages: MetadataRoute.Sitemap = BLOG_POSTS.filter((post) => !post.migratedTo).map((post) => ({
         url: `${SITE_URL}/blogs/${post.slug}`,
         lastModified: post.updated ?? post.published,
         priority: 0.6,

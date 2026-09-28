@@ -7,7 +7,8 @@ export const size = OG_SIZE;
 export const contentType = "image/png";
 
 export function generateStaticParams() {
-    return BLOG_POSTS.map((p) => ({ slug: p.slug }));
+    // A migrated post's page redirects to Medium and never references this image.
+    return BLOG_POSTS.filter((p) => !p.migratedTo).map((p) => ({ slug: p.slug }));
 }
 
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {

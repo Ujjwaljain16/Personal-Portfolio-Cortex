@@ -8,6 +8,12 @@ export interface BlogPost {
   excerpt: string;
   tags: string[];
   content: string; // Raw markdown-like content
+  /**
+   * Set once this post's home moves to Medium. /blogs/<slug> then redirects there instead
+   * of rendering `content`, and the writing index links out to it directly. `content` is
+   * kept as an archive, not shown anywhere.
+   */
+  migratedTo?: string;
 }
 
 export const BLOG_POSTS: BlogPost[] = [
@@ -125,6 +131,7 @@ AgentBrake is a control point outside the agent rather than a monitoring tool. T
     published: "2026-02-19",
     updated: "2026-09-28",
     readTime: "10 min read",
+    migratedTo: "https://medium.com/@jainujjwal1609/the-idea-fit-in-20-lines-making-it-correct-took-over-200-982e44dff61b",
     excerpt: "What building a small utility taught me about the difference between algorithmic complexity and integration complexity and why the second one is harder.",
     tags: ["JavaScript", "Vitest", "Software Development", "Testing", "TypeScript"],
     content: `
@@ -357,6 +364,8 @@ Good engineering isn’t about how much you can change. It’s about how little 
     date: "Feb 15, 2026",
     published: "2026-02-15",
     readTime: "4 min read",
+    migratedTo:
+      "https://medium.com/@jainujjwal1609/when-turned-into-%C3%B0-a-deep-dive-into-base64-unicode-and-a-silent-javascript-bug-85be48bec797",
     excerpt: "Recently, I ran into a strange bug where emojis like 👍 were showing up as corrupted characters in stack traces. This is a deep dive into how JavaScript's atob() handles Base64, Unicode, and the difference between binary strings and text.",
     tags: ["JavaScript", "Unicode", "Debugging", "Web Development", "Programming"],
     content: `

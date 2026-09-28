@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FileDown, Github, Linkedin, Mail } from "lucide-react";
+import { ArrowRight, ArrowUpRight, FileDown, Github, Linkedin, Mail } from "lucide-react";
 import { BootOverlay } from "@/components/landing/BootSequence";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { Now } from "@/components/home/Now";
@@ -233,14 +233,33 @@ export default function HomePage() {
                             {posts.map((post) => (
                                 <li key={post.slug}>
                                     <article className="group relative surface-1 p-5 h-full hover:border-(--border-hover) transition-colors">
-                                        <h3 className="text-[16px] font-semibold text-foreground group-hover:text-(--accent-primary)">
-                                            <Link
-                                                href={`/blogs/${post.slug}`}
-                                                className="after:absolute after:inset-0 after:content-['']"
-                                            >
-                                                {post.title}
-                                            </Link>
-                                        </h3>
+                                        <div className="flex items-start justify-between gap-3">
+                                            <h3 className="text-[16px] font-semibold text-foreground group-hover:text-(--accent-primary)">
+                                                {post.migratedTo ? (
+                                                    <a
+                                                        href={post.migratedTo}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="after:absolute after:inset-0 after:content-['']"
+                                                    >
+                                                        {post.title}
+                                                    </a>
+                                                ) : (
+                                                    <Link
+                                                        href={`/blogs/${post.slug}`}
+                                                        className="after:absolute after:inset-0 after:content-['']"
+                                                    >
+                                                        {post.title}
+                                                    </Link>
+                                                )}
+                                            </h3>
+                                            {post.migratedTo && (
+                                                <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-wider text-(--text-muted)">
+                                                    Medium
+                                                    <ArrowUpRight className="w-3 h-3" aria-hidden="true" />
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className="mt-1 text-[12px] font-mono text-(--text-muted)">
                                             {post.date} · {post.readTime}
                                         </p>

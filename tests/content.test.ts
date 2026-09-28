@@ -92,6 +92,13 @@ describe("cross references", () => {
         expect(new Set(slugs).size).toBe(slugs.length);
         for (const p of BLOG_POSTS) expect(p.published).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
+
+    it("a migrated post points at a real Medium story under this account", () => {
+        for (const p of BLOG_POSTS.filter((p) => p.migratedTo)) {
+            expect(p.migratedTo, p.slug).toMatch(/^https:\/\/medium\.com\/@jainujjwal1609\//);
+            expect(p.migratedTo, p.slug).not.toMatch(/[?&]source=/); // tracking params stripped
+        }
+    });
 });
 
 describe("search index", () => {
@@ -103,6 +110,13 @@ describe("search index", () => {
 
     it("covers every project, post and record", () => {
         expect(index.length).toBe(projects.length + BLOG_POSTS.length + records.length);
+    });
+
+    it("sends a migrated post straight to Medium instead of the page that just redirects", () => {
+        for (const p of BLOG_POSTS.filter((p) => p.migratedTo)) {
+            const entry = index.find((e) => e.id === `post-${p.slug}`);
+            expect(entry?.href, p.slug).toBe(p.migratedTo);
+        }
     });
 
     it("links records to an anchor that exists on their page", () => {
@@ -117,5 +131,14 @@ describe("search index", () => {
     it("does not carry full record or post text into the client", () => {
         const size = JSON.stringify(index).length;
         expect(size).toBeLessThan(40_000);
+    });
+});
+
+describe("sitemap", () => {
+    it("does not list a post that redirects away to Medium", async () => {
+        const { default: sitemap } = await import("@/app/sitemap");
+        const urls = sitemap().map((e) => e.url);
+        for (const p of BLOG_POSTS.filter((p) => p.migratedTo)) expect(urls, p.slug).not.toContain(`https://ujjwaljain.vercel.app/blogs/${p.slug}`);
+        for (const p of BLOG_POSTS.filter((p) => !p.migratedTo)) expect(urls, p.slug).toContain(`https://ujjwaljain.vercel.app/blogs/${p.slug}`);
     });
 });

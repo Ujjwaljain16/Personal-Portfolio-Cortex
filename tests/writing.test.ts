@@ -22,14 +22,30 @@ const medium = (over: Partial<MediumPost> = {}): MediumPost => ({
 });
 
 describe("getWritingItems", () => {
-    it("includes every native post, linked to its own page", async () => {
+    it("includes every native post, each linked to its own page unless it has moved to Medium", async () => {
         const items = await itemsWith([]);
         for (const post of BLOG_POSTS) {
             const item = items.find((i) => i.title === post.title);
             expect(item, post.slug).toBeDefined();
-            expect(item?.href).toBe(`/blogs/${post.slug}`);
-            expect(item?.external).toBe(false);
+            if (post.migratedTo) {
+                expect(item?.href, post.slug).toBe(post.migratedTo);
+                expect(item?.external, post.slug).toBe(true);
+            } else {
+                expect(item?.href, post.slug).toBe(`/blogs/${post.slug}`);
+                expect(item?.external, post.slug).toBe(false);
+            }
         }
+    });
+
+    it("has at least one migrated post to exercise that path (guards the test above against going stale)", () => {
+        expect(BLOG_POSTS.some((p) => p.migratedTo)).toBe(true);
+    });
+
+    it("does not duplicate a migrated post even if the live Medium feed still carries it", async () => {
+        const migrated = BLOG_POSTS.find((p) => p.migratedTo);
+        if (!migrated) throw new Error("fixture needs a migrated post");
+        const items = await itemsWith([medium({ title: migrated.title, url: migrated.migratedTo! })]);
+        expect(items.filter((i) => i.title === migrated.title)).toHaveLength(1);
     });
 
     it("adds a Medium post that has no native match, linked out and marked external", async () => {

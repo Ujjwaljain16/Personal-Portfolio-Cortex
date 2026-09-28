@@ -34,7 +34,7 @@ export function buildSearchIndex(): SearchEntry[] {
             label: post.title,
             sublabel: post.date,
             category: "Writing" as const,
-            href: `/blogs/${post.slug}`,
+            href: post.migratedTo ?? `/blogs/${post.slug}`,
             keywords: post.tags.map((t) => t.toLowerCase()),
         })),
         ...decisions.map((d) => ({

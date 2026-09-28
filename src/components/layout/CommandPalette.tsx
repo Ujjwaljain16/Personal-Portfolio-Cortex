@@ -72,7 +72,10 @@ export function CommandPalette({ entries }: { entries: SearchEntry[] }) {
     }, []);
 
     const commands = useMemo<CommandItem[]>(() => {
-        const go = (href: string) => () => router.push(href);
+        const go = (href: string) => () => {
+            if (/^https?:\/\//.test(href)) window.open(href, "_blank", "noopener");
+            else router.push(href);
+        };
 
         const nav: CommandItem[] = [
             { id: "nav-home", label: "Home", icon: Power, category: "Navigate", action: go("/"), keywords: ["landing", "about"] },

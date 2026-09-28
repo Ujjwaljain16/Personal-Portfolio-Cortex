@@ -32,8 +32,10 @@ function fromNative(post: (typeof BLOG_POSTS)[number]): WritingItem {
         readTime: post.readTime,
         excerpt: post.excerpt,
         tags: post.tags,
-        href: `/blogs/${post.slug}`,
-        external: false,
+        // A post that has moved to Medium links straight there; /blogs/<slug> still
+        // redirects, for anyone who has the old URL.
+        href: post.migratedTo ?? `/blogs/${post.slug}`,
+        external: !!post.migratedTo,
     };
 }
 
