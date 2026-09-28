@@ -32,7 +32,7 @@ const EXPLORE = [
     { href: "/investigations", label: "Investigations", desc: "Benchmarks and root-cause analyses, with the numbers and their sources." },
     { href: "/deployments", label: "Deployments", desc: "Where each system actually runs." },
     { href: "/system", label: "System", desc: "Signals from my public GitHub account." },
-    { href: "/ask", label: "Ask", desc: "Ask questions about four of my projects." },
+    { href: "/ask", label: "Ask", desc: "Ask questions about my projects." },
 ];
 
 export default function HomePage() {

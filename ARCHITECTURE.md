@@ -61,5 +61,5 @@ that must cite its sources or say it has no data. Secrets are read server side o
 ## Known limits
 
 - The rate limiter is in memory, so limits are per server instance.
-- `/ask` retrieval covers four repositories; newer projects are not in its allowlist yet.
+- `/ask` retrieval covers an allowlist of public repositories. One that the retrieval service has not indexed is skipped (and remembered as unavailable for 10 minutes), so answers keep working, but the first request after that pays for an extra round of calls.
 - Records were verified when they were written; a later change in a source repository is not detected automatically.

@@ -3,7 +3,7 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
     title: "Ask",
-    description: "Ask questions about four of my projects. Answers are generated from the project repositories and say so when there is no data.",
+    description: "Ask questions about my projects. Answers are generated from the project repositories and say so when there is no data.",
     path: "/ask",
 });
 

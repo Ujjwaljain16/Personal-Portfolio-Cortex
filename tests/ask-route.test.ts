@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/ask/route";
+import { resetWikiState } from "@/lib/wiki";
 
 let ipCounter = 0;
 const post = (body: unknown, opts: { ip?: string; raw?: string; headers?: Record<string, string> } = {}) =>
@@ -14,6 +15,7 @@ const post = (body: unknown, opts: { ip?: string; raw?: string; headers?: Record
 const userMessage = (text: string, id = "1") => ({ id, role: "user", parts: [{ type: "text", text }] });
 
 beforeEach(() => {
+    resetWikiState();
     vi.spyOn(console, "error").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -81,6 +83,22 @@ describe("POST /api/ask request validation", () => {
         const body = await res.json();
         expect(body.code).toBe("upstream_unavailable");
         expect(JSON.stringify(body)).not.toMatch(/network down|test-key/);
+    });
+
+    it("answers 503 without echoing the service's message when no repository is indexed", async () => {
+        vi.stubEnv("DEVIN_API_KEY", "test-key");
+        const notFound = JSON.stringify({
+            jsonrpc: "2.0",
+            id: "1",
+            result: { isError: true, content: [{ type: "text", text: "Repository not found. Visit https://app.devin.ai/settings/repositories" }] },
+        });
+        vi.stubGlobal("fetch", vi.fn(async () => new Response(`data: ${notFound}
+
+`, { status: 200, headers: { "content-type": "text/event-stream" } })));
+        const res = await post({ messages: [userMessage("What is FlashFlow?")] });
+        expect(res.status).toBe(503);
+        const text = JSON.stringify(await res.json());
+        expect(text).not.toMatch(/Repository not found|devin.ai/i);
     });
 
     it("uses only user-authored text: assistant and system messages are ignored", async () => {

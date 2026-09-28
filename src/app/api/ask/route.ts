@@ -2,6 +2,7 @@ import { streamText, createUIMessageStream, createUIMessageStreamResponse } from
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
 import { checkRateLimit, getClientId } from "@/lib/rate-limit";
+import { askWiki, type WikiAnswer } from "@/lib/wiki";
 
 // Allow enough time for MCP retrieval + LLM streaming
 export const maxDuration = 60;
@@ -13,7 +14,6 @@ const MAX_QUESTION_CHARS = 500; // one user turn
 const HISTORY_USER_TURNS = 2; // only the latest user turns reach the model
 const MAX_CONTEXT_CHARS = 12_000; // retrieved context passed to the model
 const MAX_OUTPUT_TOKENS = 800;
-const RETRIEVAL_TIMEOUT_MS = 30_000; // DeepWiki answers take ~10-15s
 
 // Retrieval only ever touches these public, portfolio-featured repositories.
 // (DeepWiki also indexes others; they are deliberately not exposed here.)
@@ -22,6 +22,7 @@ const WIKI_REPOS = [
     "Ujjwaljain16/Fuze",
     "Ujjwaljain16/SpentSmart",
     "Ujjwaljain16/SSE-Observatory",
+    "Ujjwaljain16/FlashFlow",
 ];
 
 // Per client IP and globally (per warm instance). See src/lib/rate-limit.ts.
@@ -191,66 +192,6 @@ function parseQuestions(raw: string): Parsed {
     return { ok: true, questions: userTexts.slice(-HISTORY_USER_TURNS) };
 }
 
-// ─── Retrieval (Devin MCP / DeepWiki) ────────────────────────────────────────
-
-/**
- * Calls one MCP tool over Streamable HTTP and returns its text content.
- * The endpoint requires `Accept: application/json, text/event-stream` and
- * replies with SSE (`event: message` / `data: {json-rpc}`), so both forms are
- * handled. Tool-level failures arrive as `result.isError` and are thrown.
- */
-async function callDevinMCP(toolName: string, args: Record<string, unknown>): Promise<string> {
-    const apiKey = process.env.DEVIN_API_KEY;
-    if (!apiKey) throw new Error("DEVIN_API_KEY is not configured");
-
-    const res = await fetch("https://mcp.devin.ai/mcp", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json, text/event-stream",
-            Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: "1",
-            method: "tools/call",
-            params: { name: toolName, arguments: args },
-        }),
-        signal: AbortSignal.timeout(RETRIEVAL_TIMEOUT_MS),
-    });
-
-    if (!res.ok) throw new Error(`MCP ${toolName} returned status ${res.status}`);
-
-    const body = await res.text();
-    const payloads = (res.headers.get("content-type") ?? "").includes("text/event-stream")
-        ? body
-              .split("\n")
-              .filter((line) => line.startsWith("data:"))
-              .map((line) => line.slice(5).trim())
-        : [body];
-
-    for (const payload of payloads) {
-        let message: {
-            error?: unknown;
-            result?: { isError?: boolean; content?: Array<{ type: string; text?: string }> };
-        };
-        try {
-            message = JSON.parse(payload);
-        } catch {
-            continue;
-        }
-        if (message.error) throw new Error(`MCP ${toolName} returned a JSON-RPC error`);
-        if (message.result) {
-            if (message.result.isError) throw new Error(`MCP ${toolName} reported a tool error`);
-            return (message.result.content ?? [])
-                .filter((c) => c.type === "text" && typeof c.text === "string")
-                .map((c) => c.text)
-                .join("\n");
-        }
-    }
-    throw new Error(`MCP ${toolName} returned no result`);
-}
-
 // ─── POST ────────────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
@@ -274,22 +215,22 @@ export async function POST(req: Request) {
             : question;
 
         // 2. Retrieve grounded context from the engineering record
-        let wikiContext: string;
+        let wiki: WikiAnswer;
         try {
             try {
-                wikiContext = await callDevinMCP("ask_wiki_question", { repoName: WIKI_REPOS, question });
+                wiki = await askWiki(question, WIKI_REPOS);
             } catch (err) {
                 // One retry, only for network-level failures (`fetch failed`), never for HTTP/tool errors.
                 if (!(err instanceof TypeError)) throw err;
                 logError("retrieval (retrying)", err);
-                wikiContext = await callDevinMCP("ask_wiki_question", { repoName: WIKI_REPOS, question });
+                wiki = await askWiki(question, WIKI_REPOS);
             }
         } catch (err) {
             logError("retrieval", err);
             return errorResponse(503, "upstream_unavailable");
         }
 
-        if (!wikiContext.trim()) {
+        if (!wiki.text.trim()) {
             return textStreamResponse("I don't have data on that in my engineering record.");
         }
 
@@ -297,10 +238,10 @@ export async function POST(req: Request) {
         const system = `${SYSTEM_PROMPT}
 
 === RELEVANT CONTEXT ===
-${wikiContext.slice(0, MAX_CONTEXT_CHARS)}
+${wiki.text.slice(0, MAX_CONTEXT_CHARS)}
 === END CONTEXT ===
 
-Finish with one line: "Sources: " followed by the repositories your answer draws on, chosen only from: ${WIKI_REPOS.map((r) => r.split("/")[1]).join(", ")}.`;
+Finish with one line: "Sources: " followed by the repositories your answer draws on, chosen only from: ${wiki.repos.map((r) => r.split("/")[1]).join(", ")}.`;
 
         const result = streamText({
             model: google("gemini-2.5-flash"),

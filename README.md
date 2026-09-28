@@ -49,7 +49,7 @@ output.
 | Variable | Used by | Notes |
 | --- | --- | --- |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | `/api/ask` | Server only |
-| `DEVIN_API_KEY` | `/api/ask` | Server only; retrieval over four public repositories |
+| `DEVIN_API_KEY` | `/api/ask` | Server only; retrieval over public repositories |
 | `GITHUB_TOKEN` | `/system` | Optional; a token with no permissions, only to raise the rate limit |
 
 Nothing is prefixed with `NEXT_PUBLIC_`, so no secret can reach the client bundle.
