@@ -54,12 +54,26 @@ static routes, projects and posts; `robots.ts` disallows `/api/`.
 
 ## `/api/ask`
 
-Validates the body (size, message count, question length), rate limits by IP and globally, keeps only user text, retrieves
-context through the Devin MCP `ask_wiki_question` tool over an allowlist of public repositories, and streams a Gemini answer
-that must cite its sources or say it has no data. Secrets are read server side only.
+Validates the body (size, message count, question length), rate limits by IP and globally, and keeps only user text. Then:
+
+1. **Route.** `lib/askRouting.ts` finds which project the question (or, for a follow-up, the earlier question) is about and
+   keeps at most two repositories from the allowlist. A question that names no project skips the lookup.
+2. **Repository notes (optional).** `lib/wiki.ts` asks the Devin MCP `ask_wiki_question` tool about only those repositories,
+   with the question reworded to ask for components, files and documented trade-offs. It has a 20 s budget; on any failure the
+   notes are simply left out. Results are cached for an hour, and a repository the service has not indexed is skipped and
+   remembered as unavailable for an hour.
+3. **Checked portfolio.** `lib/corpus.ts` renders all the site's verified content as one block of text with a page path on
+   every item. The whole site is small enough to send with every question, so nothing is retrieved or ranked.
+4. **Answer.** `lib/askPrompt.ts` puts the rules and the portfolio first (the same for every question, so the provider can
+   reuse it) and the notes last, marked as unchecked. `lib/answer.ts` streams from the first Gemini model that starts
+   responding.
+
+On the page, `Markdown` shows a link only if it points at a real portfolio page or the author's GitHub, so an invented path
+cannot become a clickable link. Secrets are read server side only.
 
 ## Known limits
 
 - The rate limiter is in memory, so limits are per server instance.
-- `/ask` retrieval covers an allowlist of public repositories. One that the retrieval service has not indexed is skipped (and remembered as unavailable for 10 minutes), so answers keep working, but the first request after that pays for an extra round of calls.
+- Repository notes cover an allowlist of public repositories that the lookup service has indexed. Others are skipped, so questions about them are answered from the checked portfolio alone.
+- Every question sends the whole checked portfolio (about 60k tokens). That is fine at this size; if the content grows past a few hundred thousand tokens, retrieval will be needed.
 - Records were verified when they were written; a later change in a source repository is not detected automatically.

@@ -49,7 +49,7 @@ output.
 | Variable | Used by | Notes |
 | --- | --- | --- |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | `/api/ask` | Server only |
-| `DEVIN_API_KEY` | `/api/ask` | Server only; retrieval over public repositories |
+| `DEVIN_API_KEY` | `/api/ask` | Server only; optional. Repository notes for code-level questions. Without it, answers come from the checked portfolio alone |
 | `GITHUB_TOKEN` | `/system` | Optional; a token with no permissions, only to raise the rate limit |
 
 Nothing is prefixed with `NEXT_PUBLIC_`, so no secret can reach the client bundle.
@@ -66,8 +66,16 @@ Nothing is prefixed with `NEXT_PUBLIC_`, so no secret can reach the client bundl
 ## `/api/ask`
 
 A POST endpoint that streams a Gemini answer. Requests are limited to 32 KB, 24 messages and 500 characters per question,
-and rate limited per IP and globally (in memory, so per server instance). Only the text of user messages is used. Retrieval
-runs over an allowlist of public repositories, and the answer is required to cite its sources or say it has no data.
+and rate limited per IP and globally (in memory, so per server instance). Only the text of user messages is used.
+
+The answer is built from two sources. The **checked portfolio** (every project, decision, investigation, post and
+open-source entry, about 60k tokens) is sent whole with every question, so there is no search step to get wrong. **Repository
+notes** come from the Devin wiki service, only for the one or two repositories the question names, and are labelled
+unchecked: they can repeat outdated README claims. When the two disagree the checked portfolio wins. The answer links to
+portfolio pages, and any link that is not a real page is shown as plain text.
+
+`npm run eval:ask` runs eleven fixed questions against a running site, including the ones where a repository's docs are
+wrong, and checks the answers. It calls the real model, so it is a manual check and not part of CI.
 
 ## Layout
 

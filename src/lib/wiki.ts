@@ -114,7 +114,7 @@ const askOnce = (repos: string[], question: string, deadline: number) => {
     return callDevinMCP("ask_wiki_question", { repoName: repos, question }, Math.min(RETRIEVAL_TIMEOUT_MS, left));
 };
 
-export async function askWiki(question: string, repos: string[]): Promise<WikiAnswer> {
+export async function askWiki(question: string, repos: string[], options: { budgetMs?: number } = {}): Promise<WikiAnswer> {
     const now = Date.now();
     const active = repos.filter((r) => (unavailable.get(r) ?? 0) <= now);
     if (active.length === 0) throw new Error("no repository is currently available");
@@ -123,7 +123,7 @@ export async function askWiki(question: string, repos: string[]): Promise<WikiAn
     const cached = answers.get(key);
     if (cached && cached.expires > now) return cached.answer;
 
-    const deadline = now + TOTAL_BUDGET_MS;
+    const deadline = now + (options.budgetMs ?? TOTAL_BUDGET_MS);
     // Stored under the repositories that actually answered, because that is the set later requests will use.
     const remember = (answer: WikiAnswer) => {
         if (answers.size >= MAX_CACHED_ANSWERS) answers.delete(answers.keys().next().value as string);

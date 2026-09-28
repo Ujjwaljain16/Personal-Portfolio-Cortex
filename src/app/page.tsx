@@ -9,6 +9,7 @@ import { featuredProjects, projects } from "@/data/projects";
 import { countByProject, mergedPRs, openPRs } from "@/data/openSource";
 import { formatDate } from "@/lib/utils";
 import { jsonLd, personJsonLd } from "@/lib/seo";
+import { educationLine } from "@/data/profile";
 
 // Two failures I documented in the projects themselves. Each links to the source.
 const LESSONS = [
@@ -64,7 +65,7 @@ export default function HomePage() {
                             what it doesn&apos;t do yet.
                         </p>
                         <p className="text-[13px] font-mono text-(--text-muted)">
-                            Bachelor&apos;s in Computer Science · BITS Pilani · 8.82 CGPA · 2024–2028
+                            {educationLine}
                         </p>
                         <ul className="flex flex-wrap gap-3 pt-2">
                             <li>

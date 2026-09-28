@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "validate:data": "node --no-warnings scripts/validate-data.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval:ask": "node scripts/ask-eval.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.23",

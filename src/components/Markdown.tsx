@@ -12,6 +12,19 @@ import { cn } from "@/lib/utils";
 
 type Variant = "article" | "chat";
 
+function Anchor({ href, children }: { href?: string; children?: React.ReactNode }) {
+    const external = !!href && /^https?:\/\//.test(href);
+    return (
+        <a
+            href={href}
+            {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            className="text-(--accent-primary) underline underline-offset-2 hover:opacity-80"
+        >
+            {children}
+        </a>
+    );
+}
+
 function makeComponents(variant: Variant, shiftHeadings: boolean): Components {
     const article = variant === "article";
     // Posts written with ### directly under the title would skip a level; promote them.
@@ -34,18 +47,7 @@ function makeComponents(variant: Variant, shiftHeadings: boolean): Components {
         blockquote: ({ children }) => (
             <blockquote className="my-4 pl-4 border-l-2 border-(--accent-primary) text-(--text-secondary)">{children}</blockquote>
         ),
-        a: ({ href, children }) => {
-            const external = !!href && /^https?:\/\//.test(href);
-            return (
-                <a
-                    href={href}
-                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    className="text-(--accent-primary) underline underline-offset-2 hover:opacity-80"
-                >
-                    {children}
-                </a>
-            );
-        },
+        a: ({ href, children }) => <Anchor href={href}>{children}</Anchor>,
         pre: ({ children }) => (
             <pre className="my-5 overflow-x-auto rounded-lg border border-(--border-default) bg-(--bg-surface-2) p-4 text-[13px] leading-relaxed font-mono text-(--text-secondary)">
                 {children}
@@ -69,11 +71,36 @@ const COMPONENTS = {
     chat: makeComponents("chat", false),
 };
 
-export function Markdown({ children, variant = "article" }: { children: string; variant?: Variant }) {
+/**
+ * Links in model output are only kept when they point somewhere real: a page listed in
+ * `allowedLinks`, or a repository under the author's GitHub profile. Anything else,
+ * including an invented page path, is shown as plain text.
+ */
+function restrictLinks(base: Components, allowedLinks: ReadonlySet<string>): Components {
+    return {
+        ...base,
+        a: ({ href, children }) => {
+            const target = href ?? "";
+            const ok = allowedLinks.has(target) || target.startsWith("https://github.com/Ujjwaljain16/");
+            return ok ? <Anchor href={href}>{children}</Anchor> : <span>{children}</span>;
+        },
+    };
+}
+
+export function Markdown({
+    children,
+    variant = "article",
+    allowedLinks,
+}: {
+    children: string;
+    variant?: Variant;
+    allowedLinks?: ReadonlySet<string>;
+}) {
     const hasH2 = /^##[ \t]/m.test(children);
     const key = variant === "article" && !hasH2 ? "articleShifted" : variant;
+    const components = allowedLinks ? restrictLinks(COMPONENTS[key], allowedLinks) : COMPONENTS[key];
     return (
-        <ReactMarkdown components={COMPONENTS[key]} disallowedElements={["img"]} unwrapDisallowed>
+        <ReactMarkdown components={components} disallowedElements={["img"]} unwrapDisallowed>
             {children}
         </ReactMarkdown>
     );

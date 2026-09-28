@@ -1,5 +1,5 @@
 import "server-only";
-import { streamText, type LanguageModel, type ModelMessage } from "ai";
+import { APICallError, streamText, type LanguageModel, type ModelMessage } from "ai";
 
 interface AnswerParams {
     system: string;
@@ -28,6 +28,25 @@ async function startsCleanly(result: ReturnType<typeof streamText>): Promise<boo
     } finally {
         await reader.cancel().catch(() => {});
     }
+}
+
+/**
+ * What a visitor is told when no model could answer: honest about the cause, without provider
+ * details. A daily cap (which no retry will fix) is told apart from a busy moment.
+ */
+export function friendlyStreamError(error: unknown): string {
+    const body = APICallError.isInstance(error) ? (error.responseBody ?? "") : "";
+    const text = `${error instanceof Error ? error.message : ""} ${body}`.toLowerCase();
+    if (body.includes("PerDay") || text.includes("daily")) {
+        return "The AI assistant has reached its daily limit and will work again tomorrow. Everything it draws on is still on the Projects, Decisions and Investigations pages.";
+    }
+    if (text.includes("quota") || text.includes("rate limit") || text.includes("429")) {
+        return "The AI assistant is at its usage limit for a moment. Please try again in a minute.";
+    }
+    if (text.includes("high demand") || text.includes("overloaded") || text.includes("unavailable") || text.includes("503")) {
+        return "The AI service is busy right now. Please try again in a moment.";
+    }
+    return "The response was interrupted. Please try again.";
 }
 
 /**

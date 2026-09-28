@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useId } from "react";
+import { useState, useRef, useEffect, useCallback, useId, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { cn } from "@/lib/utils";
@@ -11,12 +11,14 @@ const MAX_QUESTION_CHARS = 500; // keep in sync with src/app/api/ask/route.ts
 const GIVE_UP_AFTER_SECONDS = 75; // the server stops trying well before this
 
 // ─── Suggested starter prompts ────────────────────────
-// Keep these answerable from the indexed repos (CampusSync, Fuze, SpentSmart, SSE-Observatory).
+// Chosen to show what the assistant is good at: the reasoning behind a design, and the
+// places where a claim turned out to be wrong.
 const STARTERS = [
-    "How do you approach scaling a recommendation engine?",
-    "What tradeoffs did you make with Row-Level Security?",
-    "Why did SpentSmart avoid SMS parsing to detect payments?",
-    "How does SSE-Observatory stay smooth with thousands of events?",
+    "Why isn't the LLM in RecoveryOS allowed to move money?",
+    "Was MiniDB's vectorized executor as fast as planned?",
+    "What did you get wrong in AgentBrake, and how did you fix it?",
+    "Is VaultTabs really zero-knowledge?",
+    "What is FlashFlow, and what did its audit find?",
 ];
 
 const transport = new DefaultChatTransport({ api: "/api/ask" });
@@ -64,7 +66,8 @@ function WaitingNotice({ onGiveUp }: { onGiveUp: () => void }) {
     );
 }
 
-export function AskInterface() {
+export function AskInterface({ allowedLinks }: { allowedLinks: string[] }) {
+    const linkSet = useMemo(() => new Set(allowedLinks), [allowedLinks]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const [input, setInput] = useState("");
@@ -167,7 +170,9 @@ export function AskInterface() {
                                 )}
                             >
                                 <span className="sr-only">{msg.role === "user" ? "You: " : "Ujjwal: "}</span>
-                                <Markdown variant="chat">{getMessageText(msg)}</Markdown>
+                                <Markdown variant="chat" allowedLinks={linkSet}>
+                                    {getMessageText(msg)}
+                                </Markdown>
                             </div>
                             {msg.role === "user" && (
                                 <div
