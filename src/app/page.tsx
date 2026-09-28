@@ -115,11 +115,11 @@ export default function HomePage() {
                                 Featured projects
                             </h2>
                             <p className="mt-2 text-[15px] text-(--text-secondary) max-w-2xl">
-                                The four with the most verifiable engineering. Each page shows the evidence, links to the
+                                The {featuredProjects.length} projects with the most verifiable engineering. Each page shows the evidence, links to the
                                 source files, and says what isn&apos;t done.
                             </p>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:[&>*:last-child:nth-child(odd)]:col-span-2">
                             {featuredProjects.map((p) => (
                                 <ProjectCard key={p.id} project={p} variant="feature" />
                             ))}

@@ -28,10 +28,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Fails on invalid projects, open-source, deployment and blog data.
-      # ADR / experiment issues are reported as warnings only.
+      # Fails on invalid projects, records, open-source, deployment and blog data.
       - name: Validate data
         run: npm run validate:data
+
+      - name: Unit tests
+        run: npm test
 
       - name: Build
         run: npm run build

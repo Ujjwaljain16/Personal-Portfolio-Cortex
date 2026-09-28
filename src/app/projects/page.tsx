@@ -25,7 +25,7 @@ export default function ProjectsPage() {
                 <h2 id="featured-heading" className="text-label mb-3">
                     FEATURED
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:[&>*:last-child:nth-child(odd)]:col-span-2">
                     {featuredProjects.map((p) => (
                         <ProjectCard key={p.id} project={p} variant="feature" />
                     ))}
