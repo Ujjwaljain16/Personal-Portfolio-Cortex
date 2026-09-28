@@ -494,32 +494,44 @@ export const projects: Project[] = [
         links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/GitIssue") }],
     },
     {
-        id: "lexis-ai",
-        name: "Lexis AI",
+        id: "typeaheadx",
+        name: "TypeAheadX",
         tier: "more",
-        tagline: "Adaptive learning platform: turns a PDF into a concept graph and a personalised study plan.",
+        tagline: "Distributed autocomplete: consistent hashing over three Redis nodes, a decaying trending score, and a write buffer that absorbs viral spikes.",
         status: "prototype",
-        origin: "Team project (4 contributors)",
-        period: "Jun 2026",
-        problem: "Textbooks are linear, but learners aren't. Build a prerequisite graph from a book and plan study around what each learner already knows.",
+        origin: "Course project",
+        period: "Jun 2026 · 15 commits over two days",
+        problem: "Autocomplete is read-heavy but latency-sensitive: one search generates a query per keystroke, hot prefixes create Zipfian skew, and a single Redis instance becomes a bottleneck.",
         approach: [
-            "A resumable, checkpointed LLM pipeline extracts concepts and relationships from a PDF. PostgreSQL is the source of truth and Neo4j holds the graph projection.",
-            "Cycles in the prerequisite graph are detected and repaired by dropping the weakest edge, and the curriculum is planned as a topological order.",
+            "FastAPI serves suggestions from PostgreSQL behind a Redis cache-aside layer; a 128-bit MD5 consistent-hash ring (500 virtual nodes) spreads prefixes across three Redis nodes.",
+            "An async write buffer batches click events before they hit the database, and a decaying trending score keeps popular queries fresh without a write on every keystroke.",
+            "A Next.js frontend calls the API directly; there is no separate gateway.",
         ],
         evidence: [
-            { text: "About 78% of the commits are mine. Teammates wrote the FSRS spaced-repetition mastery engine, the Neo4j projection and the evaluation harness, plus quiz gating and the landing page." },
-            { text: "38 backend tests pass (assessment walk, curriculum planner, FSRS mastery, chunking)." },
+            {
+                text: "The consistent-hash ring balances keys evenly (about 33.6/34.8/31.6% of 10,000 keys across three nodes), reproduced offline over five seeds.",
+                source: "backend/app/cache/consistent_hash_ring.py",
+            },
+            {
+                text: "Rebalancing from 3 to 4 nodes moved about 26.4% of keys under consistent hashing versus about 74.8% under modulo hashing, reproduced three times against the repo's own benchmark script.",
+                source: "scripts/rebalance_experiment.py",
+            },
+            { text: "500 virtual nodes per node was chosen over 150 and 1000, on the stated trade-off of most of the balancing benefit at half the memory and CPU cost." },
         ],
         limitations: [
-            "An evaluation harness and nine golden datasets exist, but no results are committed, so I don't claim evaluation numbers.",
-            "No CI, and part of the architecture doc is out of date.",
+            "Balanced keys did not mean balanced traffic: with a Zipfian workload, one node still took about 60% of live requests, because the three most popular queries all hashed to it. The fix (an L1 cache or hot-key replication) is proposed but not built.",
+            "The README's \"sub-millisecond autocomplete experience\" is not supported by any measured end-to-end number; a 100,000-request run recorded a 420 ms warm-cache p50.",
+            "The phase-3 cache benchmark is a single unpaired run with only 12 distinct keys, so the recorded latency difference (about 7.5 ms without Redis, 7.1 ms with it) is noise, not a result.",
+            "This was a course project built over two days; no CI, and the hot-shard and rebalance findings were reproduced with scripts that are not committed to the repository.",
         ],
-        tech: ["Python", "FastAPI", "PostgreSQL", "Neo4j", "Gemini", "Next.js", "Docker"],
-        repo: "Ujjwaljain16/GenAI-34",
-        links: [
-            { label: "Live demo", href: "https://gen-ai-34.vercel.app" },
-            { label: "Source on GitHub", href: gh("Ujjwaljain16/GenAI-34") },
+        next: [
+            "Build the proposed hot-key fix (an L1 cache or hot-key replication) and re-measure the 60% hot-node share.",
+            "Re-run the cache-latency comparison as a real paired benchmark with more than 12 distinct keys.",
+            "Commit the reproduction scripts used for the hot-shard and rebalance findings.",
         ],
+        tech: ["Python", "FastAPI", "PostgreSQL", "Redis", "Next.js", "React", "TypeScript"],
+        repo: "Ujjwaljain16/TypeAheadX",
+        links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/TypeAheadX") }],
     },
     {
         id: "agentbrake",
@@ -765,9 +777,9 @@ export const projects: Project[] = [
 /** Smaller builds: one line each, no detail page. */
 export const alsoBuilt: AlsoBuilt[] = [
     {
-        name: "TypeAheadX",
-        repo: "Ujjwaljain16/TypeAheadX",
-        line: "Autocomplete service with a consistent-hash ring over three Redis nodes and decayed trending scores. Rebalancing from 3 to 4 nodes moved 26% of keys versus 75% for modulo hashing (from the repo's benchmark script). Course project.",
+        name: "Lexis AI",
+        repo: "Ujjwaljain16/GenAI-34",
+        line: "Adaptive learning platform: turns a PDF into a concept graph and a personalised study plan, with Neo4j holding the graph projection. About 78% of the commits are mine; teammates built the spaced-repetition engine and the evaluation harness. Team project (4 contributors).",
     },
     {
         name: "NevUpAI",

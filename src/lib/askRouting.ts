@@ -14,7 +14,6 @@ interface AskProject {
 
 const EXTRA_ALIASES: Record<string, string[]> = {
     "ecommerce-backend": ["ecommerce", "e commerce"],
-    "lexis-ai": ["lexis"],
     "bhttp-1": ["bhttp"],
 };
 

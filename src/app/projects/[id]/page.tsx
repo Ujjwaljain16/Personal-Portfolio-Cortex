@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Gallery } from "@/components/projects/Gallery";
@@ -18,14 +18,19 @@ const STATUS_BADGE: Record<ProjectStatus, string> = {
     "in-progress": "badge-warning",
 };
 
+/** A project id that used to have its own page. Visiting it redirects instead of 404ing. */
+const REMOVED_PROJECT_IDS: Record<string, string> = {
+    "lexis-ai": "/projects", // now a one-line entry under "Also built"
+};
+
 export function generateStaticParams() {
-    return projects.map((p) => ({ id: p.id }));
+    return [...projects.map((p) => ({ id: p.id })), ...Object.keys(REMOVED_PROJECT_IDS).map((id) => ({ id }))];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params;
     const project = getProject(id);
-    if (!project) return {};
+    if (!project || REMOVED_PROJECT_IDS[id]) return {};
     return pageMetadata({
         title: project.name,
         description: `${project.tagline} ${project.origin}, ${project.period}.`,
@@ -37,7 +42,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const project = getProject(id);
-    if (!project) notFound();
+    if (!project) {
+        const redirectTo = REMOVED_PROJECT_IDS[id];
+        if (redirectTo) permanentRedirect(redirectTo);
+        notFound();
+    }
 
     const related = records.filter((r) => r.projectId === project.id);
     const diagram = diagrams[project.id];

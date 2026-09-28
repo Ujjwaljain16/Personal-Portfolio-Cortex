@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { projects, featuredProjects } from "@/data/projects";
+import { projects, featuredProjects, alsoBuilt, getProject } from "@/data/projects";
 import { records, decisions, investigations, getRecord } from "@/data/records";
 import { deployments } from "@/data/deployments";
 import { BLOG_POSTS } from "@/data/blogPosts";
@@ -34,6 +34,29 @@ describe("projects", () => {
 
     it("has featured projects to show", () => {
         expect(featuredProjects.length).toBeGreaterThan(0);
+    });
+
+    it("TypeAheadX has its own page, and its records point back at it", () => {
+        const p = getProject("typeaheadx");
+        expect(p).toBeDefined();
+        expect(p?.tier).toBe("more");
+        const related = records.filter((r) => r.project === "TypeAheadX");
+        expect(related.length).toBeGreaterThan(0);
+        for (const r of related) expect(r.projectId, r.id).toBe("typeaheadx");
+    });
+
+    it("Lexis AI moved to Also built, is not a project id, and its records no longer link to a page", () => {
+        expect(getProject("lexis-ai")).toBeUndefined();
+        expect(projects.some((p) => p.name === "Lexis AI")).toBe(false);
+        expect(alsoBuilt.some((a) => a.name === "Lexis AI")).toBe(true);
+        const related = records.filter((r) => r.project === "Lexis AI");
+        expect(related.length).toBeGreaterThan(0);
+        for (const r of related) expect(r.projectId, r.id).toBeUndefined();
+    });
+
+    it("every alsoBuilt entry names a project that is not also a full page", () => {
+        const ids = new Set(projects.map((p) => p.id));
+        for (const a of alsoBuilt) expect(ids.has(a.name.toLowerCase()), a.name).toBe(false);
     });
 });
 
