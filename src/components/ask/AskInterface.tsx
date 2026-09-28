@@ -8,6 +8,7 @@ import { Markdown } from "@/components/Markdown";
 import { SendHorizonal, Loader2, User, Cpu, RotateCcw, AlertTriangle } from "lucide-react";
 
 const MAX_QUESTION_CHARS = 500; // keep in sync with src/app/api/ask/route.ts
+const GIVE_UP_AFTER_SECONDS = 75; // the server stops trying well before this
 
 // ─── Suggested starter prompts ────────────────────────
 // Keep these answerable from the indexed repos (CampusSync, Fuze, SpentSmart, SSE-Observatory).
@@ -31,6 +32,38 @@ function parseAskError(error: Error): { code: string; message: string } {
     return { code: "unknown", message: "Something went wrong. Please try again." };
 }
 
+/** Counts seconds while a question is in flight and says what is going on, so a slow answer never looks like a hang. */
+function WaitingNotice({ onGiveUp }: { onGiveUp: () => void }) {
+    const [seconds, setSeconds] = useState(0);
+
+    useEffect(() => {
+        const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+        if (seconds >= GIVE_UP_AFTER_SECONDS) onGiveUp();
+    }, [seconds, onGiveUp]);
+
+    // The wording changes only at thresholds, so a screen reader is not read a new sentence every second.
+    const message =
+        seconds < 8
+            ? "Searching the engineering record…"
+            : seconds < 40
+              ? "Still searching. Answers usually take 15 to 30 seconds."
+              : "Taking longer than usual. You can keep waiting.";
+
+    return (
+        <div role="status" className="flex items-center gap-2 text-(--text-secondary) text-[13px] font-mono pl-10">
+            <Loader2 className="w-3 h-3 motion-safe:animate-spin" aria-hidden="true" />
+            <span>{message}</span>
+            <span aria-hidden="true" className="text-(--text-muted)">
+                {seconds}s
+            </span>
+        </div>
+    );
+}
+
 export function AskInterface() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -38,10 +71,15 @@ export function AskInterface() {
     const inputId = useId();
     const hintId = useId();
 
-    const { messages, sendMessage, status, error, regenerate, clearError, setMessages } = useChat({ transport });
+    const { messages, sendMessage, status, error, regenerate, clearError, setMessages, stop } = useChat({ transport });
+    const [timedOut, setTimedOut] = useState(false);
 
     const isProcessing = status === "submitted" || status === "streaming";
-    const askError = error ? parseAskError(error) : null;
+    const askError = error
+        ? parseAskError(error)
+        : timedOut
+          ? { code: "timeout", message: "That took too long. Please try again." }
+          : null;
     const conversationTooLong = askError?.code === "conversation_too_long";
 
     // Auto-scroll to latest message
@@ -55,6 +93,7 @@ export function AskInterface() {
             e?.preventDefault();
             const text = input.trim();
             if (!text || isProcessing) return;
+            setTimedOut(false);
             sendMessage({ text });
             setInput("");
         },
@@ -80,6 +119,7 @@ export function AskInterface() {
     const handleNewConversation = useCallback(() => {
         setMessages([]);
         clearError();
+        setTimedOut(false);
         setInput("");
         inputRef.current?.focus();
     }, [setMessages, clearError]);
@@ -142,10 +182,12 @@ export function AskInterface() {
                 )}
 
                 {status === "submitted" && (
-                    <div role="status" className="flex items-center gap-2 text-(--text-secondary) text-[13px] font-mono pl-10">
-                        <Loader2 className="w-3 h-3 motion-safe:animate-spin" aria-hidden="true" />
-                        <span>Searching the engineering record…</span>
-                    </div>
+                    <WaitingNotice
+                        onGiveUp={() => {
+                            stop();
+                            setTimedOut(true);
+                        }}
+                    />
                 )}
 
                 <div ref={messagesEndRef} />
@@ -162,7 +204,10 @@ export function AskInterface() {
                     {!conversationTooLong && (
                         <button
                             type="button"
-                            onClick={() => regenerate()}
+                            onClick={() => {
+                                setTimedOut(false);
+                                regenerate();
+                            }}
                             className="inline-flex items-center gap-1.5 rounded-md border border-(--border-hover) px-3 py-1.5 font-mono text-[12px] hover:border-(--accent-primary) hover:text-(--accent-primary)"
                         >
                             <RotateCcw className="w-3 h-3" aria-hidden="true" />

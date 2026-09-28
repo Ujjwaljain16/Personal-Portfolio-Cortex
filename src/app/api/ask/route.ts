@@ -1,8 +1,9 @@
-import { streamText, createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
 import { checkRateLimit, getClientId } from "@/lib/rate-limit";
 import { askWiki, type WikiAnswer } from "@/lib/wiki";
+import { streamWithFallback } from "@/lib/answer";
 
 // Allow enough time for MCP retrieval + LLM streaming
 export const maxDuration = 60;
@@ -24,6 +25,10 @@ const WIKI_REPOS = [
     "Ujjwaljain16/SSE-Observatory",
     "Ujjwaljain16/FlashFlow",
 ];
+
+// Tried in order. Gemini often answers "high demand" (503) on one model while another
+// is fine, so a model that does not start responding is skipped. See src/lib/answer.ts.
+const ANSWER_MODELS = ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
 
 // Per client IP and globally (per warm instance). See src/lib/rate-limit.ts.
 const PER_CLIENT = { limit: 8, windowMs: 10 * 60 * 1000 };
@@ -243,16 +248,17 @@ ${wiki.text.slice(0, MAX_CONTEXT_CHARS)}
 
 Finish with one line: "Sources: " followed by the repositories your answer draws on, chosen only from: ${wiki.repos.map((r) => r.split("/")[1]).join(", ")}.`;
 
-        const result = streamText({
-            model: google("gemini-2.5-flash"),
-            system,
-            messages: [{ role: "user", content: userContent }],
-            temperature: 0.3,
-            maxOutputTokens: MAX_OUTPUT_TOKENS,
-            maxRetries: 1,
-            abortSignal: req.signal,
-            onError: ({ error }) => logError("stream", error),
-        });
+        const result = await streamWithFallback(
+            ANSWER_MODELS.map((id) => google(id)),
+            {
+                system,
+                messages: [{ role: "user", content: userContent }],
+                temperature: 0.3,
+                maxOutputTokens: MAX_OUTPUT_TOKENS,
+                abortSignal: req.signal,
+                onError: ({ error }) => logError("stream", error),
+            }
+        );
 
         return result.toUIMessageStreamResponse({
             onError: () => "The response was interrupted. Please try again.",

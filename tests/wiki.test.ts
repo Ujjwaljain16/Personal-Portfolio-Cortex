@@ -66,7 +66,7 @@ describe("askWiki", () => {
         try {
             fakeService();
             await askWiki("first", REPOS);
-            vi.advanceTimersByTime(10 * 60 * 1000 + 1);
+            vi.advanceTimersByTime(60 * 60 * 1000 + 1);
             const { calls } = fakeService({ missing: [] });
             const later = await askWiki("later", REPOS);
             expect(calls).toEqual([REPOS]);
@@ -85,6 +85,46 @@ describe("askWiki", () => {
         const { fetchMock } = fakeService({ failWith: new TypeError("fetch failed") });
         await expect(askWiki("q", REPOS)).rejects.toBeInstanceOf(TypeError);
         expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("answers a repeated question from memory, ignoring case and spacing", async () => {
+        const { calls } = fakeService({ missing: [] });
+        await askWiki("How does X work?", REPOS);
+        const again = await askWiki("  how does   X work? ", REPOS);
+        expect(calls).toHaveLength(1);
+        expect(again.repos).toEqual(REPOS);
+        await askWiki("A different question", REPOS);
+        expect(calls).toHaveLength(2);
+    });
+
+    it("reuses a fallback answer on the next request without any new calls", async () => {
+        const { calls } = fakeService();
+        await askWiki("same question", REPOS);
+        calls.length = 0;
+        const second = await askWiki("same question", REPOS);
+        expect(calls).toHaveLength(0);
+        expect(second.repos).toEqual(["o/Alpha", "o/Gamma"]);
+    });
+
+    it("stops reusing an answer after an hour", async () => {
+        vi.useFakeTimers();
+        try {
+            const { calls } = fakeService({ missing: [] });
+            await askWiki("q", REPOS);
+            vi.advanceTimersByTime(60 * 60 * 1000 + 1);
+            await askWiki("q", REPOS);
+            expect(calls).toHaveLength(2);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("does not remember failures", async () => {
+        fakeService({ failWith: new TypeError("fetch failed") });
+        await expect(askWiki("q", REPOS)).rejects.toBeInstanceOf(TypeError);
+        const { calls } = fakeService({ missing: [] });
+        await askWiki("q", REPOS);
+        expect(calls).toHaveLength(1);
     });
 
     it("throws when every repository is marked unavailable", async () => {
