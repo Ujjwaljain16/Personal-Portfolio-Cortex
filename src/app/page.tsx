@@ -52,15 +52,16 @@ export default function HomePage() {
                     {/* Hero */}
                     <section aria-labelledby="hero-heading" className="space-y-6">
                         <p className="text-[12px] font-mono uppercase tracking-[0.2em] text-(--accent-primary)">
-                            Backend &amp; systems engineering
+                            Full-stack &middot; Backend &middot; GenAI
                         </p>
                         <h1 id="hero-heading" className="text-4xl md:text-6xl font-semibold tracking-tight text-foreground">
                             Ujjwal Jain
                         </h1>
                         <p className="max-w-2xl text-[17px] md:text-[19px] leading-relaxed text-(--text-secondary)">
-                            I build databases, protocols and data pipelines from scratch, then write the tests and
-                            benchmarks that show where they break. Each project below links to its code and lists what
-                            it doesn&apos;t do yet.
+                            I build products end to end: backends and data pipelines, LLM features with guardrails
+                            around them, and the web or extension interfaces people use. I go deep where it matters,
+                            down to a database engine or a wire protocol. Each project below links to its code and says
+                            what it doesn&apos;t do yet.
                         </p>
                         <p className="text-[13px] font-mono text-(--text-muted)">
                             Bachelor&apos;s in Computer Science · BITS Pilani · 9.3 CGPA · 2024–2028

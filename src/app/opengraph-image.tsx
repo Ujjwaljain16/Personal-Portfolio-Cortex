@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 // Generated at build time (no edge runtime), so the page can stay static.
-export const alt = "Ujjwal Jain: backend and systems engineer";
+export const alt = "Ujjwal Jain: full-stack engineer, backend and GenAI";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -44,11 +44,11 @@ export default async function Image() {
                 </div>
 
                 <div style={{ fontSize: "34px", color: "#4F8CFF", marginBottom: "28px" }}>
-                    Backend &amp; systems engineering
+                    Full-stack &middot; Backend &middot; GenAI
                 </div>
 
                 <div style={{ fontSize: "26px", color: "#9CA3AF", lineHeight: 1.45, maxWidth: "860px" }}>
-                    Databases, protocols and data pipelines built from scratch, with the tests and benchmarks behind them.
+                    Products built end to end: APIs, data pipelines and LLM features with guardrails, plus the interfaces around them.
                 </div>
 
                 <div

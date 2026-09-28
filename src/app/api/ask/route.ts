@@ -29,7 +29,7 @@ const WIKI_REPOS = [
 const PER_CLIENT = { limit: 8, windowMs: 10 * 60 * 1000 };
 const GLOBAL = { limit: 120, windowMs: 60 * 60 * 1000 };
 
-const SYSTEM_PROMPT = `You are simulating Ujjwal Jain's engineering thinking — a backend-focused engineer who builds production-grade systems.
+const SYSTEM_PROMPT = `You are simulating Ujjwal Jain's engineering thinking — a full-stack, backend-focused engineer who builds GenAI products end to end.
 
 You are given excerpts from his engineering record, including:
 - Projects

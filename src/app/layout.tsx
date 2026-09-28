@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Ujjwal Jain | Backend & systems engineer",
+    default: "Ujjwal Jain | Full-stack engineer, backend & GenAI",
     template: "%s | Ujjwal Jain",
   },
   description: DEFAULT_DESCRIPTION,
@@ -30,12 +30,12 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: SITE_NAME,
     locale: "en_US",
-    title: "Ujjwal Jain | Backend & systems engineer",
+    title: "Ujjwal Jain | Full-stack engineer, backend & GenAI",
     description: DEFAULT_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ujjwal Jain | Backend & systems engineer",
+    title: "Ujjwal Jain | Full-stack engineer, backend & GenAI",
     description: DEFAULT_DESCRIPTION,
   },
   robots: { index: true, follow: true },
