@@ -63,6 +63,57 @@ export interface EngineeringRecord {
 
 export const records: EngineeringRecord[] = [
     {
+        "id": "ab-fail-closed-framing-and-config",
+        "kind": "decision",
+        "project": "AgentBrake",
+        "projectId": "agentbrake",
+        "title": "Anything the proxy cannot parse is now blocked instead of forwarded, and a bad policy file stops startup",
+        "date": "2026-09-28",
+        "dateSource": "commit 373adcd",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal project",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": true,
+        "context": "In 0fc99c8 the interceptor split each stdin chunk on newlines, ran JSON.parse on each piece, and in the catch branch wrote the piece to the server unchanged. A tool call split across two chunks therefore reached the server as two unchecked fragments, and any message that JavaScript's JSON.parse rejects but another JSON parser accepts (for example a bare NaN) skipped every policy. The loader had the same shape: a config file that failed validation was replaced by a hand-written default with no policies.",
+        "decision": "Framing moved to a byte-level line buffer used in both directions (src/proxy/framing.ts), with a size cap and UTF-8 validation. On the client path, unparseable input, JSON-RPC batches, non-object messages, malformed tools/call params, unknown policy actions and a policy that throws are all answered with a JSON-RPC error and not forwarded; forwarded messages are re-serialised so the server sees what the policies saw. An invalid or missing config exits with code 2 unless AGENT_BRAKE_ALLOW_INVALID_CONFIG=1 is set.",
+        "alternatives": [
+            {
+                "option": "Keep forwarding lines that cannot be parsed, and fix only the chunk splitting",
+                "whyNot": "The parser difference between the proxy and the server would still let a message through unchecked; blocking is the only safe answer when the proxy cannot classify a message."
+            },
+            {
+                "option": "Keep the silent fallback to default policies for a bad config",
+                "whyNot": "A typo in the policy file would disable enforcement without any sign. The fallback remains available only as an explicit opt-in."
+            }
+        ],
+        "consequences": "tests/proxy.test.ts splits a tools/call at every byte boundary and asserts the policy still applies, and covers multiple messages per chunk, CRLF, invalid UTF-8, batches, oversize lines and duplicate keys. The test count went from 22 to 85. The same commit also fixed max_tool_calls counting one call too few, wired the circuit breaker to real tool errors, and made a killed proxy terminate its child. Remaining limits: the proxy covers stdio only, and regular-expression argument rules can still be bypassed.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "373adcd",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/commit/373adcd",
+                "note": "Adds framing, fail-closed handling and config refusal, with the regression tests."
+            },
+            {
+                "type": "commit",
+                "label": "0fc99c8",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/commit/0fc99c8",
+                "note": "The last commit before the change: the catch branch that forwards unparseable lines."
+            },
+            {
+                "type": "file",
+                "label": "tests/proxy.test.ts",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/373adcd/tests/proxy.test.ts",
+                "note": "Byte-boundary split test and the other framing cases."
+            }
+        ],
+        "verification": "Read src/proxy/interceptor.ts at 0fc99c8 and at 373adcd; ran npm test (85 passing), tsc --noEmit and the build after the change."
+    },
+    {
         "id": "superset-deprecated-permissions-explicit-delete-vs-rename",
         "kind": "decision",
         "project": "Apache Superset",
@@ -394,6 +445,255 @@ export const records: EngineeringRecord[] = [
             }
         ],
         "verification": "Read the run_production.py and redis_utils.py diffs, the locustfile and gaps.md section 13. Not re-run: needs Docker (daemon not running here) and Postgres+Redis. No regression test pins the fail-open behaviour (no 'revoked_jti' in tests). Numbers are from a laptop VM, so only the shape transfers to real hosting; the fail-open choice trades some revocation enforcement during Redis trouble for availability. Attribution: Commits 764e2c6, a74c00c and 491a221 carry a 'Co-Authored-By: Claude Sonnet 5' trailer, and gaps.md is an AI-written first-person document (it addresses the repository owner as 'you')."
+    },
+    {
+        "id": "classifier-thresholds-calibrated-to-six",
+        "kind": "decision",
+        "project": "FlashFlow",
+        "projectId": "flashflow",
+        "title": "Failure classifier thresholds were fitted to six known outcomes; the docs now say so",
+        "date": "2026-09-07",
+        "dateSource": "doc first committed in ec006c0; correction in commit 38eefbf",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": true,
+        "context": "Stage 17 added 'flashflow report' with a four-label decision tree (STABLE, ACUTE_COLLAPSE, CHRONIC_COLLAPSE, RECOVERY_LIMITED) meant to reproduce Stage 15/16's characterization of six routing policies. It needed two numeric constants.",
+        "decision": "Gate on the bottleneck's dispatch share within its own congestion episode (concentrated if at least 1.2x fair share) and on committed work (severe if at least 10x capacity). An undrained queue is classed as collapse first; for every drained case committed work is then checked, whether or not the policy concentrated. The decision tree and both constants were adjusted iteratively until the tool reproduced Stage 15/16's published characterization of the six policies: five exactly, and weighted-round-robin as a documented refinement.",
+        "alternatives": [
+            {
+                "option": "Gate chronic vs acute on fraction of time over capacity (first version)",
+                "whyNot": "Misclassified EWMA as RECOVERY_LIMITED: its slow drain (to about 6.85 s of 8 s) gives a fraction comparable to round-robin's."
+            },
+            {
+                "option": "Measure concentration from whole-run completed share",
+                "whyNot": "Gave EWMA about 0.8x fair share; completions undercount a backlogged target and the worst episode is not the run-long favorite."
+            },
+            {
+                "option": "Check committed work only on the concentrated branch",
+                "whyNot": "Misclassified P2C-load (committed work 4) as RECOVERY_LIMITED instead of STABLE."
+            }
+        ],
+        "consequences": "The original doc and code comment said the constants were chosen up front and not tuned. An audit (9e24add describes its audit as 12 parallel agents) noted that the same document's bug narrative contradicted this; 38eefbf rewrote both to say the constants were calibrated on a fixed six-point sample with no held-out policy or scenario. 9e24add also fixed 'explain' printing 'traffic concentrated' for round-robin; tests now assert on the rendered text. A re-run of all six policies reproduced the documented labels and committed-work values (4, 163, 8, 97, 4, 71) but showed the code comment's '1.4x to 3.1x fair share for every non-round-robin policy' does not hold: EWMA is 4.37x, and P2C-load is 1.05x on two of three seeds, equal to round-robin's 1.053. P2C-load's STABLE label comes from the drained and low-severity gates, not the 1.2 threshold. A seventh policy or another scenario is untested.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "ec006c0",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/ec006c0",
+                "note": "Adds the classifier, report/explain/stress-map CLI and the bug narrative."
+            },
+            {
+                "type": "commit",
+                "label": "38eefbf",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/38eefbf",
+                "note": "Retracts the 'not tuned after the fact' claim in code comment and doc; commit message explains why."
+            },
+            {
+                "type": "commit",
+                "label": "9e24add",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/9e24add",
+                "note": "Fixes explain narrative contradicting Classify; adds rendered-text tests."
+            },
+            {
+                "type": "file",
+                "label": "report.go@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/internal/report/report.go",
+                "note": "Constants 1.2 and 10, the corrected comment, and the windowed dispatch-share function."
+            },
+            {
+                "type": "doc",
+                "label": "Stage17-DiagnosticTooling.md@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/docs/StageArtifacts/Stage17-DiagnosticTooling.md",
+                "note": "Decision tree, the three bugs and the calibration caveat."
+            },
+            {
+                "type": "test",
+                "label": "scenario_report_test.go@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/internal/report/scenario_report_test.go",
+                "note": "Tests asserting on the rendered explanation text."
+            }
+        ],
+        "verification": "Read internal/report/report.go and the Stage 17 doc. Built cmd/flashflow in a clone and ran the report for all six policies, then read concentration, committed work and drain time per seed from the JSON it wrote. Five of the six labels match the documented outcomes exactly; weighted round-robin is a documented refinement. The decisive commits (ec006c0, 38eefbf, 9e24add) are authored by Ujjwaljain16. The audit that prompted the correction was an AI-agent review, not an independent human review; the author made the resulting changes."
+    },
+    {
+        "id": "flagship-worst-p99-claim-retracted",
+        "kind": "investigation",
+        "project": "FlashFlow",
+        "projectId": "flashflow",
+        "title": "'Adaptive has the worst P99 in every seed' checked against its own JSON and retracted",
+        "date": "2026-09-07",
+        "dateSource": "commit bbaecb1",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": true,
+        "question": "The README and Stage 16 docs said Adaptive's P99 was the worst of six policies in all three flagship seeds (16000-16002). Does the committed result file say that?",
+        "method": "An audit compared the docs to experiments/016-final-synthesis/results/016-flagship-results.json (5 targets at 15-75 ms, Capacity=1, FlashCrowd workload, 8 s horizon, three seeds with 0.3 arrival jitter, six policies). The claim was rewritten in README, Stage16.md, the claim ledger (C24, now RETIRED with a note on the earlier overstatement), the Stage 16 learning notes and docs/index.html. For this record, cmd/experiment-016-flagship was also re-run four times on a clone of HEAD.",
+        "result": "The claim was false as written. Adaptive's P99 was the highest of the six policies in seeds 16001 (4732.39 vs EWMA 4717.98 ms, a 0.3 percent margin) and 16002 (4853.07 vs 4725.03 ms), but not in 16000, where EWMA was higher (4399.88 vs 4072.11 ms) and Adaptive was second-highest. In no seed was Adaptive in the lower half of the six. The wording adopted in the repo ('worst of six in 2 of 3 seeds, near-tie in the third') is loose: the near-tie is seed 16001, not 16000. Adaptive's mean latency (583-714 ms) is well below EWMA's (935-983 ms) in every seed, so mean latency alone would have hidden the tail problem. Four re-runs gave identical stdout and identical JSON apart from the timestamp. The source demo doc (Stage16-FlagshipDemo.md) had already hedged ('at or near the worst'); the overclaim entered when it was summarised into README and the ledger.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Seed 16000 P99: EWMA vs Adaptive (ms)",
+                "value": "4399.88 vs 4072.11 (Adaptive not worst)",
+                "source": "experiments/016-final-synthesis/results/016-flagship-results.json; re-run identical"
+            },
+            {
+                "label": "Seed 16001 P99: Adaptive vs EWMA (ms)",
+                "value": "4732.39 vs 4717.98 (0.3% apart)",
+                "source": "same; re-run identical"
+            },
+            {
+                "label": "Seed 16002 P99: Adaptive vs EWMA (ms)",
+                "value": "4853.07 vs 4725.03 (Adaptive worst)",
+                "source": "same; re-run identical"
+            },
+            {
+                "label": "Mean latency, Adaptive per seed (ms)",
+                "value": "638.06 / 714.37 / 582.73",
+                "source": "re-run of go run ./cmd/experiment-016-flagship"
+            },
+            {
+                "label": "Mean latency, EWMA per seed (ms)",
+                "value": "970.95 / 935.06 / 982.73",
+                "source": "re-run of go run ./cmd/experiment-016-flagship"
+            },
+            {
+                "label": "Changed lines across 4 re-runs, excluding timestamp",
+                "value": "0",
+                "source": "git diff after each run in the clone"
+            }
+        ],
+        "verdict": "rejected",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "bbaecb1",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/bbaecb1",
+                "note": "Commit message lists the three per-seed P99 pairs and the files corrected (README, Stage16.md, Stage16-ClaimLedger.md, learning notes, docs/index.html)."
+            },
+            {
+                "type": "file",
+                "label": "016-flagship-results.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/016-final-synthesis/results/016-flagship-results.json",
+                "note": "The result file that disproves the 'every seed' wording."
+            },
+            {
+                "type": "file",
+                "label": "Stage16-ClaimLedger.md@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/docs/StageArtifacts/Stage16-ClaimLedger.md",
+                "note": "Row C24 records the retirement and names the seed-16000 counterexample."
+            },
+            {
+                "type": "commit",
+                "label": "5cea6ef",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/5cea6ef",
+                "note": "Commit that added the three-seed flagship experiment."
+            }
+        ],
+        "verification": "Read the bbaecb1 message and diff and opened the flagship result JSON at HEAD. Ran the flagship experiment four times in a clone at HEAD (Go 1.23.3); every P99 and mean value matched the committed file and only the timestamp changed. The correcting commit is authored by Ujjwaljain16; its message credits an independent from-scratch audit, which the project describes as an AI-agent pass, not a human review."
+    },
+    {
+        "id": "acute-vs-chronic-collapse",
+        "kind": "investigation",
+        "project": "FlashFlow",
+        "projectId": "flashflow",
+        "title": "One metric could not explain why two policies never drain: acute vs chronic collapse",
+        "date": "2026-09-07",
+        "dateSource": "commit dc74b6c (canonical scenario and first results); interpretation in cc66922",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": true,
+        "question": "In an overloaded 5-target scenario, two of six routing policies never drain their queue within the horizon. Does one measure (traffic concentration or 'committed backlog') explain both?",
+        "method": "cmd/experiment-015a runs one fixed scenario (5 targets 15-75 ms, Capacity=1, FlashCrowd base 20 req/s to peak 300 req/s at t=2.5 s, 8 s horizon) across six policies and records top-1 share, peak queue depth, committed backlog (requests dispatched to the bottleneck between congestion onset and material diversion), fraction of the run above rho 1.0, and whether the queue drains. A falsification run (F1, commit dacce77) sent Adaptive load far under capacity. The flagship experiment repeated the scenario over three jittered seeds.",
+        "result": "No single measure explained both. Round-robin has a small committed backlog (4) but spends 0.711 of the run over capacity and never drains; Stage15.md attributes this to its fixed 1/5 share to the slowest target exceeding that target's capacity (chronic). Adaptive has a large backlog (86 in 015a) and 0.700 of the run over capacity, also without draining (acute over-commitment during the burst). EWMA has the largest backlog (97) but drains at 6850 ms. F1 (a 3-target topology at load far under capacity) showed concentration alone is not enough: Adaptive reached top-1 share 1.000 with no congestion and zero backlog. Over three jittered flagship seeds round-robin was identical (backlog 4, 0.711, no drain) while Adaptive's backlog was 107/127/93; Adaptive drained in seed 16000 but not in 16001 or 16002, so the acute/chronic contrast is cleanest in the single 015a run. Stage15.md lists the limits: one scenario, six policies, no systematic search for a third failure shape.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "015a committed backlog: RR / WRR / LC / EWMA / P2C / Adaptive",
+                "value": "4 / 9 / 6 / 97 / 6 / 86",
+                "source": "go run ./cmd/experiment-015a; matches Stage15.md table; re-run identical"
+            },
+            {
+                "label": "015a fraction of run above rho 1.0: RR / Adaptive",
+                "value": "0.711 / 0.700",
+                "source": "Stage15.md Backlog Dynamics table; re-run time_above_rho1.0: RR 5689 ms, Adaptive 5597 ms (of an 8000 ms horizon)"
+            },
+            {
+                "label": "015a drains within horizon: RR / Adaptive / EWMA",
+                "value": "No / No / Yes (6850 ms)",
+                "source": "re-run: t7 found=false for RR and Adaptive, 6850 ms for EWMA"
+            },
+            {
+                "label": "015a top-1 share: RR / Adaptive",
+                "value": "0.212 / 0.599",
+                "source": "re-run output"
+            },
+            {
+                "label": "Flagship RR across seeds 16000/16001/16002",
+                "value": "backlog 4/4/4, fraction above cap 0.711/0.711/0.711, drains=false in all",
+                "source": "go run ./cmd/experiment-016-flagship"
+            },
+            {
+                "label": "Flagship Adaptive backlog across seeds",
+                "value": "107 / 127 / 93 (threshold 0.30)",
+                "source": "go run ./cmd/experiment-016-flagship"
+            },
+            {
+                "label": "Flagship Adaptive drains within horizon, seeds 16000/16001/16002",
+                "value": "yes / no / no (EWMA: yes / no / yes)",
+                "source": "go run ./cmd/experiment-016-flagship, drains= field"
+            },
+            {
+                "label": "F1 (015b): Adaptive at low load, 3 targets",
+                "value": "top-1 share 1.000, peak depth 1, no congestion, committed backlog 0",
+                "source": "go run ./cmd/experiment-015b"
+            }
+        ],
+        "verdict": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "dc74b6c",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/dc74b6c",
+                "note": "Adds the canonical scenario and the first six-policy result; message notes RR backlog 4 yet never drains."
+            },
+            {
+                "type": "commit",
+                "label": "dacce77",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/dacce77",
+                "note": "Falsification runs: F1 (Adaptive top-1 share 1.000 with zero congestion), F3, F4, F6."
+            },
+            {
+                "type": "commit",
+                "label": "cc66922",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/cc66922",
+                "note": "Stage 15 close-out: states committed backlog explains acute collapse only and a second measure is needed for chronic."
+            },
+            {
+                "type": "file",
+                "label": "Stage15.md@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/docs/StageArtifacts/Stage15.md",
+                "note": "Backlog Dynamics section and the Limitations list (single scenario, no search for a third shape)."
+            },
+            {
+                "type": "file",
+                "label": "015A-canonical-scenario-backlog-dynamics.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/015-mechanism-identification/results/015A-canonical-scenario-backlog-dynamics.json",
+                "note": "Committed per-policy numbers."
+            }
+        ],
+        "verification": "Read Stage15.md, the dc74b6c, dacce77 and cc66922 messages and cmd/experiment-015a/main.go. Re-ran experiment 015a and the flagship in a clone at HEAD; the committed JSON and the docs matched except for the timestamp. The decisive commits are authored by Ujjwaljain16 and were not part of an external review."
     },
     {
         "id": "async-advisory-lock-on-separate-connection",
@@ -1677,57 +1977,6 @@ export const records: EngineeringRecord[] = [
         "verification": "grep for recordFailure, recordSuccess, .approve(, .deny(, WebhookNotifier across src, examples and tests; ran harness4.mjs against the built proxy."
     },
     {
-        "id": "ab-fail-closed-framing-and-config",
-        "kind": "decision",
-        "project": "AgentBrake",
-        "projectId": "agentbrake",
-        "title": "Anything the proxy cannot parse is now blocked instead of forwarded, and a bad policy file stops startup",
-        "date": "2026-09-28",
-        "dateSource": "commit 373adcd",
-        "provenance": "recorded",
-        "rationaleSource": "stated",
-        "origin": "personal project",
-        "authors": [
-            "Ujjwaljain16"
-        ],
-        "featured": true,
-        "context": "In 0fc99c8 the interceptor split each stdin chunk on newlines, ran JSON.parse on each piece, and in the catch branch wrote the piece to the server unchanged. A tool call split across two chunks therefore reached the server as two unchecked fragments, and any message that JavaScript's JSON.parse rejects but another JSON parser accepts (for example a bare NaN) skipped every policy. The loader had the same shape: a config file that failed validation was replaced by a hand-written default with no policies.",
-        "decision": "Framing moved to a byte-level line buffer used in both directions (src/proxy/framing.ts), with a size cap and UTF-8 validation. On the client path, unparseable input, JSON-RPC batches, non-object messages, malformed tools/call params, unknown policy actions and a policy that throws are all answered with a JSON-RPC error and not forwarded; forwarded messages are re-serialised so the server sees what the policies saw. An invalid or missing config exits with code 2 unless AGENT_BRAKE_ALLOW_INVALID_CONFIG=1 is set.",
-        "alternatives": [
-            {
-                "option": "Keep forwarding lines that cannot be parsed, and fix only the chunk splitting",
-                "whyNot": "The parser difference between the proxy and the server would still let a message through unchecked; blocking is the only safe answer when the proxy cannot classify a message."
-            },
-            {
-                "option": "Keep the silent fallback to default policies for a bad config",
-                "whyNot": "A typo in the policy file would disable enforcement without any sign. The fallback remains available only as an explicit opt-in."
-            }
-        ],
-        "consequences": "tests/proxy.test.ts splits a tools/call at every byte boundary and asserts the policy still applies, and covers multiple messages per chunk, CRLF, invalid UTF-8, batches, oversize lines and duplicate keys. The test count went from 22 to 85. The same commit also fixed max_tool_calls counting one call too few, wired the circuit breaker to real tool errors, and made a killed proxy terminate its child. Remaining limits: the proxy covers stdio only, and regular-expression argument rules can still be bypassed.",
-        "status": "adopted",
-        "evidence": [
-            {
-                "type": "commit",
-                "label": "373adcd",
-                "href": "https://github.com/Ujjwaljain16/AgentBrake/commit/373adcd",
-                "note": "Adds framing, fail-closed handling and config refusal, with the regression tests."
-            },
-            {
-                "type": "commit",
-                "label": "0fc99c8",
-                "href": "https://github.com/Ujjwaljain16/AgentBrake/commit/0fc99c8",
-                "note": "The last commit before the change: the catch branch that forwards unparseable lines."
-            },
-            {
-                "type": "file",
-                "label": "tests/proxy.test.ts",
-                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/373adcd/tests/proxy.test.ts",
-                "note": "Byte-boundary split test and the other framing cases."
-            }
-        ],
-        "verification": "Read src/proxy/interceptor.ts at 0fc99c8 and at 373adcd; ran npm test (85 passing), tsc --noEmit and the build after the change."
-    },
-    {
         "id": "campus-ocr-tesseract-to-gemini-vision",
         "kind": "decision",
         "project": "CampusSync",
@@ -2013,6 +2262,542 @@ export const records: EngineeringRecord[] = [
             }
         ],
         "verification": "Read PR #38227 body, comments, reviews and inline comments; issue #37114; PR #40993 body, diff and merge metadata via gh. Did not clone the repository or run tests. The record describes what the author's PR attempted and the project's later root-cause fix; it does not claim the author found the mutation. Attribution: #40993 (the fix) was written and merged by others (bobjo-daangn; approved by rusackas and betodealmeida, merged by betodealmeida, merge commit 257dafe on 2026-06-16)."
+    },
+    {
+        "id": "retract-overclaims-in-place-with-claim-ledger",
+        "kind": "decision",
+        "project": "FlashFlow",
+        "projectId": "flashflow",
+        "title": "Correct overstated research claims in place, citing the result files that contradict them",
+        "date": "2026-09-07",
+        "dateSource": "commit bbaecb1 (flagship claim); related fixes b2d9d30, d31d7c9, f367ca8, b90c1d4",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "After Stage 16 the README, the Stage 16 write-up and the landing page summarized the research. An audit of the earlier stages found statements that the committed result files did not support. The commit messages call it an independent audit; a related commit (9e24add) describes it as 12 parallel agents, so it was an AI-agent review, and the author made the corrections.",
+        "decision": "Fix each claim where it appeared and narrow it to what the data supports. For the two ledger-tracked claims (C20, C24) also record the correction in Stage16-ClaimLedger.md, citing the result file, rather than deleting the row. Documents that already scoped the claim correctly were left untouched.",
+        "alternatives": [
+            {
+                "option": "Leave the summary wording as published",
+                "whyNot": "016-flagship-results.json contradicts 'Adaptive worst P99 in every seed': in seed 16000 EWMA (4399.88 ms) is worse than Adaptive (4072.11 ms). This is the status quo rather than an option the repo discusses."
+            },
+            {
+                "option": "Rename 'predictor' throughout Stage 15 and 16 documents",
+                "whyNot": "b2d9d30 judged this disproportionate: there the word is used in a rank-agreement sense; only the summary claims implying live use were changed."
+            }
+        ],
+        "consequences": "(1) Per-seed P99 in 016-flagship-results.json: seed 16000 EWMA 4399.88 ms > Adaptive 4072.11; 16001 Adaptive 4732.39 vs EWMA 4717.98; 16002 Adaptive 4853.07 vs EWMA 4725.03, so Adaptive was worst of six in 2 of 3 seeds (recomputed from the JSON). (2) FindPeakEpisodeCongestionOnset needs the run's whole future, so committed backlog is a post hoc statistic, not a live predictor; a code comment now says so. (3) Stage 11's 'Adaptive wins 0/27' counted only sole wins, and round-robin's credit in tied configs came from an unstable sort.Slice; 'EWMA 85-99% in every heterogeneous config' was 57-99% (4 of 18 configs at 57-58%). (4) A claim that Stage 8's sampling rarely produces the severe, no-failure corner was measured at about 6.9%; a test with a 2-15% band guards it. (5) Stage 14's 'FALSIFIER FOUND' pre-dated its dedicated test, since 014A already held the reversal. Ledger claim C24 ('Adaptive is safe') is marked RETIRED.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "bbaecb1",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/bbaecb1",
+                "note": "Corrects the flagship P99 claim with per-seed numbers from the JSON."
+            },
+            {
+                "type": "commit",
+                "label": "b2d9d30",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/b2d9d30",
+                "note": "Adds the retrospective-statistic caveat to the code and docs."
+            },
+            {
+                "type": "commit",
+                "label": "d31d7c9",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/d31d7c9",
+                "note": "Discloses that the Stage 14 falsifier data pre-existed its dedicated experiment."
+            },
+            {
+                "type": "commit",
+                "label": "f367ca8",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/f367ca8",
+                "note": "Corrects two Stage 11 statistics and persists Stage 14 CIs."
+            },
+            {
+                "type": "commit",
+                "label": "b90c1d4",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/b90c1d4",
+                "note": "Measures the scenario-rarity claim and adds a guarding test."
+            },
+            {
+                "type": "file",
+                "label": "016-flagship-results.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/016-final-synthesis/results/016-flagship-results.json",
+                "note": "Source data for the per-seed P99 comparison."
+            },
+            {
+                "type": "doc",
+                "label": "Stage16-ClaimLedger.md@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/docs/StageArtifacts/Stage16-ClaimLedger.md",
+                "note": "C20 and C24 rows record the corrections."
+            },
+            {
+                "type": "file",
+                "label": "backlog.go@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/internal/backlog/backlog.go",
+                "note": "Doc comment on FindPeakEpisodeCongestionOnset stating it is retrospective."
+            }
+        ],
+        "verification": "Recomputed the per-seed P99 ranking from the flagship result JSON and compared it with the commit message. Read the README as it stood before bbaecb1 (line 199 holds the false sentence), the other four commit messages and the C20/C24 ledger rows, and confirmed the rarity test exists and the package tests pass. The 57-99% range and the 6.9% rate were not recomputed. The cited commits are authored by Ujjwaljain16 and respond to an AI-agent audit; the original overclaims were also the author's."
+    },
+    {
+        "id": "committed-backlog-threshold-and-hindsight",
+        "kind": "investigation",
+        "project": "FlashFlow",
+        "projectId": "flashflow",
+        "title": "Committed backlog out-ranked peak load on severity, but its value moved about tenfold with one threshold",
+        "date": "2026-09-07",
+        "dateSource": "commit 5cea6ef (threshold finding); generalization test in 2edd061; caveat in b2d9d30",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "question": "Stage 15 proposed 'committed backlog' as the measure that explains collapse severity. Does it rank scenarios better than peak rho, and how sensitive is it to its own settings and to when it can be computed?",
+        "method": "(1) cmd/experiment-015e ranks 4 topologies (N=3/5/8 graduated and an N=8 bimodal) and 3 workloads (constant, burst, flash crowd), with EWMA as the policy throughout, by mean latency and compares that ranking with rankings by peak rho and by committed backlog. (2) While building the multi-seed flagship, a fixed diversion-share threshold of 0.5 was found to fit 3-target topologies (fair share 1/3) but not 5 targets (fair share 1/5), and was scaled to 1.5/N (commit 5cea6ef). (3) For this record the flagship was re-run in a clone with the threshold forced back to 0.5. (4) A code audit (b2d9d30) found that the onset detector anchors to the episode holding the peak depth, which requires that episode's future.",
+        "result": "Across topology size, committed backlog matched the severity ranking exactly (rank distance 0, n=4) while peak rho was misordered (distance 4; rho fell from 0.915 to 0.716 as N grew while EWMA mean latency rose from 93.78 to 307.32 ms). Across workload shape it was better but imperfect (distance 2 vs 4, n=3). Stage15.md notes these are small deterministic tests, not seeded replications. The value depends strongly on the diversion-share threshold: at 0.5 Adaptive's committed backlog in the three flagship seeds is 10/9/10, at 1.5/N = 0.30 it is 107/127/93, while EWMA's is unchanged (98/104/95). Stage 15's Adaptive figure of 86 used 0.5 with no arrival jitter, while the jittered flagship at the same threshold gives about 10. Stage15.md states that no full threshold-sensitivity sweep was run. The measure is also retrospective: it cannot be computed live, and README and the ledger were corrected to say so. An earlier first-episode-only version reported EWMA's backlog as 1 instead of 97 (commit dc74b6c).",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Cross-topology rank distance from severity: committed backlog vs peak rho",
+                "value": "0 vs 4 (n=4, EWMA only)",
+                "source": "go run ./cmd/experiment-015e; identical to committed 015E JSON"
+            },
+            {
+                "label": "Cross-workload rank distance: committed backlog vs peak rho",
+                "value": "2 vs 4 (n=3, EWMA only)",
+                "source": "go run ./cmd/experiment-015e"
+            },
+            {
+                "label": "Peak rho for N=3/5/8 graduated",
+                "value": "0.915 / 0.833 / 0.716",
+                "source": "same"
+            },
+            {
+                "label": "EWMA mean latency for N=3/5/8 graduated (ms)",
+                "value": "93.78 / 201.81 / 307.32",
+                "source": "same"
+            },
+            {
+                "label": "Adaptive committed backlog, flagship seeds, threshold 0.30 (recorded)",
+                "value": "107 / 127 / 93",
+                "source": "go run ./cmd/experiment-016-flagship, identical to committed file"
+            },
+            {
+                "label": "Adaptive committed backlog, flagship seeds, threshold forced to 0.5",
+                "value": "10 / 9 / 10",
+                "source": "re-run in a clone with 'var diversionShareThreshold = 0.5' in cmd/experiment-016-flagship/main.go (edit reverted afterwards)"
+            },
+            {
+                "label": "EWMA committed backlog at 0.5 and at 0.30",
+                "value": "98 / 104 / 95 at both",
+                "source": "same two runs"
+            },
+            {
+                "label": "Adaptive backlog in 015a (threshold 0.5, no jitter)",
+                "value": "86",
+                "source": "go run ./cmd/experiment-015a"
+            }
+        ],
+        "verdict": "inconclusive",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "2edd061",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/2edd061",
+                "note": "Adds the cross-topology and cross-workload rank test (distance 0 vs 4, and 2 vs 4)."
+            },
+            {
+                "type": "commit",
+                "label": "5cea6ef",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/5cea6ef",
+                "note": "Commit message documents the 0.5 threshold problem (Adaptive backlog 9-10 vs 93-127) and the fix to 1.5/N."
+            },
+            {
+                "type": "commit",
+                "label": "b2d9d30",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/b2d9d30",
+                "note": "Adds the retrospective-only caveat to FindPeakEpisodeCongestionOnset, README and the ledger."
+            },
+            {
+                "type": "commit",
+                "label": "dc74b6c",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/dc74b6c",
+                "note": "First-episode onset gave EWMA backlog 1 vs 97; fixed and covered by a two-episode test."
+            },
+            {
+                "type": "test",
+                "label": "TestFindPeakEpisodeCongestionOnset_MultipleEpisodes (backlog_test.go@14da821)",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/internal/backlog/backlog_test.go#L235",
+                "note": "Hand-computed two-episode case showing the first-episode and peak-episode onset finders disagree; passes in a clone (go test ./internal/backlog)."
+            },
+            {
+                "type": "file",
+                "label": "main.go@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/cmd/experiment-016-flagship/main.go",
+                "note": "Header comment explains the threshold scaling and the 9-10 vs 93-127 observation."
+            },
+            {
+                "type": "file",
+                "label": "Stage15.md@14da821 (Limitations 1 and 5)",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/docs/StageArtifacts/Stage15.md",
+                "note": "States that no full threshold-sensitivity sweep was run and that the severity-ranking claim rests on a 4-point deterministic test."
+            }
+        ],
+        "verification": "Re-ran experiments 015e, 015a and the flagship in a clone at HEAD (results identical to the committed files apart from timestamps). Set the flagship threshold constant to 0.5 in the clone, ran it and discarded the change. Ran the internal/backlog tests (all pass) and read the b2d9d30 diff. The retrospective-only caveat comes from a commit whose message credits an independent from-scratch audit, which was an AI-agent pass, not a human review."
+    },
+    {
+        "id": "load-blind-vs-load-aware-falsified",
+        "kind": "investigation",
+        "project": "FlashFlow",
+        "projectId": "flashflow",
+        "title": "'Load-aware beats load-blind' was falsified at 8 targets: EWMA lost to round-robin in 10 of 10 seeds",
+        "date": "2026-09-07",
+        "dateSource": "commit e497b79 (falsifier), 121b60a (rho test), 99031e2 (10-seed test), d31d7c9 (disclosure)",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "question": "Stage 13 concluded that the deepest regime boundary was load-blind vs load-aware routing, and that a rho of about 0.89-0.97 marks the collapse transition. Do both claims hold as the number of targets grows from 3 to 8?",
+        "method": "cmd/experiment-014c scaled requests at N=3/5/8 to aim at EWMA's max-target rho of about 0.9. cmd/experiment-014f ran all six policies at N=8 below, near and above the capacity boundary (150/381/600 requests), labelled by signal source rather than name. cmd/experiment-014i repeated the near-boundary point over 10 seeds (14700-14709, jitter 0.3) with Cliff's Delta and bootstrap CIs.",
+        "result": "The rho claim was narrowed and the load-aware claim was falsified as general statements. EWMA's achieved rho fell as N grew (0.915, 0.833, 0.716) while its mean latency rose (93.78, 201.81, 307.32 ms), so rho became necessary but insufficient. At N=8 EWMA, a policy with a live latency signal, was worse than load-blind round-robin near the boundary (307.32 vs 170.48 ms) and above it (589.39 vs 376.80 ms), but better below it (39.43 vs 66.69 ms). Least-connections and Adaptive stayed at 27.98 and 29.88 ms near the boundary, so the failure is specific to EWMA rather than to load-aware policies as a class. Over 10 seeds round-robin beat EWMA every time (Cliff's Delta 1.000, CI on the difference [119.49, 134.11] ms). A later audit found the discovery was less blind than described: experiment 014a, run about 20 minutes earlier (JSON timestamps 19:13:13Z and 19:34:45Z), already showed round-robin at 88.81 ms vs EWMA at 137.03 ms at N=8 (about 290 requests), so 014f may have been shaped by that data; Stage14.md now says so. Ledger rows C17 and C19 are RETIRED.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "EWMA achieved rho, N=3/5/8",
+                "value": "0.915 / 0.833 / 0.716",
+                "source": "go run ./cmd/experiment-014c"
+            },
+            {
+                "label": "EWMA mean latency, N=3/5/8 (ms)",
+                "value": "93.78 / 201.81 / 307.32",
+                "source": "go run ./cmd/experiment-014c"
+            },
+            {
+                "label": "N=8 near boundary: RR / EWMA / LC / Adaptive (ms)",
+                "value": "170.48 / 307.32 / 27.98 / 29.88",
+                "source": "go run ./cmd/experiment-014f"
+            },
+            {
+                "label": "N=8 above boundary: RR / EWMA (ms)",
+                "value": "376.80 / 589.39",
+                "source": "go run ./cmd/experiment-014f"
+            },
+            {
+                "label": "N=8 below boundary: EWMA / RR (ms)",
+                "value": "39.43 / 66.69 (EWMA better)",
+                "source": "go run ./cmd/experiment-014f"
+            },
+            {
+                "label": "10-seed test, RR faster than EWMA",
+                "value": "10/10; Cliff's Delta 1.000; 95% CI [119.49, 134.11] ms",
+                "source": "go run ./cmd/experiment-014i (identical on re-run)"
+            },
+            {
+                "label": "10-seed test, Adaptive faster than EWMA",
+                "value": "10/10; Delta 1.000; 95% CI [260.21, 274.88] ms",
+                "source": "go run ./cmd/experiment-014i (identical on re-run)"
+            },
+            {
+                "label": "Earlier data point in 014A (N=8, Capacity=1, about 290 requests)",
+                "value": "RR 88.80867 ms, EWMA 137.02514 ms",
+                "source": "experiments/014-scale-topology/results/014A-multi-target-capacity-boundary.json (timestamp 2026-09-06T19:13:13Z; 014F 19:34:45Z)"
+            }
+        ],
+        "verdict": "rejected",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "e497b79",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/e497b79",
+                "note": "Full six-policy sweep; message labels the EWMA-worse-than-RR result a first-class negative result."
+            },
+            {
+                "type": "commit",
+                "label": "121b60a",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/121b60a",
+                "note": "Cross-scale rho test: rho falls while severity rises."
+            },
+            {
+                "type": "commit",
+                "label": "99031e2",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/99031e2",
+                "note": "10-seed confirmation with CIs."
+            },
+            {
+                "type": "commit",
+                "label": "d31d7c9",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/d31d7c9",
+                "note": "Discloses that 014a already held the round-robin vs EWMA reversal 20 minutes earlier."
+            },
+            {
+                "type": "file",
+                "label": "014I-statistical-confirmation.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/014-scale-topology/results/014I-statistical-confirmation.json",
+                "note": "Persisted per-seed values and CIs (persisted in commit f367ca8)."
+            },
+            {
+                "type": "file",
+                "label": "Stage16-ClaimLedger.md@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/docs/StageArtifacts/Stage16-ClaimLedger.md",
+                "note": "C17 and C19 marked RETIRED with their replacing evidence."
+            }
+        ],
+        "verification": "Read the four commit messages and the Stage14.md 014f section. Re-ran experiments 014c, 014f and 014i in a clone at HEAD; every quoted value matched the committed JSON and docs (one unquoted P2C wait-share field in 014F differed slightly between runs). Loaded the 014A JSON and found the two cited means. The disclosure commit d31d7c9 credits an independent audit, which was an AI-agent pass; the disclosure text in Stage14.md is audit-generated, though committed by the author."
+    },
+    {
+        "id": "contention-model-reverses-ewma-win",
+        "kind": "decision",
+        "project": "FlashFlow",
+        "projectId": "flashflow",
+        "title": "Add a minimal FIFO capacity model to the simulator after its flat model rewarded overload",
+        "date": "2026-09-06",
+        "dateSource": "commit bfec932 (model); finding in commit 9175a3f; robustness in 81a2817",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "Stage 11's policy map showed EWMA beating Adaptive on mean latency under heterogeneity (15.90 ms vs 27.38 ms). Stage 11's own analysis said this was an artifact: RunWorld gave each target a fixed service time with no queueing, so sending 97.3% of requests to one target (utilization 1.09) cost nothing. The real engine was used as a cross-check because it has genuine concurrency.",
+        "decision": "Add TargetProfile.Capacity, where 0 or less means infinite (the old behavior, byte-for-byte), and otherwise per-target busy/queue state with deterministic FIFO waiting so CompletionRecord.Latency includes wait time. Add time-varying service time in the same commit. Then re-run the flagship comparison across Capacity 0/1/2/3.",
+        "alternatives": [
+            {
+                "option": "Accept the flat-model ranking as evidence that EWMA routes better",
+                "whyNot": "Stage11.md says taking it at face value would be an overclaim the model cannot support."
+            },
+            {
+                "option": "Build a general stochastic queueing or network simulator",
+                "whyNot": "Stage12.md: the stage 'was never a license to build a general-purpose network simulator'; the commit says it is deterministic discrete-event queueing, not an M/M/c simulation."
+            },
+            {
+                "option": "Use the real HTTP engine to study contention instead",
+                "whyNot": "No reason is stated in the repo for not doing so. Related facts: Stage12.md section 12 notes RealEngine never reads Capacity, so real and modelled contention are not like-for-like, and cmd/experiment-011f describes a real run as about 4 s of wall-clock."
+            }
+        ],
+        "consequences": "The ranking flips only at one capacity: Capacity 0 EWMA 15.90 vs Adaptive 27.38 ms (EWMA wins); Capacity 1 EWMA 131.06 vs 27.93 ms (Adaptive wins); Capacity 2 16.36 vs 27.38 and Capacity 3 16.04 vs 27.38 (EWMA wins). 012-E: Adaptive faster in 12 of 12 traffic seeds, Cliff's delta 1.000, bootstrap CI on the mean gap [88.67, 107.58] ms. A re-run of 012-A and 012-E reproduced all of these (012-E point estimate 98.13 ms). The repo therefore reports that Adaptive's advantage exists only near the stability boundary, not across realistic capacities; a later commit (97285cd) also narrowed a related rho=1 claim to one scenario. Seven hand-computed contention tests were added, and the existing tests passed unchanged.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "bfec932",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/bfec932",
+                "note": "Adds Capacity and ServiceTimeSchedule with backward-compatible zero values and the 7+5 tests."
+            },
+            {
+                "type": "commit",
+                "label": "9175a3f",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/9175a3f",
+                "note": "Re-runs Program A under contention (012-A)."
+            },
+            {
+                "type": "commit",
+                "label": "81a2817",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/81a2817",
+                "note": "12-seed robustness check (012-E)."
+            },
+            {
+                "type": "doc",
+                "label": "Stage11.md@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/docs/StageArtifacts/Stage11.md",
+                "note": "Section 7 explains why the flat-model win is an artifact and states the falsifier."
+            },
+            {
+                "type": "doc",
+                "label": "Stage12.md@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/docs/StageArtifacts/Stage12.md",
+                "note": "Model changes and before/after table."
+            },
+            {
+                "type": "test",
+                "label": "contention_test.go@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/internal/replay/contention_test.go",
+                "note": "Hand-derived 1-slot and 2-slot latency tests and scale-invariance test."
+            },
+            {
+                "type": "file",
+                "label": "012A-program-a-under-contention.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/012-model-fidelity/results/012A-program-a-under-contention.json",
+                "note": "Recorded capacity sweep numbers."
+            },
+            {
+                "type": "file",
+                "label": "012E-contention-reversal-robustness.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/012-model-fidelity/results/012E-contention-reversal-robustness.json",
+                "note": "Recorded 12-seed result."
+            }
+        ],
+        "verification": "Read the queue logic in world.go and the Capacity documentation in scenario.go, and compared the 012A JSON with the Stage12.md table. Re-ran experiments 012a and 012e in a clone (identical means; CI [88.67, 107.58]) and ran the internal/replay tests, which pass. The cited commits (bfec932, 9175a3f, 81a2817) are authored by Ujjwaljain16 and were not the product of an audit agent."
+    },
+    {
+        "id": "real-engine-shares-proxy-trackers",
+        "kind": "decision",
+        "project": "FlashFlow",
+        "projectId": "flashflow",
+        "title": "Feed real-engine policies from the proxy's own load and latency trackers",
+        "date": "2026-09-06",
+        "dateSource": "commit b51eac0 (final fix); defect found in 052b894",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "Stage 11 compared virtual and real engines on the same policies. In the real engine, EWMA and Adaptive sent 100% of 300 requests to one target, and the target changed between fresh processes. The repo's stated goal was that the same policy code runs correctly in both engines.",
+        "decision": "Construct the ReverseProxy first with a nil selector, build the selector using the proxy's own LoadTracker() and LatencyTracker() through a new Trackers parameter on PolicySpec.New (zero value means build fresh, so the virtual engine is untouched), then attach it with SetSelector. Remove the earlier post-hoc bridge.",
+        "alternatives": [
+            {
+                "option": "Read the X-Selected-Edge response header after each request and feed latency back to the selector's own tracker (the Stage 11 fix in 052b894)",
+                "whyNot": "Fixed latency only; calling OnDispatch/OnComplete back-to-back after the response would net to zero and never show real in-flight load. It was removed because it would double-count."
+            },
+            {
+                "option": "Treat the disagreement as a modeling-fidelity gap and document it",
+                "whyNot": "Stage 11 shows it was a wiring bug: policy.New's Instrumentation return value was discarded, so the selector read trackers nothing updated."
+            }
+        ],
+        "consequences": "The defect was diagnosed from run-to-run variation in which target was locked and from an ablation: giving every request a unique key (removing cache affinity) still produced max_share 1.000. After the fix, the recorded 011-F shows max_share EWMA 0.973 real vs 0.973 virtual and Adaptive 0.500 vs 0.503. A re-run reproduced EWMA (0.973 in both engines, lowest p50 in both) and Adaptive's max_share (0.503), but real Adaptive's p50 was 30.2 ms against 15 ms virtual (the recorded file has 16.5 ms), so p50 agreement for Adaptive depends on timing. Stage11.md states that every earlier RealEngine result for load- or latency-aware policies reflected cold-start tie-breaking, not the intended logic. Two regression tests were added (EWMA prefers the fast real target; least-connections avoids the busy target) and pass.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "052b894",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/052b894",
+                "note": "Finds the discarded-Instrumentation bug, runs the unique-key ablation, applies the partial header-based fix."
+            },
+            {
+                "type": "commit",
+                "label": "b51eac0",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/b51eac0",
+                "note": "Replaces the bridge with shared trackers and removes it."
+            },
+            {
+                "type": "file",
+                "label": "real.go@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/internal/engine/real.go",
+                "note": "HEAD builds the proxy first and passes pxy.LoadTracker()/LatencyTracker() into policy.New, then calls SetSelector."
+            },
+            {
+                "type": "test",
+                "label": "real_test.go@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/internal/engine/real_test.go",
+                "note": "TestRealEngine_Run_EWMAPrefersFastRealTarget and TestRealEngine_Run_LeastConnectionsAvoidsBusyRealTarget."
+            },
+            {
+                "type": "file",
+                "label": "011F-virtual-vs-real.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/011-research-validation/results/011F-virtual-vs-real.json",
+                "note": "Recorded post-fix agreement numbers."
+            },
+            {
+                "type": "doc",
+                "label": "Stage11.md@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/docs/StageArtifacts/Stage11.md",
+                "note": "Section 10 root cause and ablation."
+            }
+        ],
+        "verification": "Read both commit messages, internal/engine/real.go lines 121-154 and Stage11.md section 10. Re-ran experiment 011f: maximum share and policy ranking agree between the engines, and p50 differs (a re-run gave 30.2 ms for the real engine against 15 ms virtual). Confirmed both regression tests exist and pass. The commits (052b894, b51eac0) are authored by Ujjwaljain16, and the defect was found by the author's own Program F rather than by an audit agent."
+    },
+    {
+        "id": "virtual-time-engine-over-real-clock",
+        "kind": "decision",
+        "project": "FlashFlow",
+        "projectId": "flashflow",
+        "title": "Run policy experiments on a single-threaded virtual-time event loop, not wall-clock time",
+        "date": "2026-09-05",
+        "dateSource": "commit 6b0fe78 (engine); rationale in docs/learning/005-virtual-time.md first committed in 504f271",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "Through Stage 4 every experiment ran on real time and real HTTP. Stage 3's EWMA lock-in experiment gave a different traffic split on each of three real runs of identical targets, and Stage 4 needed a mock clock, a pre-reserved port and an artificial delay just to make timing repeatable. The question for Stage 5 was whether the same configuration and seed could yield the same execution history, cheaply.",
+        "decision": "Add internal/vtime: a heap-ordered EventQueue keyed on (virtual timestamp, insertion sequence) and an Engine that pops the earliest event, advances a MockClock to exactly that time, runs the callback and repeats, all on one goroutine. Domain code (cache, health registry, selectors) reads time only through the injected clock.Clock, so it ran under the engine unchanged.",
+        "alternatives": [
+            {
+                "option": "Keep using real wall-clock time and real HTTP, adding more controls (MockClock, fixed ports, widened race windows) per experiment",
+                "whyNot": "Stage 5 notes call the Stage 4 concessions 'the concrete, measured cost' of staying on real time; Experiment 003-D showed goroutine scheduling alone changed the outcome between runs."
+            },
+            {
+                "option": "Migrate all domain logic to virtual time",
+                "whyNot": "An audit of every time.Now/Sleep/After/Ticker call in internal/ found the state machines were already clock-injected; only the I/O scheduling layer was wall-clock bound, so only a driving engine was needed."
+            },
+            {
+                "option": "Model simulated concurrency with real goroutines and channels",
+                "whyNot": "internal/vtime/queue.go's package comment says this would reintroduce Go scheduler nondeterminism; overlapping requests are instead overlapping start/complete event pairs."
+            }
+        ],
+        "consequences": "Determinism was tested by repetition: Experiment 005-B ran an identical 9-event scenario 50 times with identical traces, and a re-run gave 50 of 50 identical. An engine test shows that a single event scheduled 10 virtual minutes out is processed in under 100 ms of real time. The cost was a deliberately flat service model: 005-H shows upstream request counts matching the real engine (10/30/100) while virtual p99 stays at 100.0 ms and real p99 rises from 102.9 to 115.4 ms; the real-side figures are read from stored 004-C results, not re-run by 005-H. The missing contention later made Stage 11's flat-model ranking of EWMA over Adaptive an artifact (see contention-model-reverses-ewma-win).",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "6b0fe78",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/6b0fe78",
+                "note": "Adds the Engine that owns the clock and queue privately so only one loop can advance time; commit message states the determinism argument."
+            },
+            {
+                "type": "commit",
+                "label": "0e3b1a9",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/0e3b1a9",
+                "note": "Adds the (timestamp, sequence) ordered EventQueue with its own test suite before the Engine used it."
+            },
+            {
+                "type": "commit",
+                "label": "6db3c89",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/commit/6db3c89",
+                "note": "Adds Experiment 003-D whose three real runs are the motivating nondeterminism."
+            },
+            {
+                "type": "file",
+                "label": "003D-pure-homogeneous-lock-in-check-run1.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/003-routing-policies/results/003D-pure-homogeneous-lock-in-check-run1.json",
+                "note": "Real run 1 of identical targets: edge-a share 94%."
+            },
+            {
+                "type": "file",
+                "label": "003D-pure-homogeneous-lock-in-check-run2.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/003-routing-policies/results/003D-pure-homogeneous-lock-in-check-run2.json",
+                "note": "Real run 2: edge-a share 68.33%."
+            },
+            {
+                "type": "file",
+                "label": "003D-pure-homogeneous-lock-in-check-run3.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/003-routing-policies/results/003D-pure-homogeneous-lock-in-check-run3.json",
+                "note": "Real run 3: edge-a share 18.17%."
+            },
+            {
+                "type": "doc",
+                "label": "005-virtual-time.md@504f271",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/504f271/docs/learning/005-virtual-time.md",
+                "note": "States the reasons, the clock-injection audit, and the flat-model limitation."
+            },
+            {
+                "type": "file",
+                "label": "queue.go@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/internal/vtime/queue.go",
+                "note": "Package comment explains why no real goroutines are used."
+            },
+            {
+                "type": "file",
+                "label": "005H-virtual-vs-real.json@14da821",
+                "href": "https://github.com/Ujjwaljain16/FlashFlow/blob/14da821/experiments/005-virtual-time/results/005H-virtual-vs-real.json",
+                "note": "Virtual vs real comparison numbers; the 'real' side is loaded from earlier 004-C result files, not re-run by 005-H."
+            }
+        ],
+        "verification": "Read internal/vtime/queue.go, the engine commit message and docs/learning/005-virtual-time.md, and opened the three 003-D result JSONs (edge-a shares 94, 68.33 and 18.17 percent). Ran experiment 005b in a clone (all 50 runs identical) and 005h (numbers matched the recorded file, but 005-H reads the real-engine figures from stored 004-C JSON, so only the virtual half was re-executed). Package tests pass. Authored under Ujjwaljain16; the project was built with an AI coding assistant, so this early code should be treated as possibly AI-assisted (see the project page)."
     },
     {
         "id": "golden-gate-measures-what",

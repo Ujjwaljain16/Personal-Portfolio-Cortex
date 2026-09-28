@@ -329,6 +329,78 @@ export const projects: Project[] = [
 
     // ─── More projects ─────────────────────────────────────────────────────
     {
+        id: "flashflow",
+        name: "FlashFlow",
+        tier: "flagship",
+        tagline: "A Go lab that replays routing policies on identical traffic and classifies why one of them collapses under load.",
+        status: "prototype",
+        origin: "Personal project",
+        period: "Aug–Sep 2026 · 226 commits on 5 days",
+        problem:
+            "A single latency benchmark cannot show why a load-balancing policy collapses, because traffic, capacity, failures and cache state all change at once. FlashFlow fixes the traffic, topology, failures and seed, lets each policy make its own routing decisions, and rebuilds queue growth from the dispatch and completion events.",
+        approach: [
+            "A deterministic virtual-time engine runs six routing policies on the same seeded arrival trace. A second engine runs real net/http servers in one process over a simulated link.",
+            "A backlog reconstruction rebuilds per-target queue depth from events, and a classifier labels each run STABLE, ACUTE_COLLAPSE, CHRONIC_COLLAPSE or RECOVERY_LIMITED from traffic concentration and committed work.",
+            "Each research stage is written up against a claim ledger. Later stages retired or narrowed earlier claims, and in-repo audits corrected overclaims in the docs.",
+        ],
+        evidence: [
+            {
+                text: "go test ./... on a fresh clone: 24 packages pass, 503 top-level tests, 0 failures. go build, go vet and gofmt are clean. About 46,900 lines of Go, of which 20,284 are 89 single-file experiment programs.",
+                source: "internal/proxy/proxy_test.go",
+            },
+            {
+                text: "Six policies are compared: round-robin, weighted round-robin, least-connections, EWMA, power-of-two-choices by in-flight count, and an adaptive weighted policy.",
+                source: "internal/replay/policies.go",
+            },
+            {
+                text: "Re-running the flagship experiment (seeds 16000–16002) reproduced the committed result file except for its timestamp. Re-running the diagnostic report reproduced the documented labels for all six policies.",
+                source: "experiments/016-final-synthesis/results/016-flagship-results.json",
+            },
+            {
+                text: "Load-aware routing was tested against load-blind routing at 8 targets and lost: round-robin beat EWMA in 10 of 10 seeds. That retired a claim from an earlier stage.",
+                source: "experiments/014-scale-topology/results/014I-statistical-confirmation.json",
+            },
+            {
+                text: "A claim that one policy had the worst P99 in every seed was checked against its own result file, found false for one seed, and retracted in a follow-up commit.",
+                source: "docs/StageArtifacts/Stage16-ClaimLedger.md",
+            },
+        ],
+        limitations: [
+            "Everything numerical is a simulation or an in-process run on one Windows machine. Targets are single FIFO queues with fixed service times. No code starts containers, and nothing ran against real traffic.",
+            "The classifier's two thresholds were tuned against the same six outcomes it then reproduces, with no held-out scenario, so that agreement is a consistency check and not validation. It also labels weighted round-robin ACUTE_COLLAPSE even though that policy has the lowest P99.",
+            "The dashboard and README quote \"8x\" for EWMA against the adaptive policy. That figure is EWMA against its own Capacity=0 baseline; the policy-to-policy gap is about 4.6–4.7x.",
+            "Some recorded numbers are stale. A re-run of the keep-alive throughput test gave 2.15x where the docs say 3.06x, and the Stage 8 tuner figures moved after later seed changes.",
+            "The \"independent\" audits are documents by the author, one run by 12 parallel AI agents. None is third-party review.",
+            "Built with an AI coding assistant: at least 119 of the first 221 commits carried a Claude co-author trailer before a history rewrite removed most of them, and 28 of the current 226 still do. The commit history is also compressed: 214 of the 226 commits fall on four days.",
+        ],
+        tech: ["Go", "net/http", "GitHub Actions", "JavaScript dashboard", "Prometheus text format"],
+        repo: "Ujjwaljain16/FlashFlow",
+        links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/FlashFlow") }],
+        gallery: {
+            layout: "wide",
+            items: [
+                {
+                    src: "/projects/flashflow/compare.webp",
+                    alt: "FlashFlow Compare tab: P99 latency for six routing policies with their failure classification, and bar charts of traffic concentration and committed work.",
+                    width: 1600,
+                    height: 773,
+                },
+                {
+                    src: "/projects/flashflow/diagnose.webp",
+                    alt: "FlashFlow Diagnose tab: an eight-step explanation of why round-robin collapsed, and the classification of every policy with its committed work.",
+                    width: 1600,
+                    height: 773,
+                },
+                {
+                    src: "/projects/flashflow/stress-map.webp",
+                    alt: "FlashFlow Stress Map: a three by three grid of topology heterogeneity against workload shape, coloured by failure classification.",
+                    width: 1600,
+                    height: 773,
+                },
+            ],
+        },
+    },
+    {
         id: "bhttp-1",
         name: "BHTTP-1",
         tier: "more",
