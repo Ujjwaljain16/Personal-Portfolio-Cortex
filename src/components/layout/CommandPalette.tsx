@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useId } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -13,15 +13,16 @@ import {
     BookOpen,
     MessageSquare,
     Power,
+    Layers,
     FileDown,
     ArrowRight,
     Command,
 } from "lucide-react";
-import { decisions } from "@/data/decisions";
-import { experiments } from "@/data/experiments";
+import { decisions, investigations } from "@/data/records";
 import { projects } from "@/data/projects";
+import { BLOG_POSTS } from "@/data/blogPosts";
 
-// ─── Command types ──────────────────────────────
+export const PALETTE_EVENT = "cortex:palette";
 
 interface CommandItem {
     id: string;
@@ -33,237 +34,293 @@ interface CommandItem {
     keywords?: string[];
 }
 
-// ─── Component ──────────────────────────────────
-
+/**
+ * Site search / command palette (Ctrl or Cmd + K, or the visible Search
+ * button). Semantics: a modal dialog containing a combobox input that controls
+ * a listbox; the active option is exposed through aria-activedescendant, focus
+ * stays in the input, Escape closes, and focus returns to whatever opened it.
+ */
 export function CommandPalette() {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
     const [selectedIndex, setSelectedIndex] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
+    const openerRef = useRef<HTMLElement | null>(null);
     const router = useRouter();
+    const listId = useId();
+    const openRef = useRef(false);
 
-    // Build command list
+    const close = useCallback(() => {
+        setOpen(false);
+        // Return focus to the control that opened the palette.
+        const opener = openerRef.current;
+        openerRef.current = null;
+        setTimeout(() => opener?.focus(), 0);
+    }, []);
+
+    const show = useCallback(() => {
+        openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        setQuery("");
+        setSelectedIndex(0);
+        setOpen(true);
+    }, []);
+
     const commands = useMemo<CommandItem[]>(() => {
+        const go = (href: string) => () => router.push(href);
+
         const nav: CommandItem[] = [
-            { id: "nav-home", label: "Home", icon: Power, category: "Navigate", action: () => router.push("/"), keywords: ["landing", "boot", "about"] },
-            { id: "nav-projects", label: "Projects", icon: Activity, category: "Navigate", action: () => router.push("/projects"), keywords: ["work", "portfolio", "featured"] },
-            { id: "nav-system", label: "System Overview", icon: Activity, category: "Navigate", action: () => router.push("/system"), keywords: ["dashboard", "metrics", "status"] },
-            { id: "nav-decisions", label: "Decisions", icon: GitBranch, category: "Navigate", action: () => router.push("/decisions"), keywords: ["adr", "architecture", "tradeoff"] },
-            { id: "nav-experiments", label: "Experiments", icon: FlaskConical, category: "Navigate", action: () => router.push("/experiments"), keywords: ["hypothesis", "test", "variant"] },
-            { id: "nav-deployments", label: "Deployments", icon: Rocket, category: "Navigate", action: () => router.push("/deployments"), keywords: ["deploy", "release", "live"] },
-            { id: "nav-blogs", label: "Blogs", icon: BookOpen, category: "Navigate", action: () => router.push("/blogs"), keywords: ["writing", "articles", "engineering", "thoughts", "mcp", "architecture"] },
-            { id: "nav-ask", label: "Ask", icon: MessageSquare, category: "Navigate", action: () => router.push("/ask"), keywords: ["chat", "ai", "query", "cto"] },
+            { id: "nav-home", label: "Home", icon: Power, category: "Navigate", action: go("/"), keywords: ["landing", "about"] },
+            { id: "nav-projects", label: "Projects", icon: Layers, category: "Navigate", action: go("/projects"), keywords: ["work", "portfolio", "featured"] },
+            { id: "nav-system", label: "System overview", icon: Activity, category: "Navigate", action: go("/system"), keywords: ["github", "activity", "status"] },
+            { id: "nav-decisions", label: "Decisions", icon: GitBranch, category: "Navigate", action: go("/decisions"), keywords: ["adr", "architecture", "tradeoff"] },
+            { id: "nav-investigations", label: "Investigations", icon: FlaskConical, category: "Navigate", action: go("/investigations"), keywords: ["experiments", "benchmark", "root cause"] },
+            { id: "nav-deployments", label: "Deployments", icon: Rocket, category: "Navigate", action: go("/deployments"), keywords: ["deploy", "release", "live"] },
+            { id: "nav-blogs", label: "Writing", icon: BookOpen, category: "Navigate", action: go("/blogs"), keywords: ["blog", "articles", "posts"] },
+            { id: "nav-ask", label: "Ask", icon: MessageSquare, category: "Navigate", action: go("/ask"), keywords: ["chat", "ai", "question"] },
         ];
 
-        const projectCmds: CommandItem[] = projects.map(p => ({
+        const projectCmds: CommandItem[] = projects.map((p) => ({
             id: `proj-${p.id}`,
             label: p.name,
             sublabel: p.tagline,
-            icon: Activity,
+            icon: Layers,
             category: "Projects",
-            action: () => router.push(`/projects/${p.id}`),
-            keywords: [...p.tech.map(t => t.toLowerCase()), p.status],
+            action: go(`/projects/${p.id}`),
+            keywords: [...p.tech.map((t) => t.toLowerCase()), p.status],
         }));
 
-        const decisionCmds: CommandItem[] = decisions.slice(0, 15).map(d => ({
+        const postCmds: CommandItem[] = BLOG_POSTS.map((post) => ({
+            id: `post-${post.slug}`,
+            label: post.title,
+            sublabel: post.date,
+            icon: BookOpen,
+            category: "Writing",
+            action: go(`/blogs/${post.slug}`),
+            keywords: post.tags.map((t) => t.toLowerCase()),
+        }));
+
+        const decisionCmds: CommandItem[] = decisions.map((d) => ({
             id: `dec-${d.id}`,
-            label: `ADR-${d.number}: ${d.title}`,
+            label: d.title,
             sublabel: d.project,
             icon: GitBranch,
             category: "Decisions",
-            action: () => router.push("/decisions"),
-            keywords: [d.project.toLowerCase(), d.status],
+            action: go(`/decisions#${d.id}`),
+            keywords: [d.project.toLowerCase(), d.status ?? ""],
         }));
 
-        const experimentCmds: CommandItem[] = experiments.slice(0, 10).map(e => ({
-            id: `exp-${e.id}`,
+        const investigationCmds: CommandItem[] = investigations.map((e) => ({
+            id: `inv-${e.id}`,
             label: e.title,
             sublabel: e.project,
             icon: FlaskConical,
-            category: "Experiments",
-            action: () => router.push("/experiments"),
-            keywords: [e.project.toLowerCase(), e.decision],
+            category: "Investigations",
+            action: go(`/investigations#${e.id}`),
+            keywords: [e.project.toLowerCase(), e.verdict ?? ""],
         }));
 
         const actions: CommandItem[] = [
-            { id: "act-resume", label: "Download Resume", icon: FileDown, category: "Actions", action: () => window.open("/resume.pdf", "_blank"), keywords: ["cv", "pdf"] },
-            { id: "act-github", label: "Open GitHub", icon: ArrowRight, category: "Actions", action: () => window.open("https://github.com/Ujjwaljain16", "_blank"), keywords: ["code", "repo"] },
+            { id: "act-resume", label: "Open resume (PDF)", icon: FileDown, category: "Actions", action: () => window.open("/resume.pdf", "_blank", "noopener"), keywords: ["cv", "pdf"] },
+            { id: "act-github", label: "Open GitHub profile", icon: ArrowRight, category: "Actions", action: () => window.open("https://github.com/Ujjwaljain16", "_blank", "noopener"), keywords: ["code", "repo"] },
         ];
 
-        return [...nav, ...projectCmds, ...decisionCmds, ...experimentCmds, ...actions];
+        return [...nav, ...projectCmds, ...postCmds, ...decisionCmds, ...investigationCmds, ...actions];
     }, [router]);
 
-    // Filter commands
     const filtered = useMemo(() => {
-        if (!query.trim()) return commands.slice(0, 20);
-        const q = query.toLowerCase();
-        return commands.filter(cmd =>
-            cmd.label.toLowerCase().includes(q) ||
-            cmd.sublabel?.toLowerCase().includes(q) ||
-            cmd.category.toLowerCase().includes(q) ||
-            cmd.keywords?.some(k => k.includes(q))
-        ).slice(0, 15);
+        const q = query.trim().toLowerCase();
+        if (!q) return commands.filter((c) => c.category === "Navigate" || c.category === "Projects" || c.category === "Actions");
+        return commands
+            .filter(
+                (cmd) =>
+                    cmd.label.toLowerCase().includes(q) ||
+                    cmd.sublabel?.toLowerCase().includes(q) ||
+                    cmd.category.toLowerCase().includes(q) ||
+                    cmd.keywords?.some((k) => k.includes(q))
+            )
+            .slice(0, 20);
     }, [query, commands]);
 
-    // Group by category
     const grouped = useMemo(() => {
-        const groups: Record<string, CommandItem[]> = {};
-        for (const cmd of filtered) {
-            if (!groups[cmd.category]) groups[cmd.category] = [];
-            groups[cmd.category].push(cmd);
-        }
+        const groups: { category: string; items: { cmd: CommandItem; index: number }[] }[] = [];
+        filtered.forEach((cmd, index) => {
+            let g = groups.find((x) => x.category === cmd.category);
+            if (!g) {
+                g = { category: cmd.category, items: [] };
+                groups.push(g);
+            }
+            g.items.push({ cmd, index });
+        });
         return groups;
     }, [filtered]);
 
-    // Keyboard shortcut to open
+    // Open with Ctrl/Cmd+K or the custom event fired by the visible Search buttons.
     useEffect(() => {
         function onKeyDown(e: KeyboardEvent) {
-            if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
                 e.preventDefault();
-                setOpen(prev => !prev);
+                if (openRef.current) close();
+                else show();
             }
-            if (e.key === "Escape") setOpen(false);
         }
         window.addEventListener("keydown", onKeyDown);
-        return () => window.removeEventListener("keydown", onKeyDown);
-    }, []);
+        window.addEventListener(PALETTE_EVENT, show);
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener(PALETTE_EVENT, show);
+        };
+    }, [show, close]);
 
-    // Focus input on open
     useEffect(() => {
-        if (open) {
-            setQuery("");
-            setSelectedIndex(0);
-            setTimeout(() => inputRef.current?.focus(), 50);
-        }
+        openRef.current = open;
     }, [open]);
 
-    // Reset selection when filter changes
     useEffect(() => {
-        setSelectedIndex(0);
-    }, [query]);
+        if (open) inputRef.current?.focus();
+    }, [open]);
 
-    // Execute command
-    const executeCommand = useCallback((cmd: CommandItem) => {
-        setOpen(false);
-        cmd.action();
-    }, []);
+    const execute = useCallback(
+        (cmd: CommandItem) => {
+            setOpen(false);
+            openerRef.current = null;
+            cmd.action();
+        },
+        []
+    );
 
-    // Keyboard navigation
-    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-        if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setSelectedIndex(prev => Math.min(prev + 1, filtered.length - 1));
-        } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setSelectedIndex(prev => Math.max(prev - 1, 0));
-        } else if (e.key === "Enter") {
-            e.preventDefault();
-            if (filtered[selectedIndex]) {
-                executeCommand(filtered[selectedIndex]);
+    const activeId = filtered[selectedIndex] ? `${listId}-opt-${filtered[selectedIndex].id}` : undefined;
+
+    const handleKeyDown = useCallback(
+        (e: React.KeyboardEvent) => {
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setSelectedIndex((prev) => Math.min(prev + 1, filtered.length - 1));
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setSelectedIndex((prev) => Math.max(prev - 1, 0));
+            } else if (e.key === "Home") {
+                e.preventDefault();
+                setSelectedIndex(0);
+            } else if (e.key === "End") {
+                e.preventDefault();
+                setSelectedIndex(Math.max(filtered.length - 1, 0));
+            } else if (e.key === "Enter") {
+                e.preventDefault();
+                if (filtered[selectedIndex]) execute(filtered[selectedIndex]);
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                close();
+            } else if (e.key === "Tab") {
+                // The input is the only focus stop inside the modal; keep focus there.
+                e.preventDefault();
             }
-        }
-    }, [filtered, selectedIndex, executeCommand]);
+        },
+        [filtered, selectedIndex, execute, close]
+    );
 
-    // Scroll selected item into view
+    // Keep the active option in view.
     useEffect(() => {
-        const list = listRef.current;
-        if (!list) return;
-        const activeEl = list.querySelector("[data-active='true']");
-        activeEl?.scrollIntoView({ block: "nearest" });
-    }, [selectedIndex]);
-
-    if (!open) return null;
-
-    let flatIndex = 0;
+        if (!open || !activeId) return;
+        document.getElementById(activeId)?.scrollIntoView({ block: "nearest" });
+    }, [open, activeId]);
 
     return (
         <AnimatePresence>
             {open && (
                 <>
-                    {/* Backdrop */}
                     <motion.div
                         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-100"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={() => setOpen(false)}
+                        onClick={close}
+                        aria-hidden="true"
                     />
 
-                    {/* Palette */}
                     <motion.div
-                        className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-140 z-101"
-                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Search the site"
+                        className="fixed top-[12%] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-140 z-101"
+                        initial={{ opacity: 0, scale: 0.97, y: -8 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        exit={{ opacity: 0, scale: 0.97, y: -8 }}
                         transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
                     >
                         <div className="bg-(--bg-surface-1) border border-(--border-default) rounded-xl shadow-2xl overflow-hidden">
-                            {/* Search input */}
                             <div className="flex items-center gap-3 px-4 border-b border-(--border-default)">
-                                <Search className="w-4 h-4 text-(--text-muted) shrink-0" />
+                                <Search className="w-4 h-4 text-(--text-muted) shrink-0" aria-hidden="true" />
                                 <input
                                     ref={inputRef}
                                     type="text"
+                                    role="combobox"
+                                    aria-expanded="true"
+                                    aria-controls={listId}
+                                    aria-activedescendant={activeId}
+                                    aria-autocomplete="list"
+                                    aria-label="Search projects, writing, decisions and pages"
                                     value={query}
-                                    onChange={e => setQuery(e.target.value)}
+                                    onChange={(e) => {
+                                        setQuery(e.target.value);
+                                        setSelectedIndex(0);
+                                    }}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="Search modules, decisions, projects..."
-                                    className="flex-1 py-3.5 bg-transparent text-sm text-foreground placeholder:text-(--text-disabled) focus:outline-none font-mono"
+                                    placeholder="Search projects, writing, decisions…"
+                                    className="flex-1 min-h-12 bg-transparent text-[15px] text-foreground placeholder:text-(--text-muted) outline-none font-mono"
                                 />
-                                <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-(--bg-surface-2) text-(--text-muted) border border-(--border-default)">
-                                    ESC
+                                <kbd className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-(--bg-surface-2) text-(--text-muted) border border-(--border-default)">
+                                    Esc
                                 </kbd>
                             </div>
 
-                            {/* Results */}
-                            <div ref={listRef} className="max-h-90 overflow-y-auto py-2">
+                            <div id={listId} role="listbox" aria-label="Results" ref={listRef} className="max-h-90 overflow-y-auto py-2">
                                 {filtered.length === 0 ? (
                                     <div className="px-4 py-8 text-center">
-                                        <div className="text-sm text-(--text-muted)">No results found</div>
-                                        <div className="text-[11px] text-(--text-disabled) mt-1 font-mono">
-                                            Try searching for a module, project, or decision
+                                        <div className="text-[14px] text-(--text-secondary)">No results found</div>
+                                        <div className="text-[12px] text-(--text-muted) mt-1 font-mono">
+                                            Try a project, technology or page name
                                         </div>
                                     </div>
                                 ) : (
-                                    Object.entries(grouped).map(([category, items]) => (
-                                        <div key={category}>
-                                            <div className="px-4 py-1.5 text-[10px] font-mono uppercase tracking-wider text-(--text-muted) opacity-60">
-                                                {category}
+                                    grouped.map((group) => (
+                                        <div key={group.category} role="group" aria-labelledby={`${listId}-g-${group.category}`}>
+                                            <div
+                                                id={`${listId}-g-${group.category}`}
+                                                className="px-4 py-1.5 text-[11px] font-mono uppercase tracking-wider text-(--text-muted)"
+                                            >
+                                                {group.category}
                                             </div>
-                                            {items.map((cmd) => {
-                                                const idx = flatIndex++;
-                                                const isActive = idx === selectedIndex;
+                                            {group.items.map(({ cmd, index }) => {
+                                                const isActive = index === selectedIndex;
                                                 const Icon = cmd.icon;
                                                 return (
-                                                    <button
+                                                    <div
                                                         key={cmd.id}
-                                                        data-active={isActive}
-                                                        onClick={() => executeCommand(cmd)}
-                                                        onMouseEnter={() => setSelectedIndex(idx)}
+                                                        id={`${listId}-opt-${cmd.id}`}
+                                                        role="option"
+                                                        aria-selected={isActive}
+                                                        onClick={() => execute(cmd)}
+                                                        onMouseMove={() => setSelectedIndex(index)}
                                                         className={cn(
-                                                            "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors",
+                                                            "w-full flex items-center gap-3 px-4 py-2.5 cursor-pointer",
                                                             isActive
                                                                 ? "bg-(--accent-primary)/10 text-foreground"
-                                                                : "text-(--text-secondary) hover:bg-(--bg-surface-2)"
+                                                                : "text-(--text-secondary)"
                                                         )}
                                                     >
-                                                        <Icon className={cn(
-                                                            "w-4 h-4 shrink-0",
-                                                            isActive ? "text-(--accent-primary)" : "text-(--text-muted)"
-                                                        )} />
+                                                        <Icon
+                                                            className={cn("w-4 h-4 shrink-0", isActive ? "text-(--accent-primary)" : "text-(--text-muted)")}
+                                                            aria-hidden="true"
+                                                        />
                                                         <div className="flex-1 min-w-0">
-                                                            <div className="text-[13px] truncate">{cmd.label}</div>
+                                                            <div className="text-[14px] truncate">{cmd.label}</div>
                                                             {cmd.sublabel && (
-                                                                <div className="text-[10px] text-(--text-muted) font-mono truncate">
-                                                                    {cmd.sublabel}
-                                                                </div>
+                                                                <div className="text-[12px] text-(--text-muted) font-mono truncate">{cmd.sublabel}</div>
                                                             )}
                                                         </div>
-                                                        {isActive && (
-                                                            <ArrowRight className="w-3 h-3 text-(--accent-primary) shrink-0" />
-                                                        )}
-                                                    </button>
+                                                        {isActive && <ArrowRight className="w-3 h-3 text-(--accent-primary) shrink-0" aria-hidden="true" />}
+                                                    </div>
                                                 );
                                             })}
                                         </div>
@@ -271,21 +328,15 @@ export function CommandPalette() {
                                 )}
                             </div>
 
-                            {/* Footer */}
-                            <div className="px-4 py-2 border-t border-(--border-default) flex items-center justify-between">
-                                <div className="flex items-center gap-3 text-[10px] text-(--text-disabled) font-mono">
-                                    <span className="flex items-center gap-1">
-                                        <kbd className="px-1 py-0.5 rounded bg-(--bg-surface-2) border border-(--border-default)">↑↓</kbd>
-                                        navigate
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        <kbd className="px-1 py-0.5 rounded bg-(--bg-surface-2) border border-(--border-default)">↵</kbd>
-                                        select
-                                    </span>
-                                </div>
-                                <div className="text-[10px] text-(--text-disabled) font-mono flex items-center gap-1">
-                                    <Command className="w-3 h-3" />K to toggle
-                                </div>
+                            <div role="status" aria-live="polite" className="sr-only">
+                                {filtered.length === 0 ? "No results" : `${filtered.length} result${filtered.length === 1 ? "" : "s"}`}
+                            </div>
+
+                            <div className="px-4 py-2 border-t border-(--border-default) flex items-center justify-between gap-3 text-[11px] text-(--text-muted) font-mono">
+                                <span>↑↓ navigate · Enter open</span>
+                                <span className="flex items-center gap-1">
+                                    <Command className="w-3 h-3" aria-hidden="true" />K toggles
+                                </span>
                             </div>
                         </div>
                     </motion.div>
@@ -295,21 +346,39 @@ export function CommandPalette() {
     );
 }
 
-// Trigger button for sidebar/mobile
-export function CommandPaletteTrigger() {
-    const triggerOpen = useCallback(() => {
-        window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
-    }, []);
-
+/** Visible trigger for the palette (also reachable with Ctrl/Cmd+K). */
+export function PaletteButton({ className, compact = false }: { className?: string; compact?: boolean }) {
+    if (compact) {
+        return (
+            <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event(PALETTE_EVENT))}
+                aria-haspopup="dialog"
+                aria-label="Search the site"
+                className={cn(
+                    "w-11 h-11 inline-flex items-center justify-center rounded-lg text-(--text-secondary) hover:text-(--accent-primary) hover:bg-(--bg-surface-2) transition-colors cursor-pointer",
+                    className
+                )}
+            >
+                <Search className="w-4 h-4" aria-hidden="true" />
+            </button>
+        );
+    }
     return (
         <button
-            onClick={triggerOpen}
-            className="flex items-center gap-2 w-full px-3 py-2 mx-2 rounded-lg text-[12px] text-(--text-muted) bg-(--bg-surface-2) border border-(--border-default) hover:border-(--border-hover) transition-colors cursor-pointer"
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(PALETTE_EVENT))}
+            aria-haspopup="dialog"
+            aria-label="Search the site (Ctrl or Command K)"
+            className={cn(
+                "inline-flex items-center gap-2 min-h-11 px-3 rounded-lg text-[13px] text-(--text-secondary) bg-(--bg-surface-2) border border-(--border-default) hover:border-(--border-hover) hover:text-foreground transition-colors cursor-pointer",
+                className
+            )}
         >
-            <Search className="w-3.5 h-3.5" />
-            <span className="flex-1 text-left font-mono">Search...</span>
-            <kbd className="text-[9px] font-mono px-1 py-0.5 rounded bg-(--bg-surface-3) text-(--text-disabled) border border-(--border-default)">
-                ⌘K
+            <Search className="w-4 h-4" aria-hidden="true" />
+            <span className="flex-1 text-left font-mono">Search</span>
+            <kbd className="hidden sm:inline text-[11px] font-mono px-1.5 py-0.5 rounded bg-(--bg-surface-3) text-(--text-muted) border border-(--border-default)">
+                Ctrl K
             </kbd>
         </button>
     );

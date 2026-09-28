@@ -19,8 +19,8 @@ export interface Deployment {
     liveUrl?: string;
     status: DeploymentStatus;
     tags: string[];
-    relatedDecisionId?: string;
-    relatedExperimentId?: string;
+    /** ids from src/data/records.ts */
+    relatedRecordIds?: string[];
 }
 
 export const CATEGORY_LABELS: Record<DeploymentCategory, string> = {
@@ -44,8 +44,7 @@ export const deployments: Deployment[] = [
         liveUrl: "https://itsfuze.vercel.app",
         status: "partial",
         tags: ["fullstack", "ai"],
-        relatedDecisionId: "ADR-FZ-06",
-        relatedExperimentId: "EXP-10",
+        relatedRecordIds: ["verify-against-real-infrastructure"],
     },
     {
         id: "deploy-002",
@@ -59,8 +58,7 @@ export const deployments: Deployment[] = [
         liveUrl: "https://campusync1.vercel.app",
         status: "active",
         tags: ["fullstack", "multi-tenant"],
-        relatedDecisionId: "ADR-01",
-        relatedExperimentId: "EXP-06",
+        relatedRecordIds: ["campus-ocr-tesseract-to-gemini-vision"],
     },
     {
         id: "deploy-003",
@@ -74,23 +72,21 @@ export const deployments: Deployment[] = [
         liveUrl: "https://github.com/Ujjwaljain16/SpentSmart/releases",
         status: "device",
         tags: ["mobile", "offline-first"],
-        relatedDecisionId: "ADR-SS-01",
-        relatedExperimentId: "EXP-14",
+        relatedRecordIds: ["spentsmart-native-upi-module"],
     },
     {
         id: "deploy-004",
         repo: "AgentBrake",
         summary: "MCP policy proxy, published to npm and Docker Hub",
         impact:
-            "Published as agentbrake (v1.0.0, February 2026) on npm and as a Docker Hub image. It wraps an MCP server over stdio and applies allow/block policies and regex argument filtering. The circuit breaker and approval flow are not wired end to end.",
+            "Published as agentbrake (v1.0.0, February 2026) on npm and as a Docker Hub image. It wraps an MCP server over stdio and applies allow/block policies and regex argument filtering. The published v1.0.0 predates the Sep 2026 fixes (fail-closed parsing and config, a working circuit breaker), which are on the main branch but not yet released. Human approval is not implemented.",
         category: "runtime",
         runtime: "CLI + Library",
         host: "npm · Docker Hub",
         liveUrl: "https://www.npmjs.com/package/agentbrake",
         status: "published",
         tags: ["ai-safety", "package"],
-        relatedDecisionId: "ADR-AB-02",
-        relatedExperimentId: "EXP-41",
+        relatedRecordIds: ["ab-circuit-breaker-and-approval-not-driveable"],
     },
     {
         id: "deploy-005",
@@ -104,8 +100,7 @@ export const deployments: Deployment[] = [
         liveUrl: "https://www.npmjs.com/package/@ujjwaljain16/migratedb",
         status: "published",
         tags: ["database", "package"],
-        relatedDecisionId: "ADR-MG-01",
-        relatedExperimentId: "EXP-22",
+        relatedRecordIds: ["migratedb-dfs-depends-ordering", "migratedb-stale-lock-after-kill"],
     },
     {
         id: "deploy-006",

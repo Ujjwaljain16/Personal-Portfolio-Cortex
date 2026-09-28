@@ -87,7 +87,7 @@ export const mergedPRs: MergedPR[] = [
         number: 10925,
         title: "Resolve MFA recovery code validation in 1.8.0",
         summary:
-            "MFA recovery codes were rejected as invalid because a type constant was lower-cased. Fixed it and added an end-to-end test. First released in v1.9.0.",
+            "MFA recovery codes were rejected as invalid because a type constant was lower-cased. Fixed it and added an end-to-end test. First released in v1.9.0-rc.1 (not in 1.8.1).",
         merged: "2025-12-11",
         url: "https://github.com/appwrite/appwrite/pull/10925",
     },

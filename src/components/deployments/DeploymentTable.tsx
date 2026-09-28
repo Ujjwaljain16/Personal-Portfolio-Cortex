@@ -7,8 +7,7 @@ import {
     type Deployment,
     type DeploymentStatus,
 } from "@/data/deployments";
-import { decisions } from "@/data/decisions";
-import { experiments } from "@/data/experiments";
+import { getRecord } from "@/data/records";
 
 const STATUS: Record<DeploymentStatus, { label: string; className: string }> = {
     active: { label: "ACTIVE", className: "text-(--success)" },
@@ -71,12 +70,7 @@ export function DeploymentTable() {
 
 function DeploymentRow({ deployment }: { deployment: Deployment }) {
     const status = STATUS[deployment.status];
-    const relatedDecision = deployment.relatedDecisionId
-        ? decisions.find((d) => d.id === deployment.relatedDecisionId)
-        : undefined;
-    const relatedExperiment = deployment.relatedExperimentId
-        ? experiments.find((e) => e.id === deployment.relatedExperimentId)
-        : undefined;
+    const related = (deployment.relatedRecordIds ?? []).map(getRecord).filter((r) => r !== undefined);
 
     return (
         <article id={deployment.id} className="scroll-mt-4">
@@ -121,20 +115,16 @@ function DeploymentRow({ deployment }: { deployment: Deployment }) {
                                 </a>
                             </li>
                         )}
-                        {relatedDecision && (
-                            <li>
-                                <Link href={`/decisions#${relatedDecision.id}`} className="text-(--accent-primary) hover:underline">
-                                    ADR-{relatedDecision.number}: {relatedDecision.title}
+                        {related.map((r) => (
+                            <li key={r.id}>
+                                <Link
+                                    href={`/${r.kind === "decision" ? "decisions" : "investigations"}#${r.id}`}
+                                    className="text-(--accent-primary) hover:underline"
+                                >
+                                    {r.title}
                                 </Link>
                             </li>
-                        )}
-                        {relatedExperiment && (
-                            <li>
-                                <Link href={`/experiments#${relatedExperiment.id}`} className="text-(--accent-primary) hover:underline">
-                                    {relatedExperiment.id}: {relatedExperiment.title}
-                                </Link>
-                            </li>
-                        )}
+                        ))}
                     </ul>
                 </div>
             </details>

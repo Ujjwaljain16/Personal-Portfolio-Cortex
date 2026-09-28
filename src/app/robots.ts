@@ -6,6 +6,8 @@ export default function robots(): MetadataRoute.Robots {
         rules: {
             userAgent: "*",
             allow: "/",
+            // The chat endpoint is not a page and costs money to call.
+            disallow: "/api/",
         },
         sitemap: `${SITE_URL}/sitemap.xml`,
     };

@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { ProjectCard } from "@/components/system/ProjectCard";
 import { alsoBuilt, featuredProjects, moreProjects } from "@/data/projects";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({
+    title: "Projects",
+    description: "Projects with the evidence behind each claim and what isn't done yet: databases, protocols, data pipelines and AI systems.",
+    path: "/projects",
+});
 
 export default function ProjectsPage() {
     return (

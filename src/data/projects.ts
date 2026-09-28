@@ -107,7 +107,9 @@ export const projects: Project[] = [
             "Benchmarks run against a simulator I wrote, not real payment traffic.",
             "Real-model evidence is small: 4 payments and 2 real Gemini recommendations.",
             "Most of the measured lift comes from the deterministic engine, not the LLM. AI fusion is off by default.",
+            "A message that always fails is retried without a cap, opt-out is not re-checked when a message is executed, and the /metrics endpoint is unauthenticated.",
             "No live demo (it needs PostgreSQL and Redis). Screenshots are in the repository.",
+            "Built with an AI coding assistant: 16 of the 139 commits carry a Claude co-author trailer.",
         ],
         tech: ["Python", "FastAPI", "PostgreSQL", "Alembic", "Redis Streams", "Next.js", "Gemini", "Razorpay", "Prometheus", "Docker"],
         repo: "Ujjwaljain16/RecoveryOS",
@@ -188,6 +190,7 @@ export const projects: Project[] = [
         limitations: [
             "An educational engine, not production software, built with a teammate for a course.",
             "No MVCC. The catalog file is not protected by the WAL. Recovery does not write compensation log records.",
+            "Aborting a transaction does not undo its changes yet, a second crash right after recovery loses committed rows in a test, and the planner can pick an index for range predicates the index scan can't execute. All were found while researching this page and are not fixed.",
             "The real project sits in a nested folder of the repository, so the repo root can be confusing.",
         ],
         tech: ["TypeScript", "Node.js", "Jest", "sql-parser-cst"],
@@ -209,8 +212,8 @@ export const projects: Project[] = [
             "Saved bookmarks and posts pile up across tabs and apps and can't be searched by meaning.",
         approach: [
             "RQ workers on Redis extract content and compute 384-dimension MiniLM embeddings, which are stored in PostgreSQL with pgvector.",
-            "Search uses HNSW indexes built concurrently through Alembic migrations and exposed as Postgres search functions. Recommendations are a two-stage pipeline: ANN candidate retrieval, then re-ranking.",
-            "Changes to ranking roll out behind feature flags and shadow evaluation, with a golden-dataset regression test in CI.",
+            "Search uses HNSW indexes built concurrently through Alembic migrations and exposed as Postgres search functions.",
+            "A rebuilt two-stage recommendation pipeline (ANN candidates, then re-ranking) exists behind feature flags, with shadow evaluation and CI gates. It is not serving production traffic yet.",
         ],
         evidence: [
             {
@@ -218,7 +221,7 @@ export const projects: Project[] = [
                 source: "backend/alembic/versions/0003_hnsw_indexes.py",
             },
             {
-                text: "A golden-set regression test requires NDCG@10 and MRR of at least 0.85 on a small four-query set.",
+                text: "A golden-set regression test in CI requires NDCG@10 and MRR of at least 0.85 on four queries. It compares paths that share one engine, so it is a regression guard, not a quality measurement.",
                 source: "backend/tests/test_golden_dataset_regression.py",
             },
             {
@@ -235,7 +238,8 @@ export const projects: Project[] = [
         limitations: [
             "The hosted backend on Hugging Face Spaces is paused, so the live frontend cannot complete requests. Run it locally with the Quick Start.",
             "Some optimisation figures in the repository docs have no benchmark behind them, so they are not repeated here.",
-            "The golden set is only four queries: a regression guard, not a quality claim.",
+            "In shadow mode the new recommendation pipeline currently returns an empty list, because no unit of work is passed to it. Turning on the cutover flag would serve that empty list.",
+            "Parts were built with an AI coding assistant: some commits carry a Claude co-author trailer, and gaps.md is AI-written.",
         ],
         tech: ["Python", "Flask", "PostgreSQL", "pgvector", "Redis", "RQ", "SentenceTransformers", "React", "Alembic", "GitHub Actions"],
         repo: "Ujjwaljain16/Fuze",
@@ -283,6 +287,7 @@ export const projects: Project[] = [
         ],
         limitations: [
             "Events are held in a capped array (1,000) rather than a true ring buffer.",
+            "Interceptor workers are killed on timeout, but they are not isolated from the network.",
             "No CI workflow yet.",
         ],
         tech: ["TypeScript", "React", "Vite", "Web Workers", "SharedWorker", "IndexedDB", "Express", "Vitest", "Playwright"],
@@ -389,10 +394,10 @@ export const projects: Project[] = [
         problem: "Textbooks are linear, but learners aren't. Build a prerequisite graph from a book and plan study around what each learner already knows.",
         approach: [
             "A resumable, checkpointed LLM pipeline extracts concepts and relationships from a PDF. PostgreSQL is the source of truth and Neo4j holds the graph projection.",
-            "Cycles in the prerequisite graph are detected with Kahn's algorithm; the curriculum is a topological plan. Mastery uses FSRS spaced repetition.",
+            "Cycles in the prerequisite graph are detected and repaired by dropping the weakest edge, and the curriculum is planned as a topological order.",
         ],
         evidence: [
-            { text: "About 78% of the commits are mine; a teammate wrote quiz gating and a landing page, among other parts." },
+            { text: "About 78% of the commits are mine. Teammates wrote the FSRS spaced-repetition mastery engine, the Neo4j projection and the evaluation harness, plus quiz gating and the landing page." },
             { text: "38 backend tests pass (assessment walk, curriculum planner, FSRS mastery, chunking)." },
         ],
         limitations: [
@@ -413,7 +418,7 @@ export const projects: Project[] = [
         tagline: "A stdio proxy that intercepts an AI agent's MCP tool calls and enforces policies before they run.",
         status: "shipped",
         origin: "Personal project, one-day build",
-        period: "Feb 2026",
+        period: "Feb 2026 · fixes Sep 2026",
         problem: "Agents get tools such as file access and shell. Enforce limits on those calls without modifying the agent.",
         approach: [
             "The proxy spawns the MCP server as a child process, parses JSON-RPC on stdin, runs each tool call through a chain of policy classes, then forwards or blocks it.",
@@ -424,12 +429,21 @@ export const projects: Project[] = [
                 text: "Per-argument regex allow and deny rules, so a tool can be allowed while sensitive paths are blocked.",
                 source: "src/policy/policies/GranularAccessPolicy.ts",
             },
-            { text: "22 unit tests pass. Published to npm as agentbrake, with rogue-agent attack demos in the repository." },
+            {
+                text: "Fails closed: unparseable input, batches, malformed tool calls and policy errors are answered with a JSON-RPC error instead of being forwarded, and an invalid or missing policy file makes the proxy refuse to start. Tests split a tool call at every byte boundary and check the policy still applies.",
+                source: "tests/proxy.test.ts",
+            },
+            {
+                text: "The circuit breaker is fed real tool errors from the server's responses, so it can trip.",
+                source: "src/proxy/interceptor.ts",
+            },
+            { text: "85 tests pass. Published to npm as agentbrake, with rogue-agent attack demos in the repository." },
         ],
         limitations: [
-            "Only the allow/block policies and regex argument filtering work end to end.",
-            "The circuit breaker and the human-approval flow are scaffolding: nothing reports failures to the breaker, and approve/deny is not wired to any interface.",
+            "Human approval is not implemented: a call that needs approval is refused with a pending error and nothing can approve it. A sandbox action is enforced as a block.",
+            "Stdio only, and not a sandbox: argument rules are regular expressions, which are bypassable, and a server that ignores the proxy is out of scope.",
             "The budget policy counts calls at a flat cost; it does not track tokens or real spend.",
+            "The first version failed open: any line the proxy could not parse, including a tool call split across stdin chunks, was forwarded unchecked, and an invalid policy file disabled enforcement. Both were fixed in Sep 2026 (see the decisions page).",
         ],
         tech: ["TypeScript", "Node.js", "zod", "Jest", "Docker"],
         repo: "Ujjwaljain16/AgentBrake",
@@ -457,7 +471,7 @@ export const projects: Project[] = [
         ],
         limitations: [
             "The source repository is currently private; only the npm package is public.",
-            "MySQL and SQLite adapters exist but are not tested. The lock has no stale-lock timeout, so a crashed run needs the lock row deleted by hand.",
+            "MySQL and SQLite adapters exist but are not tested. The lock has no stale-lock timeout, so a killed run needs the lock row deleted by hand, and a SQLite-only install fails looking for the pg module.",
             "Database drivers are peer dependencies that recent npm versions install automatically, so \"zero dependencies\" only describes direct dependencies.",
         ],
         tech: ["TypeScript", "Node.js", "PostgreSQL", "MySQL", "SQLite", "Testcontainers"],
@@ -478,19 +492,61 @@ export const projects: Project[] = [
             "Approved certificates are issued as signed credentials (RS256 JWS in a W3C-VC-shaped JSON) with revocation and public verification.",
         ],
         evidence: [
-            { text: "101 API route files (138 handlers), guarded by role checks." },
-            { text: "About 98 test cases across 6 files, and 8 architecture documents." },
+            { text: "101 API route files (138 handlers), guarded by role and organisation checks." },
+            { text: "91 passing tests across 6 files, and architecture documents in my-app/docs." },
+            {
+                text: "A Sep 2026 security review of every route found and fixed real holes: role assignment and signup that did not require a session, credential issuing for arbitrary claims, unauthenticated document-status routes that used the service role, unsigned webhooks and open redirects. Dependency audit findings went from 71 to 2.",
+                source: "my-app/src/lib/safeRedirect.ts",
+            },
         ],
         limitations: [
             "Credentials are JWT-style, not full W3C proofs, and signing keys are held in memory.",
-            "Tesseract.js is installed but unused; extraction runs on Gemini only.",
-            "The database migrations were removed from the main branch, so the row-level-security policies live only in git history.",
+            "The review found that the early version was much less secure than the README suggested. The fixes are checked by typecheck, lint, the unit tests and a build, not against a live deployment.",
+            "Rate limiting is in memory and per server instance.",
+            "The database schema and row-level-security SQL are not in the repository (the migrations were removed from the main branch), so the policies could not be reviewed from the code.",
         ],
         tech: ["Next.js", "TypeScript", "Supabase", "PostgreSQL", "Gemini", "Vitest"],
         repo: "Ujjwaljain16/CampusSync",
         links: [
             { label: "Live demo", href: "https://campusync1.vercel.app" },
             { label: "Source on GitHub", href: gh("Ujjwaljain16/CampusSync") },
+        ],
+    },
+    {
+        id: "vaulttabs",
+        name: "VaultTabs",
+        tier: "more",
+        tagline: "Sync open browser tabs across devices. Snapshots are encrypted in the browser, but it is not zero-knowledge.",
+        status: "prototype",
+        origin: "Personal project",
+        period: "Feb–Mar 2026 · 57 commits",
+        problem: "Tab-sync tools usually upload your URLs to a server in plaintext, and the built-in browser sync is tied to one vendor.",
+        approach: [
+            "A browser extension (WXT, Chrome Manifest V3) captures open http(s) tabs, skips incognito tabs, and encrypts the list with a random AES-256-GCM master key before uploading.",
+            "The master key is wrapped with a key derived from the account password (PBKDF2, 100,000 iterations) and optionally with a one-time recovery code. A Next.js PWA and other extensions unwrap it locally to view snapshots and send a tab to another device.",
+            "A Fastify and PostgreSQL backend stores ciphertext and the wrapped keys.",
+        ],
+        evidence: [
+            {
+                text: "Snapshots are AES-256-GCM encrypted client-side with a fresh random 96-bit IV each, so a stolen database contains no readable tab data. A script checks this against the database.",
+                source: "pwa/src/lib/crypto.ts",
+            },
+            {
+                text: "A Sep 2026 review fixed real defects: restore requests could be read or completed by any logged-in user, JWTs never expired, CORS was open outside production, and the docker-compose healthchecks were malformed so the backend never started.",
+                source: "backend/src/services/restore.service.ts",
+            },
+        ],
+        limitations: [
+            "Not zero-knowledge. The account password is sent to the server (over TLS) at sign-up and login, and the same password protects the master key, so a server operator who captures passwords can decrypt every snapshot. Fixing it needs an authentication redesign, such as a separate auth secret or OPAQUE.",
+            "The server sees your email, device names, timestamps, snapshot sizes and restore target URLs.",
+            "The first README and the app copy claimed zero-knowledge. They were corrected in Sep 2026.",
+            "There is one integration test file. The Docker setup and the fixes above were type-checked and built but not run end to end.",
+        ],
+        tech: ["TypeScript", "WXT", "Next.js", "Fastify", "PostgreSQL", "WebCrypto", "Docker"],
+        repo: "Ujjwaljain16/VaultTabs",
+        links: [
+            { label: "Live demo", href: "https://vaulttabs.vercel.app" },
+            { label: "Source on GitHub", href: gh("Ujjwaljain16/VaultTabs") },
         ],
     },
     {
@@ -591,7 +647,7 @@ export const alsoBuilt: AlsoBuilt[] = [
     {
         name: "NevUpAI",
         repo: "Ujjwaljain16/NevUpAI",
-        line: "Event-driven trade analytics backend with exactly-once processing on Redis Streams. A k6 write smoke test at 100 virtual users measured p95 of about 27.8 ms. Hackathon build.",
+        line: "Event-driven trade analytics backend (Fastify, PostgreSQL, Redis Streams). A k6 write test at 100 virtual users measured p95 of about 27.8 ms; its \"100% revenge-flag accuracy\" check compares seeded labels with themselves, so it is not an accuracy result. Hackathon build.",
     },
     {
         name: "HttpServer",

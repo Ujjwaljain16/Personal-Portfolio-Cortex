@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { Calendar, Clock } from "lucide-react";
 import { BLOG_POSTS } from "@/data/blogPosts";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({
+    title: "Writing",
+    description: "Notes on integration complexity, a Unicode and Base64 bug, and how an MCP policy proxy works, including what it can't do yet.",
+    path: "/blogs",
+});
 
 export default function BlogsPage() {
     return (

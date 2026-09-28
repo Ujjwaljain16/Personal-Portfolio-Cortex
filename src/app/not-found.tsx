@@ -9,6 +9,8 @@ export default function NotFound() {
 
     // Periodic glitch effect
     useEffect(() => {
+        // Decorative glitch: skip entirely for reduced-motion users.
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
         const interval = setInterval(() => {
             setGlitch(true);
             setTimeout(() => setGlitch(false), 150);
@@ -70,7 +72,7 @@ export default function NotFound() {
                     <Link
                         href="/"
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
-                            bg-(--accent-primary) text-white hover:opacity-90 transition-opacity"
+                            bg-(--accent-primary) text-(--bg-primary) hover:opacity-90 transition-opacity"
                     >
                         <Home className="w-3.5 h-3.5" />
                         Dashboard
@@ -86,7 +88,7 @@ export default function NotFound() {
                 </div>
 
                 {/* Footer */}
-                <div className="text-[10px] font-mono text-(--text-muted) opacity-50 uppercase tracking-wider">
+                <div className="text-[11px] font-mono text-(--text-muted) uppercase tracking-wider">
                     cortex.system // error-handler
                 </div>
             </div>

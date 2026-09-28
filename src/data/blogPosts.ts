@@ -1,7 +1,9 @@
 export interface BlogPost {
   slug: string;
   title: string;
-  date: string;
+  date: string; // display date
+  published: string; // ISO YYYY-MM-DD
+  updated?: string; // ISO YYYY-MM-DD, when the text was materially revised
   readTime: string;
   excerpt: string;
   tags: string[];
@@ -13,11 +15,13 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "agent-brake-architecture",
     title: "How AgentBrake Intercepts MCP Tool Calls",
     date: "Feb 10, 2026",
+    published: "2026-02-10",
+    updated: "2026-09-28",
     readTime: "5 min read",
-    excerpt: "How AgentBrake wraps an MCP server over stdio to enforce budget and argument-level policies, and which parts (circuit breaker, approvals) are not wired up yet.",
+    excerpt: "How AgentBrake wraps an MCP server over stdio to enforce policies before a tool call runs, why the first version failed open, and what still isn't built (human approval).",
     tags: ["AI Safety", "Proxy Pattern", "TypeScript", "Architecture"],
     content: `
-*Updated Sep 2026 to match the code: the budget policy, the circuit breaker and the approval flow are described as they actually behave today.*
+*Updated Sep 2026. The first version of this post described a proxy that failed open in two places. Those are fixed and the post now describes the code as it is today.*
 
 AI agents get real tools: file access, shell execution, API keys. Most safety layers live inside the agent's own process, where the agent (or a bug in it) can route around them. I wanted to see how far a layer *outside* the agent could go, so I built AgentBrake, a proxy that sits between an MCP client and an MCP server and checks every tool call before it runs.
 
@@ -30,16 +34,15 @@ MCP servers commonly talk JSON-RPC over stdin and stdout. AgentBrake exploits th
 - **Normal flow**: IDE -> MCP server
 - **With AgentBrake**: IDE -> AgentBrake -> MCP server
 
-In \`src/proxy/interceptor.ts\`, AgentBrake spawns the server as a child process and takes over its standard input and output.
+In \`src/proxy/interceptor.ts\`, AgentBrake spawns the server as a child process (without a shell, and without its own configuration variables in the child's environment) and takes over its standard input and output.
 
 \`\`\`typescript
 // Simplified concept
-this.child = spawn(targetCommand, targetArgs, { stdio: ["pipe", "pipe", "inherit"] });
-process.stdin.on("data", (data) => {
-    // 1. Read the message from the client
-    // 2. Check whether it is a tool call
-    // 3. If it passes the policies -> write to child.stdin
-    // 4. If it doesn't -> answer with an error instead of forwarding
+this.input.on("data", (data) => {
+    // 1. Buffer bytes and cut complete lines (a message may arrive in pieces, or several at once)
+    // 2. Parse each line; anything unparseable, or not a valid JSON-RPC object, is refused
+    // 3. If it is a tool call and passes every policy -> forward the parsed message
+    // 4. Otherwise -> answer with a JSON-RPC error instead of forwarding
 });
 \`\`\`
 
@@ -47,6 +50,14 @@ Two properties follow from this design:
 
 - **Language agnostic.** It doesn't matter whether the server is written in Python, Node.js or Go. The proxy only speaks JSON-RPC.
 - **The agent can't skip it.** The proxy owns the process, so the traffic has to go through it.
+
+### The first version failed open
+
+That "simplified concept" hides the part I got wrong. The original code split every chunk of input on newlines, parsed each piece, and in the catch branch **forwarded the piece unchanged**. A message split across two reads reached the server as two unchecked fragments, and any message that JavaScript's parser rejects but the server's parser accepts (a bare \`NaN\`, for example) skipped every policy. Both are the same mistake: when the proxy couldn't tell what a message was, it let it through.
+
+The fix is in \`src/proxy/framing.ts\` and the interceptor. Lines are cut from a byte buffer (so a multi-byte character or a message split at any point is reassembled), with a size cap. Unparseable input, batches, malformed tool calls, an unknown policy action and a policy that throws are all blocked with a JSON-RPC error. What gets forwarded is the re-serialised parsed message, so the server sees exactly what the policies saw. A regression test splits a tool call at every byte boundary and checks the policy still applies.
+
+The same lesson applies to configuration: a policy file that failed validation used to fall back to no policies. Now the proxy refuses to start, unless you opt in to the old behaviour with an environment variable.
 
 ## 2. Budgets without a tokenizer
 
@@ -86,32 +97,38 @@ if (!new RegExp(pattern).test(String(argValue))) {
 }
 \`\`\`
 
-That lets you say "you may use write_file, but only inside /tmp". Regex allow and deny lists are simple and fast to evaluate, but only as good as the patterns you write, and the expression is compiled on every call.
+That lets you say "you may use write_file, but only inside /tmp". Regex allow and deny lists are simple and fast to evaluate, but only as good as the patterns you write. Patterns are compiled once at startup, rejected if they are longer than 512 characters or contain nested quantifiers such as \`(a+)+\` (a cheap guard against catastrophic backtracking, not a proof), and an argument value over 8,192 characters is treated as a violation. Attackers can still write a value that means the same thing but doesn't match, so this is a filter, not a sandbox.
 
-## 4. What doesn't work yet
+## 4. What works, and what doesn't
 
-I'd rather say this plainly than let the README imply otherwise:
+I'd rather say this plainly than let the README imply otherwise.
 
-- **The circuit breaker can't trip.** The policy has open, half-open and reset logic, and unit tests. But nothing in the proxy ever reports a failed tool call to it, because the server's output is piped straight through without being parsed. To make it work, the proxy would have to read the responses.
-- **Human approval isn't wired up.** A tool call that requires approval gets a "pending" error, but nothing exists to approve or deny it: no CLI command, no webhook, no Slack integration is connected.
-- **The budget is a call counter**, as described above.
+**The circuit breaker works now.** In the first version nothing reported a failed tool call to it, so it could never trip. The proxy now parses the server's responses and feeds tool errors back to each policy, so after a few consecutive failures a tool is cut off for a while.
 
-What does work end to end: the allow/block policies, the regex argument filtering, rate limiting, and the YAML config validated with zod.
+**Human approval still isn't built.** A tool call that requires approval gets a "pending" error and nothing can approve it: no CLI command, no webhook, no Slack integration is connected. I looked at a file-based approve command and dropped it, because an agent with file access could approve its own request. The README now lists approval as not implemented, and a "sandbox" action is enforced as a plain block.
+
+**The budget is a call counter**, as described above.
+
+**It is not a sandbox.** It covers stdio MCP servers only, and a regular-expression rule can be bypassed by a value that means the same thing but reads differently.
+
+What works end to end: the allow, deny and block policies, regex argument filtering, rate limiting, the call cap, the circuit breaker, and a config that refuses to load when it is invalid. The test count went from 22 to 85, mostly around framing and fail-closed behaviour.
 
 ## Summary
 
-AgentBrake is a control point outside the agent rather than a monitoring tool. The proxy design is the part I'd keep: it needs no changes to the agent, and it sees everything. The policies that depend on the *results* of tool calls, the circuit breaker and approvals, are exactly the ones that need the proxy to understand responses, which it doesn't do yet.
+AgentBrake is a control point outside the agent rather than a monitoring tool. The proxy design is the part I'd keep: it needs no changes to the agent, and it sees everything. The bigger lesson was in the failure mode. For a component whose only job is to say no, "I couldn't parse it, so I passed it through" is the worst possible default, and I only found it by asking what happens to input the code doesn't understand.
 `
   },
   {
     slug: "integration-complexity",
     title: "The Idea Fit in 20 Lines. Making It Correct Took Over 200.",
     date: "Feb 19, 2026",
+    published: "2026-02-19",
+    updated: "2026-09-28",
     readTime: "10 min read",
     excerpt: "What building a small utility taught me about the difference between algorithmic complexity and integration complexity and why the second one is harder.",
     tags: ["JavaScript", "Vitest", "Software Development", "Testing", "TypeScript"],
     content: `
-*Update, Sep 2026: the \`mergeTests\` pull request described here (vitest-dev/vitest#9662) is still open. The maintainer has requested changes to the tests, so it is not merged.*
+*Update, Sep 2026: the \`mergeTests\` pull request described here (vitest-dev/vitest#9662) is still open, and the maintainer has requested changes, so it is not merged. Its implementation has also changed since this was written: the head no longer builds on the \`extend()\` loop shown below and merges fixture registrations directly. Read this as the story of the first version.*
 
 You’ve been there. 
 
@@ -338,6 +355,7 @@ Good engineering isn’t about how much you can change. It’s about how little 
     slug: "unicode-corruption-base64",
     title: "When 👍 Turned Into ð: A Deep Dive Into Base64, Unicode, and a Silent JavaScript Bug",
     date: "Feb 15, 2026",
+    published: "2026-02-15",
     readTime: "4 min read",
     excerpt: "Recently, I ran into a strange bug where emojis like 👍 were showing up as corrupted characters in stack traces. This is a deep dive into how JavaScript's atob() handles Base64, Unicode, and the difference between binary strings and text.",
     tags: ["JavaScript", "Unicode", "Debugging", "Web Development", "Programming"],

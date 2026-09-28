@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
-export const alt = "CORTEX | Ujjwal Jain — Engineering Portfolio";
+// Generated at build time (no edge runtime), so the page can stay static.
+export const alt = "Ujjwal Jain: backend and systems engineer";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -20,7 +20,6 @@ export default async function Image() {
                     fontFamily: "monospace",
                 }}
             >
-                {/* Top accent line */}
                 <div
                     style={{
                         width: "60px",
@@ -31,64 +30,38 @@ export default async function Image() {
                     }}
                 />
 
-                {/* Title */}
                 <div
                     style={{
-                        fontSize: "64px",
+                        fontSize: "84px",
                         fontWeight: 700,
                         color: "#E5E7EB",
                         letterSpacing: "-0.02em",
-                        lineHeight: 1.1,
-                        marginBottom: "16px",
-                    }}
-                >
-                    CORTEX
-                </div>
-
-                {/* Name */}
-                <div
-                    style={{
-                        fontSize: "28px",
-                        color: "#4F8CFF",
-                        marginBottom: "24px",
+                        lineHeight: 1.05,
+                        marginBottom: "20px",
                     }}
                 >
                     Ujjwal Jain
                 </div>
 
-                {/* Description */}
-                <div
-                    style={{
-                        fontSize: "22px",
-                        color: "#9CA3AF",
-                        lineHeight: 1.5,
-                        maxWidth: "700px",
-                    }}
-                >
-                    Backend Engineer • Systems Builder • AI Infrastructure
+                <div style={{ fontSize: "34px", color: "#4F8CFF", marginBottom: "28px" }}>
+                    Backend &amp; systems engineering
                 </div>
 
-                {/* Bottom bar */}
+                <div style={{ fontSize: "26px", color: "#9CA3AF", lineHeight: 1.45, maxWidth: "860px" }}>
+                    Databases, protocols and data pipelines built from scratch, with the tests and benchmarks behind them.
+                </div>
+
                 <div
                     style={{
                         position: "absolute",
-                        bottom: "60px",
+                        bottom: "56px",
                         left: "80px",
-                        display: "flex",
-                        gap: "32px",
-                        fontSize: "14px",
-                        color: "#6B7280",
+                        fontSize: "20px",
+                        color: "#9CA3AF",
                         letterSpacing: "0.08em",
-                        textTransform: "uppercase" as const,
                     }}
                 >
-                    <span>Systems</span>
-                    <span>•</span>
-                    <span>Decisions</span>
-                    <span>•</span>
-                    <span>Experiments</span>
-                    <span>•</span>
-                    <span>Deployments</span>
+                    ujjwaljain.vercel.app
                 </div>
             </div>
         ),

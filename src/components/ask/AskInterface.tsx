@@ -46,7 +46,8 @@ export function AskInterface() {
 
     // Auto-scroll to latest message
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        messagesEndRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "end" });
     }, [messages, status]);
 
     const handleSubmit = useCallback(

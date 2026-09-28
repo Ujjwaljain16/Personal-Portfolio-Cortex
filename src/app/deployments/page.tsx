@@ -1,4 +1,11 @@
 import { DeploymentTable } from "@/components/deployments/DeploymentTable";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({
+    title: "Deployments",
+    description: "Where each system runs: web apps, an Android app and published packages, and what is and isn't live.",
+    path: "/deployments",
+});
 
 export default function DeploymentsPage() {
     return (

@@ -15,6 +15,7 @@
   /* Accents */
   --accent-primary: #4F8CFF;
   --accent-secondary: #8BE9FD;
+  --accent: var(--accent-primary);
   --danger: #FF6B6B;
   --success: #50FA7B;
   --warning: #FFB86C;
@@ -23,11 +24,15 @@
   --border-default: #1E2630;
   --border-hover: #2A3440;
   --border-active: #3A4450;
+  --border-strong: #3A4450;
 
   /* Text */
   --text-primary: #E5E7EB;
   --text-secondary: #9CA3AF;
-  --text-muted: #6B7280;
+  /* >= 5.3:1 on every dark surface (was #6B7280 at 3.3:1). */
+  --text-muted: #8B95A5;
+  /* Disabled/decorative only; not for readable text. */
+  --text-disabled: #6B7280;
 
   /* Spacing (8px grid) */
   --space-1: 8px;
@@ -62,19 +67,22 @@ html.light {
   --bg-surface-2: #F0F1F4;
   --bg-surface-3: #E5E7EB;
 
-  --accent-primary: #3B6FD9;
-  --accent-secondary: #2DA8B5;
-  --danger: #DC4444;
-  --success: #22A94E;
-  --warning: #D4890B;
+  /* Darkened so accent text reaches >= 4.6:1 on every light surface. */
+  --accent-primary: #3462BF;
+  --accent-secondary: #1E6F77;
+  --danger: #B43838;
+  --success: #187637;
+  --warning: #8C5A07;
 
   --border-default: #D1D5DB;
   --border-hover: #B0B8C4;
   --border-active: #9CA3AF;
+  --border-strong: #9CA3AF;
 
   --text-primary: #111827;
   --text-secondary: #4B5563;
-  --text-muted: #6B7280;
+  --text-muted: #566070;
+  --text-disabled: #8A93A3;
 
   --glow-primary-rgb: 59, 111, 217;
   --glow-success-rgb: 34, 169, 78;
@@ -615,4 +623,30 @@ html[data-boot="skip"] .boot-overlay {
 
 .animate-blink {
   animation: blink 0.7s step-end infinite;
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -64px;
+  z-index: 200;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  font-size: 14px;
+  font-weight: 600;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+main:focus {
+  outline: none;
 }

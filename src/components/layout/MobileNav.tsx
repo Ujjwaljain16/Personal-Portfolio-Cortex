@@ -8,6 +8,7 @@ import { BrainCircuit, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CONTACT_LINKS, NAV_ITEMS, isActivePath } from "@/components/layout/nav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { PaletteButton } from "@/components/layout/CommandPalette";
 
 /**
  * Top bar (rendered first in the grid so it sits at the top) plus a
@@ -69,6 +70,7 @@ export function MobileNav() {
                     <span className="text-sm font-semibold tracking-wider text-foreground">CORTEX</span>
                 </Link>
                 <div className="flex items-center">
+                    <PaletteButton compact />
                     <ThemeToggle />
                     <button
                         ref={triggerRef}

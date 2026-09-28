@@ -1,7 +1,8 @@
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SITE_URL } from "@/lib/site";
+import { DEFAULT_DESCRIPTION, SITE_NAME } from "@/lib/seo";
 import { LayoutShell } from "@/components/layout/LayoutShell";
 
 const geistSans = Geist({
@@ -14,27 +15,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
-  title: "Ujjwal Jain // CORTEX",
-  description: "Engineering monitoring platform — live system health, architectural decisions, and deployment observability by Ujjwal Jain.",
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Ujjwal Jain | Backend & systems engineer",
+    template: "%s | Ujjwal Jain",
+  },
+  description: DEFAULT_DESCRIPTION,
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  alternates: { canonical: "/" },
   openGraph: {
-    title: "Ujjwal Jain // CORTEX",
-    description: "Engineering monitoring platform. Live health checks, architectural decisions, deployment pipelines, and system observability.",
-    url: SITE_URL,
-    siteName: "CORTEX",
     type: "website",
+    url: SITE_URL,
+    siteName: SITE_NAME,
     locale: "en_US",
+    title: "Ujjwal Jain | Backend & systems engineer",
+    description: DEFAULT_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ujjwal Jain // CORTEX",
-    description: "Engineering monitoring platform. Live health checks, architectural decisions, deployment pipelines, and system observability.",
+    title: "Ujjwal Jain | Backend & systems engineer",
+    description: DEFAULT_DESCRIPTION,
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  metadataBase: new URL(SITE_URL),
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {

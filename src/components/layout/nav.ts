@@ -21,7 +21,7 @@ export const NAV_ITEMS: NavItem[] = [
     { href: "/projects", label: "projects", icon: Layers },
     { href: "/system", label: "system", icon: Activity },
     { href: "/decisions", label: "decisions", icon: GitBranch },
-    { href: "/experiments", label: "experiments", icon: FlaskConical },
+    { href: "/investigations", label: "investigations", icon: FlaskConical },
     { href: "/deployments", label: "deployments", icon: Rocket },
     { href: "/blogs", label: "blogs", icon: BookOpen },
     { href: "/ask", label: "ask", icon: MessageSquare },

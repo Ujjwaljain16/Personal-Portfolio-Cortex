@@ -1,11 +1,28 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import Link from "next/link";
 import { BLOG_POSTS } from "@/data/blogPosts";
 import { Markdown } from "@/components/Markdown";
+import { articleJsonLd, jsonLd, pageMetadata } from "@/lib/seo";
 
 export function generateStaticParams() {
     return BLOG_POSTS.map((p) => ({ slug: p.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+    const { slug } = await params;
+    const post = BLOG_POSTS.find((p) => p.slug === slug);
+    if (!post) return {};
+    return pageMetadata({
+        title: post.title,
+        description: post.excerpt,
+        path: `/blogs/${post.slug}`,
+        type: "article",
+        publishedTime: post.published,
+        modifiedTime: post.updated ?? post.published,
+        tags: post.tags,
+    });
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -15,6 +32,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
     return (
         <div className="max-w-3xl pb-10">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(articleJsonLd(post)) }} />
             <header className="mb-8">
                 <Link
                     href="/blogs"

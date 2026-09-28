@@ -2,9 +2,16 @@ import Link from "next/link";
 import { SystemMetrics } from "@/components/system/SystemMetrics";
 import { ActivityFeed } from "@/components/system/ActivityFeed";
 import { getGitHubSummary, getRecentActivity } from "@/lib/github";
+import { pageMetadata } from "@/lib/seo";
 
 // GitHub data is fetched on the server and cached; the browser never calls GitHub.
 export const revalidate = 600;
+
+export const metadata = pageMetadata({
+    title: "System overview",
+    description: "Signals from my public GitHub account: when I joined, the latest public commit and recent activity.",
+    path: "/system",
+});
 
 export default async function SystemPage() {
     const [summary, activity] = await Promise.all([getGitHubSummary(), getRecentActivity(8)]);

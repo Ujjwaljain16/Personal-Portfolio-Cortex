@@ -1,9 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Gallery } from "@/components/projects/Gallery";
+import { records } from "@/data/records";
 import { STATUS_LABEL, getProject, projects, sourceUrl, type ProjectStatus } from "@/data/projects";
+import { pageMetadata } from "@/lib/seo";
 
 const STATUS_BADGE: Record<ProjectStatus, string> = {
     ongoing: "badge-success",
@@ -16,11 +19,23 @@ export function generateStaticParams() {
     return projects.map((p) => ({ id: p.id }));
 }
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+    const { id } = await params;
+    const project = getProject(id);
+    if (!project) return {};
+    return pageMetadata({
+        title: project.name,
+        description: `${project.tagline} ${project.origin}, ${project.period}.`,
+        path: `/projects/${project.id}`,
+    });
+}
+
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const project = getProject(id);
     if (!project) notFound();
 
+    const related = records.filter((r) => r.projectId === project.id);
     const index = projects.findIndex((p) => p.id === project.id);
     const next = projects[(index + 1) % projects.length];
 
@@ -117,6 +132,29 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     ))}
                 </ul>
             </section>
+
+            {related.length > 0 && (
+                <section aria-labelledby="related">
+                    <h2 id="related" className="text-label mb-2">
+                        DECISIONS &amp; INVESTIGATIONS
+                    </h2>
+                    <ul className="space-y-2">
+                        {related.map((r) => (
+                            <li key={r.id} className="text-[15px] leading-relaxed">
+                                <Link
+                                    href={`/${r.kind === "decision" ? "decisions" : "investigations"}#${r.id}`}
+                                    className="text-(--accent-primary) hover:underline"
+                                >
+                                    {r.title}
+                                </Link>
+                                <span className="ml-2 font-mono text-[12px] text-(--text-muted)">
+                                    {r.kind === "decision" ? "decision" : "investigation"}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
 
             <section aria-labelledby="limits" className="surface-1 p-5">
                 <h2 id="limits" className="text-label mb-2">

@@ -1,6 +1,5 @@
 import { projects } from "@/data/projects";
-import { decisions } from "@/data/decisions";
-import { experiments } from "@/data/experiments";
+import { decisions, investigations } from "@/data/records";
 import { deployments } from "@/data/deployments";
 
 
@@ -22,26 +21,21 @@ export function serializeKnowledge(): string {
     }
 
     // ─── Decisions ─────────────────────────────────────
-    sections.push("# ENGINEERING DECISIONS\n");
+    sections.push("# DECISIONS\n");
     for (const d of decisions) {
-        sections.push(`## ADR-${d.number}: ${d.title} (${d.project})`);
-        sections.push(`Problem: ${d.problem}`);
-        sections.push(`Constraint: ${d.constraint}`);
+        sections.push(`## ${d.title} (${d.project})`);
+        sections.push(`Context: ${d.context}`);
         sections.push(`Decision: ${d.decision}`);
-        sections.push(`Rejected: ${d.alternativeRejected}`);
-        sections.push(`Outcome: ${d.outcome}`);
-        sections.push(`Status: ${d.status} | Confidence: ${d.confidence}`);
+        sections.push(`What happened: ${d.consequences}`);
         sections.push("");
     }
 
-    // ─── Experiments ───────────────────────────────────
-    sections.push("# EXPERIMENTS\n");
-    for (const e of experiments) {
-        sections.push(`## ${e.title} (${e.id}) [${e.project}]`);
-        sections.push(`Hypothesis: ${e.hypothesis}`);
-        sections.push(`Control: ${e.variants.control}`);
-        sections.push(`Variant: ${e.variants.variant}`);
-        sections.push(`Decision: ${e.decision} | Impact: ${e.impact}`);
+    // ─── Investigations ────────────────────────────────
+    sections.push("# INVESTIGATIONS\n");
+    for (const e of investigations) {
+        sections.push(`## ${e.title} (${e.project})`);
+        sections.push(`Question: ${e.question}`);
+        sections.push(`Result: ${e.result}`);
         sections.push("");
     }
 

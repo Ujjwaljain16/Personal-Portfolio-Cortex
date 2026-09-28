@@ -7,20 +7,21 @@ import { BLOG_POSTS } from "@/data/blogPosts";
 import { featuredProjects, projects } from "@/data/projects";
 import { countByProject, inReview, mergedPRs } from "@/data/openSource";
 import { formatDate } from "@/lib/utils";
+import { jsonLd, personJsonLd } from "@/lib/seo";
 
 // Two failures I documented in the projects themselves. Each links to the source.
 const LESSONS = [
     {
         title: "A circuit breaker that could never trip",
-        body: "In AgentBrake I wrote a circuit-breaker policy with open, half-open and reset logic, and unit-tested it. Then I found that nothing in the proxy ever reports a failure to it, because the child's output is piped straight through. It's documented as scaffolding. The lesson: wire the signal before writing the policy.",
-        href: "https://github.com/Ujjwaljain16/AgentBrake/blob/HEAD/src/policy/policies/CircuitBreakerPolicy.ts",
-        cta: "CircuitBreakerPolicy.ts",
+        body: "In AgentBrake I wrote a circuit-breaker policy with open, half-open and reset logic, and unit-tested it. Then I found that nothing in the proxy ever reports a failure to it, because the child's output is piped straight through. I fixed it months later by parsing the server's responses. The lesson: wire the signal before writing the policy.",
+        href: "/decisions#ab-circuit-breaker-and-approval-not-driveable",
+        cta: "Read the full record",
     },
     {
         title: "A 10× target that reached 1.2–2.2×",
         body: "In MiniDB I expected the vectorized executor to beat the Volcano-style one by about ten times. It reached roughly 1.2 to 2.2×, and the benchmark doc explains the overhead instead of hiding the miss. The lesson: measure first, and publish the number you got.",
-        href: "https://github.com/Ujjwaljain16/MiniDB/blob/HEAD/MiniDB_Projects/Team_ARIES_Recovery/docs/BENCHMARKS.md",
-        cta: "BENCHMARKS.md",
+        href: "/investigations#minidb-volcano-vs-vectorized-benchmark",
+        cta: "Read the full record",
     },
 ];
 
@@ -28,7 +29,7 @@ const WRITING_SLUGS = ["integration-complexity", "unicode-corruption-base64"];
 
 const EXPLORE = [
     { href: "/decisions", label: "Decisions", desc: "Engineering decisions with the alternative I rejected and what happened." },
-    { href: "/experiments", label: "Experiments", desc: "Hypotheses tested by building the alternative." },
+    { href: "/investigations", label: "Investigations", desc: "Benchmarks and root-cause analyses, with the numbers and their sources." },
     { href: "/deployments", label: "Deployments", desc: "Where each system actually runs." },
     { href: "/system", label: "System", desc: "Signals from my public GitHub account." },
     { href: "/ask", label: "Ask", desc: "Ask questions about four of my projects." },
@@ -40,6 +41,7 @@ export default function HomePage() {
 
     return (
         <>
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(personJsonLd()) }} />
             <BootOverlay />
 
             <div className="max-w-5xl mx-auto px-5 md:px-10 pb-24">
@@ -66,7 +68,7 @@ export default function HomePage() {
                             <li>
                                 <a
                                     href="#projects"
-                                    className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg bg-(--accent-primary) text-white text-[14px] font-medium hover:opacity-90"
+                                    className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg bg-(--accent-primary) text-(--bg-primary) text-[14px] font-medium hover:opacity-90"
                                 >
                                     See projects
                                     <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -192,7 +194,7 @@ export default function HomePage() {
                                 What didn&apos;t go to plan
                             </h2>
                             <p className="mt-2 text-[15px] text-(--text-secondary) max-w-2xl">
-                                I keep the misses in the repositories rather than tidying them away. Two examples.
+                                I keep the misses in the record rather than tidying them away. Two examples; the decisions and investigations pages have the rest.
                             </p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -200,14 +202,12 @@ export default function HomePage() {
                                 <article key={l.title} className="surface-1 p-5 flex flex-col gap-3">
                                     <h3 className="text-[16px] font-semibold text-foreground">{l.title}</h3>
                                     <p className="text-[14px] leading-relaxed text-(--text-secondary)">{l.body}</p>
-                                    <a
+                                    <Link
                                         href={l.href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mt-auto inline-flex min-h-11 items-center font-mono text-[12px] text-(--accent-primary) hover:underline"
+                                        className="mt-auto inline-flex min-h-11 items-center font-mono text-[13px] text-(--accent-primary) hover:underline"
                                     >
-                                        {l.cta} ↗
-                                    </a>
+                                        {l.cta}
+                                    </Link>
                                 </article>
                             ))}
                         </div>

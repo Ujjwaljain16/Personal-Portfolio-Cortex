@@ -6,6 +6,7 @@ import { BrainCircuit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CONTACT_LINKS, NAV_ITEMS, isActivePath } from "@/components/layout/nav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { PaletteButton } from "@/components/layout/CommandPalette";
 
 export function Sidebar() {
     const pathname = usePathname();
@@ -22,6 +23,10 @@ export function Sidebar() {
                         <div className="text-[11px] text-(--text-muted) font-mono">Ujjwal Jain</div>
                     </div>
                 </Link>
+            </div>
+
+            <div className="px-3 pt-3">
+                <PaletteButton className="w-full" />
             </div>
 
             <nav aria-label="Primary" className="flex-1 py-4">
@@ -53,7 +58,7 @@ export function Sidebar() {
                             <a
                                 href={l.href}
                                 {...(l.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                                className="text-(--text-secondary) hover:text-(--accent-primary)"
+                                className="inline-flex items-center min-h-8 px-1 text-(--text-secondary) hover:text-(--accent-primary)"
                             >
                                 {l.label}
                             </a>

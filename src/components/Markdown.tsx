@@ -12,15 +12,18 @@ import { cn } from "@/lib/utils";
 
 type Variant = "article" | "chat";
 
-function makeComponents(variant: Variant): Components {
+function makeComponents(variant: Variant, shiftHeadings: boolean): Components {
     const article = variant === "article";
+    // Posts written with ### directly under the title would skip a level; promote them.
+    const H3 = shiftHeadings ? "h2" : "h3";
+    const H4 = shiftHeadings ? "h3" : "h4";
     const text = article ? "text-base leading-7" : "text-[14px] leading-relaxed";
 
     return {
         h1: ({ children }) => <h2 className={cn("font-semibold text-foreground", article ? "text-xl mt-10 mb-3" : "text-[15px] mt-3")}>{children}</h2>,
         h2: ({ children }) => <h2 className={cn("font-semibold text-foreground", article ? "text-xl mt-10 mb-3" : "text-[15px] mt-3")}>{children}</h2>,
-        h3: ({ children }) => <h3 className={cn("font-medium text-foreground", article ? "text-lg mt-8 mb-2" : "text-[13px] uppercase tracking-wider mt-3")}>{children}</h3>,
-        h4: ({ children }) => <h4 className="font-medium text-foreground mt-4 mb-1">{children}</h4>,
+        h3: ({ children }) => <H3 className={cn("font-medium text-foreground", article ? "text-lg mt-8 mb-2" : "text-[13px] uppercase tracking-wider mt-3")}>{children}</H3>,
+        h4: ({ children }) => <H4 className="font-medium text-foreground mt-4 mb-1">{children}</H4>,
         p: ({ children }) => <p className={cn("text-(--text-secondary)", text, article ? "my-4" : "my-1.5")}>{children}</p>,
         ul: ({ children }) => <ul className={cn("list-disc pl-6 text-(--text-secondary) space-y-1.5", text, article ? "my-4" : "my-1.5")}>{children}</ul>,
         ol: ({ children }) => <ol className={cn("list-decimal pl-6 text-(--text-secondary) space-y-1.5", text, article ? "my-4" : "my-1.5")}>{children}</ol>,
@@ -60,14 +63,17 @@ function makeComponents(variant: Variant): Components {
     };
 }
 
-const COMPONENTS: Record<Variant, Components> = {
-    article: makeComponents("article"),
-    chat: makeComponents("chat"),
+const COMPONENTS = {
+    article: makeComponents("article", false),
+    articleShifted: makeComponents("article", true),
+    chat: makeComponents("chat", false),
 };
 
 export function Markdown({ children, variant = "article" }: { children: string; variant?: Variant }) {
+    const hasH2 = /^##[ \t]/m.test(children);
+    const key = variant === "article" && !hasH2 ? "articleShifted" : variant;
     return (
-        <ReactMarkdown components={COMPONENTS[variant]} disallowedElements={["img"]} unwrapDisallowed>
+        <ReactMarkdown components={COMPONENTS[key]} disallowedElements={["img"]} unwrapDisallowed>
             {children}
         </ReactMarkdown>
     );

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { BrainCircuit } from "lucide-react";
 import { NAV_ITEMS } from "@/components/layout/nav";
+import { PaletteButton } from "@/components/layout/CommandPalette";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 /** Slim top bar for the landing page: brand plus the CORTEX modules. */
 export function HomeHeader() {
@@ -12,7 +14,11 @@ export function HomeHeader() {
                 </span>
                 <span className="text-sm font-semibold tracking-wider text-foreground">CORTEX</span>
             </Link>
-            <nav aria-label="Primary" className="w-full sm:w-auto -mx-1 overflow-x-auto">
+            <div className="flex items-center gap-1 order-2 sm:order-3">
+                <PaletteButton compact />
+                <ThemeToggle />
+            </div>
+            <nav aria-label="Primary" className="w-full sm:w-auto sm:order-2 order-3 -mx-1 overflow-x-auto">
                 <ul className="flex flex-nowrap gap-x-1 px-1 font-mono text-[13px] whitespace-nowrap">
                     {NAV_ITEMS.filter((i) => i.href !== "/").map((item) => (
                         <li key={item.href}>
