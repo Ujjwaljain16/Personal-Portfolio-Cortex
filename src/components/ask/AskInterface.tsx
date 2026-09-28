@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useId } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { cn } from "@/lib/utils";
+import { Markdown } from "@/components/Markdown";
 import { SendHorizonal, Loader2, User, Cpu, RotateCcw, AlertTriangle } from "lucide-react";
 
 const MAX_QUESTION_CHARS = 500; // keep in sync with src/app/api/ask/route.ts
@@ -125,7 +126,7 @@ export function AskInterface() {
                                 )}
                             >
                                 <span className="sr-only">{msg.role === "user" ? "You: " : "Ujjwal: "}</span>
-                                <MessageContent content={getMessageText(msg)} />
+                                <Markdown variant="chat">{getMessageText(msg)}</Markdown>
                             </div>
                             {msg.role === "user" && (
                                 <div
@@ -265,61 +266,4 @@ function EmptyState({ onSelect }: { onSelect: (prompt: string) => void }) {
             </div>
         </div>
     );
-}
-
-// ─── Simple markdown-ish content renderer (unified in a later phase) ───
-function MessageContent({ content }: { content: string }) {
-    const lines = content.split("\n");
-
-    return (
-        <div className="space-y-1.5">
-            {lines.map((line, i) => {
-                if (!line.trim()) return <div key={i} className="h-2" />;
-
-                if (line.startsWith("## "))
-                    return (
-                        <div key={i} className="font-semibold text-foreground text-[15px] mt-2">
-                            {line.slice(3)}
-                        </div>
-                    );
-                if (line.startsWith("### "))
-                    return (
-                        <div key={i} className="font-medium text-foreground text-[12px] uppercase tracking-wider mt-2">
-                            {line.slice(4)}
-                        </div>
-                    );
-
-                if (line.startsWith("- ") || line.startsWith("* "))
-                    return (
-                        <div key={i} className="flex gap-2 pl-1">
-                            <span className="text-(--accent-secondary) mt-0.5" aria-hidden="true">
-                                •
-                            </span>
-                            <span>{renderInline(line.slice(2))}</span>
-                        </div>
-                    );
-
-                return <div key={i}>{renderInline(line)}</div>;
-            })}
-        </div>
-    );
-}
-
-function renderInline(text: string): React.ReactNode {
-    const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-    return parts.map((part, i) => {
-        if (part.startsWith("**") && part.endsWith("**"))
-            return (
-                <span key={i} className="font-semibold text-foreground">
-                    {part.slice(2, -2)}
-                </span>
-            );
-        if (part.startsWith("`") && part.endsWith("`"))
-            return (
-                <code key={i} className="px-1 py-0.5 rounded bg-(--bg-surface-3) text-(--accent-secondary) text-[12px] font-mono">
-                    {part.slice(1, -1)}
-                </code>
-            );
-        return part;
-    });
 }

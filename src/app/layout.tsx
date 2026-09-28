@@ -1,6 +1,7 @@
 import type { Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SITE_URL } from "@/lib/site";
 import { LayoutShell } from "@/components/layout/LayoutShell";
 
 const geistSans = Geist({
@@ -19,7 +20,7 @@ export const metadata = {
   openGraph: {
     title: "Ujjwal Jain // CORTEX",
     description: "Engineering monitoring platform. Live health checks, architectural decisions, deployment pipelines, and system observability.",
-    url: "https://ujjwaljain.dev",
+    url: SITE_URL,
     siteName: "CORTEX",
     type: "website",
     locale: "en_US",
@@ -33,7 +34,7 @@ export const metadata = {
     index: true,
     follow: true,
   },
-  metadataBase: new URL("https://ujjwaljain.dev"),
+  metadataBase: new URL(SITE_URL),
 };
 
 export const viewport: Viewport = {

@@ -1,22 +1,24 @@
+/**
+ * Where each system runs. Only facts that could be checked are listed: no
+ * commit hashes, latency figures or uptime claims, because none were backed by
+ * a source. `liveUrl` points at the place a visitor can actually go.
+ */
+
 export type DeploymentCategory = "live" | "device" | "runtime";
 
-export type DeploymentStatus = "active" | "device" | "packaged" | "published" | "library";
+export type DeploymentStatus = "active" | "partial" | "device" | "published" | "library";
 
 export interface Deployment {
     id: string;
     repo: string;
-    commit: string;
-    commitMessage: string;
+    summary: string;
     impact: string;
     category: DeploymentCategory;
     runtime: string;
     host: string;
     liveUrl?: string;
-    latencyChange?: string;
-    observed?: boolean;
     status: DeploymentStatus;
     tags: string[];
-    date: string;
     relatedDecisionId?: string;
     relatedExperimentId?: string;
 }
@@ -24,127 +26,97 @@ export interface Deployment {
 export const CATEGORY_LABELS: Record<DeploymentCategory, string> = {
     live: "LIVE WEB SYSTEMS",
     device: "DEVICE RUNTIME",
-    runtime: "RUNTIME SYSTEMS",
+    runtime: "PACKAGES & LIBRARIES",
 };
 
 export const CATEGORY_ORDER: DeploymentCategory[] = ["live", "device", "runtime"];
 
 export const deployments: Deployment[] = [
-
-    // ═══════════════════════════════════════════════════════════════════
-    //  LIVE WEB SYSTEMS — production web endpoints users can visit
-    // ═══════════════════════════════════════════════════════════════════
-
     {
         id: "deploy-001",
         repo: "Fuze",
-        commit: "a3f81d2",
-        commitMessage: "Full-stack AI recommendation engine — live on Vercel + HF Spaces",
-        impact: "React frontend served via Vercel Edge Network. Flask + Gunicorn backend on HuggingFace Spaces (python:3.11-slim, gevent async, 1000 connections). Dual-process container runs RQ worker + API server. Conditional blueprint degraded mode if Redis is down.",
+        summary: "React frontend on Vercel; Flask backend on Hugging Face Spaces (currently paused)",
+        impact:
+            "The frontend is deployed on Vercel. The Flask backend ships as a Docker container managed by supervisord and was hosted on Hugging Face Spaces, but that Space is paused after being flagged, so the live app cannot complete requests right now. It runs locally with the Quick Start in the repository.",
         category: "live",
         runtime: "Web App",
-        host: "Vercel + HuggingFace Spaces",
+        host: "Vercel (frontend) · Hugging Face Spaces (backend, paused)",
         liveUrl: "https://itsfuze.vercel.app",
-        latencyChange: "TTFB 386ms (frontend) · 457ms (backend API)",
-        observed: true,
-        status: "active",
-        tags: ["fullstack", "ai", "edge"],
-        date: "2026-02-10",
+        status: "partial",
+        tags: ["fullstack", "ai"],
         relatedDecisionId: "ADR-FZ-06",
         relatedExperimentId: "EXP-10",
     },
     {
         id: "deploy-002",
         repo: "CampusSync",
-        commit: "71f3b2e",
-        commitMessage: "Multi-tenant university platform — live on Vercel + Supabase",
-        impact: "Next.js frontend on Vercel with production security headers (HSTS, CSP, COEP, CORP). Supabase PostgreSQL with 83 RLS policies across 12 migrations. Ed25519 credential signing. UptimeRobot keep-alive prevents Supabase cold starts. Dual OCR pipeline (Tesseract + Gemini) behind feature flag.",
+        summary: "Multi-tenant certificate verification on Vercel and Supabase",
+        impact:
+            "A Next.js app on Vercel with Supabase for PostgreSQL, auth and storage. Certificates are extracted with Gemini vision, approved by faculty, and issued as RS256-signed credentials with revocation and public verification.",
         category: "live",
         runtime: "Web App",
         host: "Vercel + Supabase",
         liveUrl: "https://campusync1.vercel.app",
-        latencyChange: "TTFB 1210ms (SSR with Supabase round-trip)",
-        observed: true,
         status: "active",
-        tags: ["fullstack", "security", "edge"],
-        date: "2026-02-10",
+        tags: ["fullstack", "multi-tenant"],
         relatedDecisionId: "ADR-01",
         relatedExperimentId: "EXP-06",
     },
-
-    // ═══════════════════════════════════════════════════════════════════
-    //  DEVICE RUNTIME — native apps running on user devices
-    // ═══════════════════════════════════════════════════════════════════
-
     {
         id: "deploy-003",
         repo: "SpentSmart",
-        commit: "c5d1f38",
-        commitMessage: "Offline-first expense tracker — Android APK via GitHub Releases",
-        impact: "React Native + Expo SDK 54 app. Custom Kotlin UPI Intent native module for Android payment intents. Zero-backend architecture — all data in AsyncStorage, no network calls, no telemetry. Biometric lock via expo-local-authentication. EAS Build pipeline (dev → preview → production). v2.01 release APK on GitHub.",
+        summary: "Offline-first Android expense tracker, distributed as APKs on GitHub Releases",
+        impact:
+            "A React Native and Expo app with a custom Kotlin native module for UPI intents. It has no backend: data stays on the device behind an optional biometric lock. Three APK releases (v1.0.0, v2.0.0, v2.01) are on GitHub Releases.",
         category: "device",
-        runtime: "Mobile",
+        runtime: "Mobile (Android)",
         host: "GitHub Releases",
-        liveUrl: "https://github.com/Ujjwaljain16/SpentSmart/releases/download/v2.01/SpentSmartV2.01Release.apk",
-        latencyChange: "0ms network (fully offline)",
+        liveUrl: "https://github.com/Ujjwaljain16/SpentSmart/releases",
         status: "device",
-        tags: ["mobile", "offline-first", "local-runtime"],
-        date: "2026-02-10",
+        tags: ["mobile", "offline-first"],
         relatedDecisionId: "ADR-SS-01",
         relatedExperimentId: "EXP-14",
     },
-
-    // ═══════════════════════════════════════════════════════════════════
-    //  RUNTIME SYSTEMS — CLI tools, libraries, dev tools
-    // ═══════════════════════════════════════════════════════════════════
-
     {
         id: "deploy-004",
         repo: "AgentBrake",
-        commit: "b3e8f15",
-        commitMessage: "MCP safety proxy — published npm package",
-        impact: "Installed via `npm i agentbrake` as drop-in CLI wrapper around any MCP server. Stdio proxy intercepts all JSON-RPC tool calls — runs schema validation, DLP regex scanning, and budget enforcement as ordered policy middleware. Sliding-window circuit breaker trips after N failures in T seconds. YAML config-as-code with Zod validation. Docker multi-stage build available (node:20-alpine, HEALTHCHECK, <150MB). Published as v1.0.0 with built-in TypeScript declarations.",
+        summary: "MCP policy proxy, published to npm and Docker Hub",
+        impact:
+            "Published as agentbrake (v1.0.0, February 2026) on npm and as a Docker Hub image. It wraps an MCP server over stdio and applies allow/block policies and regex argument filtering. The circuit breaker and approval flow are not wired end to end.",
         category: "runtime",
         runtime: "CLI + Library",
-        host: "npm",
+        host: "npm · Docker Hub",
         liveUrl: "https://www.npmjs.com/package/agentbrake",
-        latencyChange: "+4ms per tool call (policy chain overhead)",
-        observed: true,
         status: "published",
-        tags: ["security", "ai-safety", "package", "npm"],
-        date: "2026-02-10",
+        tags: ["ai-safety", "package"],
         relatedDecisionId: "ADR-AB-02",
         relatedExperimentId: "EXP-41",
     },
     {
         id: "deploy-005",
-        repo: "MigrateDB",
-        commit: "f4c2a18",
-        commitMessage: "Database migration toolkit — CLI + library via npm",
-        impact: "Consumed as dependency or executed via npx migratedb migrate. Transaction-wrapped migration runner — each migration rolls back cleanly on failure. Advisory locks prevent concurrent execution across instances. Multi-database adapter pattern (Postgres, MySQL, SQLite). Topological sort for dependency ordering. Dual-format build (ESM + CJS) with package.json exports map.",
+        repo: "migrateDB",
+        summary: "Database migration CLI and library, published to npm",
+        impact:
+            "Published as @ujjwaljain16/migratedb (v1.0.1) with ESM and CommonJS builds. Migrations are ordered by declared dependencies and guarded by a lock table. The source repository is currently private, so only the package is public.",
         category: "runtime",
         runtime: "CLI + Library",
         host: "npm",
         liveUrl: "https://www.npmjs.com/package/@ujjwaljain16/migratedb",
-        latencyChange: "~12ms per migration (advisory lock acquire + tx commit)",
         status: "published",
-        tags: ["database", "migrations", "package"],
-        date: "2026-02-10",
+        tags: ["database", "package"],
         relatedDecisionId: "ADR-MG-01",
         relatedExperimentId: "EXP-22",
     },
     {
         id: "deploy-006",
         repo: "HttpServer",
-        commit: "e1f2b3c",
-        commitMessage: "Production-grade HTTP/1.1 server — Python stdlib only",
-        impact: "Zero external dependencies — built entirely on Python 3.11+ stdlib. HTTP/1.1 keep-alive (30s idle timeout, max 100 req/conn). Bounded thread pool (configurable workers, max 64 queue) returns 503 under saturation instead of crashing. Thread-safe connection pool with periodic stale cleanup. Per-IP rate limiter with security dashboard endpoint. SIGINT graceful shutdown drains in-flight requests. MetricsCollector tracks per-endpoint response times and throughput.",
+        summary: "HTTP/1.1 server on raw sockets in Python's standard library",
+        impact:
+            "Runs locally; there is no hosted instance. A bounded thread pool returns 503 when saturated, each client IP is rate limited, and a Prometheus /metrics endpoint is exposed.",
         category: "runtime",
         runtime: "Library",
-        host: "Python stdlib",
-        latencyChange: "~0.2ms per request (routing + middleware overhead)",
+        host: "Runs locally (Python stdlib)",
         status: "library",
-        tags: ["networking", "stdlib", "local-runtime"],
-        date: "2026-02-10",
+        tags: ["networking", "stdlib"],
     },
 ];

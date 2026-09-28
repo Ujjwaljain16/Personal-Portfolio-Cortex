@@ -13,7 +13,7 @@ import { experiments } from "@/data/experiments";
 const STATUS: Record<DeploymentStatus, { label: string; className: string }> = {
     active: { label: "ACTIVE", className: "text-(--success)" },
     device: { label: "DEVICE", className: "text-(--accent-secondary)" },
-    packaged: { label: "PACKAGED", className: "text-(--accent-primary)" },
+    partial: { label: "FRONTEND ONLY", className: "text-(--warning)" },
     published: { label: "PUBLISHED", className: "text-(--accent-primary)" },
     library: { label: "LIBRARY", className: "text-(--text-secondary)" },
 };
@@ -29,16 +29,14 @@ function liveLabel(url: string): string {
 
 /**
  * Deployment surfaces. Each row is a native <details>: keyboard and touch
- * accessible, no JS. Commit hashes and latency figures are intentionally not
- * shown until they can be verified (see the data audit).
+ * accessible, no JS. Only verifiable facts are shown (no commit hashes or
+ * latency figures).
  */
 export function DeploymentTable() {
     return (
         <div className="space-y-8">
             {CATEGORY_ORDER.map((category) => {
-                const entries = deployments
-                    .filter((d) => d.category === category)
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                const entries = deployments.filter((d) => d.category === category);
                 if (entries.length === 0) return null;
 
                 return (
@@ -86,7 +84,7 @@ function DeploymentRow({ deployment }: { deployment: Deployment }) {
                 <summary className="p-4">
                     <div className={cn("flex flex-col gap-1", ROW_GRID)}>
                         <div className="text-[14px] font-medium text-foreground">{deployment.repo}</div>
-                        <div className="text-[14px] text-(--text-secondary) min-w-0">{deployment.commitMessage}</div>
+                        <div className="text-[14px] text-(--text-secondary) min-w-0">{deployment.summary}</div>
                         <div className="text-[12px] font-mono uppercase tracking-wider text-(--text-muted)">
                             {deployment.runtime}
                         </div>

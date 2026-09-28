@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # Fails on invalid projects, open-source, deployment and blog data.
+      # ADR / experiment issues are reported as warnings only.
+      - name: Validate data
+        run: npm run validate:data
+
+      - name: Build
+        run: npm run build
+
+      # The client bundle must never contain credentials.
+      - name: Check build output for leaked tokens
+        run: |
+          if grep -rlE "github_pat_|ghp_[A-Za-z0-9]{20}|AIzaSy[A-Za-z0-9_-]{33}" .next/static; then
+            echo "Credential-like string found in the client bundle" >&2
+            exit 1
+          fi

@@ -11,68 +11,51 @@ export interface BlogPost {
 export const BLOG_POSTS: BlogPost[] = [
   {
     slug: "agent-brake-architecture",
-    title: "Deep Dive: Inside AgentBrake's Trusted \"Man-in-the-Middle\" Architecture",
+    title: "How AgentBrake Intercepts MCP Tool Calls",
     date: "Feb 10, 2026",
-    readTime: "6 min read",
-    excerpt: "A deep dive into the proxy architecture of AgentBrake, managing token consumption and enforcing policy constraints on autonomous agents.",
+    readTime: "5 min read",
+    excerpt: "How AgentBrake wraps an MCP server over stdio to enforce budget and argument-level policies, and which parts (circuit breaker, approvals) are not wired up yet.",
     tags: ["AI Safety", "Proxy Pattern", "TypeScript", "Architecture"],
     content: `
-By **Ujjwal Jain**
+*Updated Sep 2026 to match the code: the budget policy, the circuit breaker and the approval flow are described as they actually behave today.*
 
-In the rapidly evolving world of autonomous agents, "trust" is the most expensive currency. We give agents tools—file access, shell execution, API keys—and hope they behave. AgentBrake stops hoping and starts enforcing.
+AI agents get real tools: file access, shell execution, API keys. Most safety layers live inside the agent's own process, where the agent (or a bug in it) can route around them. I wanted to see how far a layer *outside* the agent could go, so I built AgentBrake, a proxy that sits between an MCP client and an MCP server and checks every tool call before it runs.
 
-Today, we're taking a deep dive into AgentBrake's architecture. We'll look at how it physically intercepts control, how it manages "spending," and how it enforces the law—all without the agent even knowing it's being watched.
+This post walks through how it works, and which parts don't work yet.
 
-## 1. The Architecture: The "Bouncer" Proxy
+## 1. Interception over stdio
 
-At its core, AgentBrake is a transparent proxy. Think of it as a bouncer standing at the door of an exclusive club. The club is your operating system, and the agent is the guest trying to get in.
+MCP servers commonly talk JSON-RPC over stdin and stdout. AgentBrake exploits that: instead of being a library you import, it wraps the server process.
 
-### The "Man-in-the-Middle" (stdio Interception)
+- **Normal flow**: IDE -> MCP server
+- **With AgentBrake**: IDE -> AgentBrake -> MCP server
 
-Most security tools try to run inside the application (like a library). AgentBrake takes a "senior staff" approach: isolation.
-
-Instead of being a library you import, AgentBrake wraps your agent process entirely.
-
-- **Normal Flow**: IDE -> Agent Process
-- **AgentBrake Flow**: IDE -> [AgentBrake Proxy -> Agent Process]
-
-### How it works (The Code)
-
-In \`src/proxy/interceptor.ts\`, AgentBrake spawns your agent as a child process. It then hijacks the communication lines: Standard Input (stdin) and Standard Output (stdout).
+In \`src/proxy/interceptor.ts\`, AgentBrake spawns the server as a child process and takes over its standard input and output.
 
 \`\`\`typescript
-// Simplified Concept
+// Simplified concept
 this.child = spawn(targetCommand, targetArgs, { stdio: ["pipe", "pipe", "inherit"] });
 process.stdin.on("data", (data) => {
-    // 1. Intercept message from IDE/Client
-    // 2. Check if it's a dangerous tool call
-    // 3. If SAFE -> write to child.stdin
-    // 4. If UNSAFE -> block and send error back to IDE
+    // 1. Read the message from the client
+    // 2. Check whether it is a tool call
+    // 3. If it passes the policies -> write to child.stdin
+    // 4. If it doesn't -> answer with an error instead of forwarding
 });
 \`\`\`
 
-Why this is brilliant:
+Two properties follow from this design:
 
-- **Language Agnostic**: It doesn't care if your agent is written in Python, Node.js, or Go. It speaks pure JSON-RPC (MCP protocol).
-- **Unbypassable**: The agent cannot "turn off" the proxy because the proxy owns the process.
+- **Language agnostic.** It doesn't matter whether the server is written in Python, Node.js or Go. The proxy only speaks JSON-RPC.
+- **The agent can't skip it.** The proxy owns the process, so the traffic has to go through it.
 
-## 2. Managing "Token" Consumption: The Arcade Model
+## 2. Budgets without a tokenizer
 
-You asked about "Token Consumption." Here is where AgentBrake makes a pragmatic, engineering trade-off.
+The obvious way to limit an agent's cost is to count tokens. That needs a tokenizer, which is heavy and specific to each model. I went with a cruder idea, which I call the "arcade token" model: every tool call costs a fixed amount, and the budget is a total.
 
-In the LLM world, we usually count "tokens" (BPE tokens). However, counting tokens requires a tokenizer, which is heavy, slow, and model-specific.
-
-### The "Heuristic" Budget (BudgetPolicy)
-
-AgentBrake uses what I call the "Arcade Token" model. instead of counting literal letters/tokens, it assigns a monetary cost to actions.
-
-In \`src/policy/policies/BudgetPolicy.ts\`, usage is tracked like this:
-
-- **Fixed Cost**: Every tool call costs a default amount (e.g., $0.01).
-- **Custom Cost**: specific tools (like deploy_production) can be "expensive" (e.g., $5.00).
+In \`src/policy/policies/BudgetPolicy.ts\` the check looks like this:
 
 \`\`\`typescript
-// BudgetPolicy.ts Logic
+// BudgetPolicy.ts
 const cost = this.toolCosts.get(toolName) || this.defaultCost;
 const projectedSpend = this.currentSpend + cost;
 if (projectedSpend > this.maxBudget) {
@@ -80,25 +63,21 @@ if (projectedSpend > this.maxBudget) {
 }
 \`\`\`
 
-The Senior Engineer Take: This is a smart V1 decision.
+The trade-off:
 
-- **Pros**: extremely fast (no tokenization latency), simpler configuration for users ("You have $5 budget" is easier to understand than "You have 500k tokens").
-- **Cons**: Less precise. A tool call with 100 lines of text costs the same as one with 1 line.
+- **Pros**: no tokenization latency, and a limit like "$5 total" is easier to configure than "500k tokens".
+- **Cons**: it's imprecise. A tool call with 100 lines of text costs the same as one with a single line.
 
-## 3. Enforcing the Law: The Policy Engine
+**What isn't there yet:** the policy class supports per-tool costs, but the YAML config doesn't pass them through, so today every call costs the same flat default. It counts calls, not real spend or tokens.
 
-AgentBrake doesn't just watch; it restricts. The enforcement happens in a synchronous loop inside \`interceptor.ts\`. Every single message passes through a gauntlet of policies.
+## 3. Policies that read the arguments
 
-### The "Metal Detector" (GranularAccessPolicy)
+Enforcement is a sequential loop in \`interceptor.ts\`: each message passes through a chain of policy classes, and the first violation decides the outcome.
 
-The most powerful policy is \`GranularAccessPolicy\`. It doesn't just check which tool is called; it checks the arguments.
-
-It uses Regex patterns to inspect payload data. This is effectively Data Loss Prevention (DLP) for agents.
+The most useful policy is \`GranularAccessPolicy\`. Instead of only checking *which* tool is called, it checks the *arguments*, with regular expressions. It's data-loss prevention for agent tool calls.
 
 - **Scenario**: an agent tries to write a file.
-- **The Rule**: \`allow_if: { arguments: { path: "^/tmp/.*" } }\`
-
-The Check:
+- **The rule**: \`allow_if: { arguments: { path: "^/tmp/.*" } }\`
 
 \`\`\`typescript
 // GranularAccessPolicy.ts
@@ -107,22 +86,21 @@ if (!new RegExp(pattern).test(String(argValue))) {
 }
 \`\`\`
 
-This allows you to say: "You can use write_file, but ONLY to the /tmp directory."
+That lets you say "you may use write_file, but only inside /tmp". Regex allow and deny lists are simple and fast to evaluate, but only as good as the patterns you write, and the expression is compiled on every call.
 
-### The "Cool Down" (CircuitBreaker / RateLimit)
+## 4. What doesn't work yet
 
-AgentBrake also protects against runaway agents—loops where an agent gets stuck retrying a failing tool 100 times/second.
+I'd rather say this plainly than let the README imply otherwise:
 
-- **RateLimit**: "Max 10 calls per minute."
-- **CircuitBreaker**: "If you fail 5 times in a row, stop asking."
+- **The circuit breaker can't trip.** The policy has open, half-open and reset logic, and unit tests. But nothing in the proxy ever reports a failed tool call to it, because the server's output is piped straight through without being parsed. To make it work, the proxy would have to read the responses.
+- **Human approval isn't wired up.** A tool call that requires approval gets a "pending" error, but nothing exists to approve or deny it: no CLI command, no webhook, no Slack integration is connected.
+- **The budget is a call counter**, as described above.
 
-## Summary: A "Control Plane" for AI
+What does work end to end: the allow/block policies, the regex argument filtering, rate limiting, and the YAML config validated with zod.
 
-AgentBrake is not an observability tool; it is a **control plane**.
+## Summary
 
-1. It **sits outside**: Using a proxy architecture for maximum isolation.
-2. It **simplifies costs**: Using a heuristic budget model for speed and usability.
-3. It **inspects deep**: Using granular regex policies to validate not just what tool is used, but how it is used.
+AgentBrake is a control point outside the agent rather than a monitoring tool. The proxy design is the part I'd keep: it needs no changes to the agent, and it sees everything. The policies that depend on the *results* of tool calls, the circuit breaker and approvals, are exactly the ones that need the proxy to understand responses, which it doesn't do yet.
 `
   },
   {

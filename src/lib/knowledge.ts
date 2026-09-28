@@ -48,9 +48,9 @@ export function serializeKnowledge(): string {
     // ─── Deployments ───────────────────────────────────
     sections.push("# DEPLOYMENTS\n");
     for (const d of deployments) {
-        sections.push(`## ${d.repo} — ${d.commitMessage} (${d.commit})`);
-        sections.push(`Category: ${d.category} | Runtime: ${d.runtime} | Host: ${d.host}${d.observed ? " | Observed: true" : ""}`);
-        sections.push(`Impact: ${d.impact}${d.latencyChange ? ` | Measured: ${d.latencyChange}` : ""}`);
+        sections.push(`## ${d.repo} — ${d.summary}`);
+        sections.push(`Category: ${d.category} | Runtime: ${d.runtime} | Host: ${d.host}`);
+        sections.push(`Impact: ${d.impact}`);
         sections.push(`Status: ${d.status} | Tags: ${d.tags.join(", ")}`);
         sections.push("");
     }

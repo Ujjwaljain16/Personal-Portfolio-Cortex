@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Gallery } from "@/components/projects/Gallery";
 import { STATUS_LABEL, getProject, projects, sourceUrl, type ProjectStatus } from "@/data/projects";
 
 const STATUS_BADGE: Record<ProjectStatus, string> = {
@@ -78,6 +79,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     ))}
                 </ul>
             </section>
+
+            {project.gallery && (
+                <section aria-labelledby="screens">
+                    <h2 id="screens" className="text-label mb-3">
+                        SCREENSHOTS
+                    </h2>
+                    <Gallery gallery={project.gallery} />
+                    <p className="mt-2 text-[12px] font-mono text-(--text-muted)">
+                        Captured from the project&apos;s own repository. Select an image to open it full size.
+                    </p>
+                </section>
+            )}
 
             <section aria-labelledby="evidence">
                 <h2 id="evidence" className="text-label mb-2">

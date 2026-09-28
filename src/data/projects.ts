@@ -22,6 +22,20 @@ export interface ProjectLink {
     href: string;
 }
 
+export interface ProjectImage {
+    /** Path under /public. */
+    src: string;
+    alt: string;
+    width: number;
+    height: number;
+}
+
+export interface Gallery {
+    /** wide: landscape screenshots; tall: full-page captures (cropped, open for full size); phone: portrait phone captures. */
+    layout: "wide" | "tall" | "phone";
+    items: ProjectImage[];
+}
+
 export interface Project {
     id: string;
     name: string;
@@ -39,6 +53,8 @@ export interface Project {
     /** `owner/name` on GitHub. */
     repo: string;
     links: ProjectLink[];
+    /** Screenshots copied from the project's own repository. */
+    gallery?: Gallery;
 }
 
 export interface AlsoBuilt {
@@ -83,7 +99,7 @@ export const projects: Project[] = [
                 text: "555 test functions across unit, integration, evaluation and performance suites, run against real PostgreSQL sessions. CI runs lint, security gates, unit and integration jobs.",
             },
             {
-                text: "Multi-seed simulator evaluation over 5 seeds: mean incremental recovery of ₹73,181.78 (95% CI ₹52.9k to ₹93.4k), with the payment-level superset property holding on every seed. A script regenerates the result file.",
+                text: "Multi-seed simulator evaluation: across 5 independent 10,000-payment runs, mean incremental recovered revenue of ₹73,182 per run (95% CI ₹52,919 to ₹93,445), with the payment-level superset property holding on every seed. A script regenerates the result file.",
                 source: "tests/evaluation/multi_seed_runner.py",
             },
         ],
@@ -96,6 +112,41 @@ export const projects: Project[] = [
         tech: ["Python", "FastAPI", "PostgreSQL", "Alembic", "Redis Streams", "Next.js", "Gemini", "Razorpay", "Prometheus", "Docker"],
         repo: "Ujjwaljain16/RecoveryOS",
         links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/RecoveryOS") }],
+        gallery: {
+            layout: "tall",
+            items: [
+                {
+                    src: "/projects/recoveryos/control-tower.webp",
+                    alt: "RecoveryOS control tower: recovered amount, incremental recovery and recovery rate, a per-bank health table, an action queue and active recovery missions.",
+                    width: 1280,
+                    height: 1212,
+                },
+                {
+                    src: "/projects/recoveryos/payment-detail-replan.webp",
+                    alt: "A payment's recovery mission timeline: an attempt fails, the system reinvestigates and replans, and a later attempt succeeds.",
+                    width: 1280,
+                    height: 3040,
+                },
+                {
+                    src: "/projects/recoveryos/audit-explorer.webp",
+                    alt: "Audit chain for one payment: failure, diagnosis marked as a deterministic fallback with no LLM involved, action options, expected value, policy verdict and execution.",
+                    width: 1280,
+                    height: 1916,
+                },
+                {
+                    src: "/projects/recoveryos/experiments.webp",
+                    alt: "Recovery experiment page: a five-seed simulator comparison of baseline against RecoveryOS with per-seed results and the AI's measured contribution.",
+                    width: 1280,
+                    height: 1953,
+                },
+                {
+                    src: "/projects/recoveryos/payment-detail-safety-escalation.webp",
+                    alt: "A payment escalated by policy after an AI risk signal flagged high fraud risk, instead of being retried.",
+                    width: 1280,
+                    height: 2091,
+                },
+            ],
+        },
     },
     {
         id: "minidb",
@@ -141,7 +192,10 @@ export const projects: Project[] = [
         ],
         tech: ["TypeScript", "Node.js", "Jest", "sql-parser-cst"],
         repo: "Ujjwaljain16/MiniDB",
-        links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/MiniDB") }],
+        links: [
+            { label: "Source on GitHub", href: gh("Ujjwaljain16/MiniDB") },
+            { label: "Demo recording (GIF, 11 MB)", href: "https://github.com/Ujjwaljain16/MiniDB/blob/HEAD/demodb.gif" },
+        ],
     },
     {
         id: "fuze",
@@ -237,6 +291,35 @@ export const projects: Project[] = [
             { label: "Live demo", href: "https://sse-observatory.vercel.app" },
             { label: "Source on GitHub", href: gh("Ujjwaljain16/SSE-Observatory") },
         ],
+        gallery: {
+            layout: "wide",
+            items: [
+                {
+                    src: "/projects/sse-observatory/monitor-mode.webp",
+                    alt: "Monitor mode: connect to an SSE endpoint, optionally through the proxy, with a query engine for filtering and playback controls.",
+                    width: 1024,
+                    height: 576,
+                },
+                {
+                    src: "/projects/sse-observatory/event-stream.webp",
+                    alt: "Live event stream showing captured JSON events with compare and copy actions and a timeline scrubber.",
+                    width: 1024,
+                    height: 576,
+                },
+                {
+                    src: "/projects/sse-observatory/multi-stream.webp",
+                    alt: "Multi-stream mode: several SSE endpoints added as lanes to correlate events on one timeline.",
+                    width: 1024,
+                    height: 576,
+                },
+                {
+                    src: "/projects/sse-observatory/mock-server.webp",
+                    alt: "Mock server: upload a recorded .sse-record file and replay it locally at 0.5×, 1× or 2× speed.",
+                    width: 1024,
+                    height: 576,
+                },
+            ],
+        },
     },
 
     // ─── More projects ─────────────────────────────────────────────────────
@@ -466,6 +549,35 @@ export const projects: Project[] = [
             { label: "Releases (APK)", href: "https://github.com/Ujjwaljain16/SpentSmart/releases" },
             { label: "Source on GitHub", href: gh("Ujjwaljain16/SpentSmart") },
         ],
+        gallery: {
+            layout: "phone",
+            items: [
+                {
+                    src: "/projects/spentsmart/demo-1.webp",
+                    alt: "Analytics screen: this month's spending, income and expense totals, a category breakdown and weekly spending.",
+                    width: 720,
+                    height: 1600,
+                },
+                {
+                    src: "/projects/spentsmart/demo7.webp",
+                    alt: "Manual entry form for an expense or income with payment method and category.",
+                    width: 720,
+                    height: 1600,
+                },
+                {
+                    src: "/projects/spentsmart/demo8.webp",
+                    alt: "Manage categories screen with default categories and a reset option.",
+                    width: 720,
+                    height: 1600,
+                },
+                {
+                    src: "/projects/spentsmart/demo-6.webp",
+                    alt: "Settings: privacy dashboard, biometric lock, privacy mode that masks amounts, and a monthly budget limit.",
+                    width: 720,
+                    height: 1600,
+                },
+            ],
+        },
     },
 ];
 
