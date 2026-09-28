@@ -2,8 +2,10 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { EngineeringRecord, EvidenceType } from "@/data/records";
 import { RecordDeepLink } from "@/components/records/RecordDeepLink";
+import { RecordChart } from "@/components/records/RecordChart";
+import { charts } from "@/data/charts";
 
-const OUTCOME: Record<string, { label: string; className: string }> = {
+export const OUTCOME: Record<string, { label: string; className: string }> = {
     adopted: { label: "ADOPTED", className: "text-(--success)" },
     partial: { label: "PARTIAL", className: "text-(--warning)" },
     superseded: { label: "SUPERSEDED", className: "text-(--accent-primary)" },
@@ -112,6 +114,10 @@ export function RecordCard({ record }: { record: EngineeringRecord }) {
                             )}
                         </>
                     )}
+
+                    {charts[record.id]?.map((chart, i) => (
+                        <RecordChart key={chart.title} chart={chart} id={`${record.id}-chart-${i}`} />
+                    ))}
 
                     <div>
                         <h3 className="text-label mb-2">Evidence</h3>

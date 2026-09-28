@@ -10,6 +10,7 @@ export const metadata = pageMetadata({
     description:
         "Benchmarks, root-cause analyses and controlled comparisons from my projects and open-source work, with the numbers, the method and where each one came from.",
     path: "/investigations",
+    ownImage: true,
 });
 
 export default function InvestigationsPage() {

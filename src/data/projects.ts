@@ -55,6 +55,11 @@ export interface Project {
     links: ProjectLink[];
     /** Screenshots copied from the project's own repository. */
     gallery?: Gallery;
+    /**
+     * Concrete next steps, each taken from a limitation stated on the page.
+     * They describe what fixing the gap would take; they are not promises.
+     */
+    next?: string[];
 }
 
 export interface AlsoBuilt {
@@ -112,6 +117,12 @@ export const projects: Project[] = [
             "Built with an AI coding assistant: 16 of the 139 commits carry a Claude co-author trailer.",
         ],
         tech: ["Python", "FastAPI", "PostgreSQL", "Alembic", "Redis Streams", "Next.js", "Gemini", "Razorpay", "Prometheus", "Docker"],
+        next: [
+            "Cap retries and add a dead-letter queue, so a message that always fails stops being retried.",
+            "Re-check the customer's opt-out at execution time, not only when the decision is made.",
+            "Put authentication on the /metrics endpoint.",
+            "Evaluate against real payment traffic, or a larger set of real model recommendations, instead of only the simulator.",
+        ],
         repo: "Ujjwaljain16/RecoveryOS",
         links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/RecoveryOS") }],
         gallery: {
@@ -194,6 +205,12 @@ export const projects: Project[] = [
             "The real project sits in a nested folder of the repository, so the repo root can be confusing.",
         ],
         tech: ["TypeScript", "Node.js", "Jest", "sql-parser-cst"],
+        next: [
+            "Make aborting a transaction undo its changes.",
+            "Fix recovery so a second crash straight after recovery does not lose committed rows.",
+            "Stop the planner choosing an index for range predicates the index scan cannot run.",
+            "Put the catalog file under the write-ahead log.",
+        ],
         repo: "Ujjwaljain16/MiniDB",
         links: [
             { label: "Source on GitHub", href: gh("Ujjwaljain16/MiniDB") },
@@ -242,6 +259,11 @@ export const projects: Project[] = [
             "Parts were built with an AI coding assistant: some commits carry a Claude co-author trailer, and gaps.md is AI-written.",
         ],
         tech: ["Python", "Flask", "PostgreSQL", "pgvector", "Redis", "RQ", "SentenceTransformers", "React", "Alembic", "GitHub Actions"],
+        next: [
+            "Pass a unit of work to the new recommendation pipeline so shadow mode returns real results, before turning on the cutover flag.",
+            "Back the optimisation figures in the repository docs with benchmarks, or remove them.",
+            "Bring the hosted backend back so the live frontend works.",
+        ],
         repo: "Ujjwaljain16/Fuze",
         links: [
             { label: "Source on GitHub", href: gh("Ujjwaljain16/Fuze") },
@@ -291,6 +313,11 @@ export const projects: Project[] = [
             "No CI workflow yet.",
         ],
         tech: ["TypeScript", "React", "Vite", "Web Workers", "SharedWorker", "IndexedDB", "Express", "Vitest", "Playwright"],
+        next: [
+            "Replace the capped array with a real ring buffer.",
+            "Isolate interceptor workers from the network, not only kill them on timeout.",
+            "Add a CI workflow.",
+        ],
         repo: "Ujjwaljain16/SSE-Observatory",
         links: [
             { label: "Live demo", href: "https://sse-observatory.vercel.app" },
@@ -374,6 +401,11 @@ export const projects: Project[] = [
             "Built with an AI coding assistant: at least 119 of the first 221 commits carried a Claude co-author trailer before a history rewrite removed most of them, and 28 of the current 226 still do. The commit history is also compressed: 214 of the 226 commits fall on four days.",
         ],
         tech: ["Go", "net/http", "GitHub Actions", "JavaScript dashboard", "Prometheus text format"],
+        next: [
+            "Validate the classifier's thresholds on a scenario it was not tuned on.",
+            "Fix the README and dashboard \"8x\" figure, which is EWMA against its own baseline and not against the adaptive policy.",
+            "Re-run the numbers that have gone stale, such as keep-alive throughput and the Stage 8 tuner, and update the docs.",
+        ],
         repo: "Ujjwaljain16/FlashFlow",
         links: [{ label: "Source on GitHub", href: gh("Ujjwaljain16/FlashFlow") }],
         gallery: {
@@ -518,6 +550,11 @@ export const projects: Project[] = [
             "The first version failed open: any line the proxy could not parse, including a tool call split across stdin chunks, was forwarded unchecked, and an invalid policy file disabled enforcement. Both were fixed in Sep 2026 (see the decisions page).",
         ],
         tech: ["TypeScript", "Node.js", "zod", "Jest", "Docker"],
+        next: [
+            "Build human approval: a way to approve or deny a pending call that the agent cannot use on itself.",
+            "Track tokens or real spend in the budget policy instead of a flat cost per call.",
+            "Publish a new npm release with the fail-closed fixes.",
+        ],
         repo: "Ujjwaljain16/AgentBrake",
         links: [
             { label: "Source on GitHub", href: gh("Ujjwaljain16/AgentBrake") },
@@ -578,6 +615,11 @@ export const projects: Project[] = [
             "The database schema and row-level-security SQL are not in the repository (the migrations were removed from the main branch), so the policies could not be reviewed from the code.",
         ],
         tech: ["Next.js", "TypeScript", "Supabase", "PostgreSQL", "Gemini", "Vitest"],
+        next: [
+            "Put the database schema and row-level-security SQL back in the repository so the policies can be reviewed.",
+            "Replace the in-memory rate limiter with a shared store.",
+            "Keep signing keys outside process memory.",
+        ],
         repo: "Ujjwaljain16/CampusSync",
         links: [
             { label: "Live demo", href: "https://campusync1.vercel.app" },
@@ -615,6 +657,11 @@ export const projects: Project[] = [
             "There is one integration test file. The Docker setup and the fixes above were type-checked and built but not run end to end.",
         ],
         tech: ["TypeScript", "WXT", "Next.js", "Fastify", "PostgreSQL", "WebCrypto", "Docker"],
+        next: [
+            "Stop sending the account password to the server, by using a separate authentication secret or OPAQUE.",
+            "Use a stronger key-derivation function than PBKDF2 with 100,000 iterations, and encrypt restore target URLs.",
+            "Run the Docker setup end to end against a real database.",
+        ],
         repo: "Ujjwaljain16/VaultTabs",
         links: [
             { label: "Live demo", href: "https://vaulttabs.vercel.app" },

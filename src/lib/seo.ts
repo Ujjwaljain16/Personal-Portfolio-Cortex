@@ -23,13 +23,18 @@ interface PageMetadataInput {
     publishedTime?: string;
     modifiedTime?: string;
     tags?: string[];
+    /**
+     * The route has its own opengraph-image file. Leave the image out here so Next
+     * uses that file instead of the site-wide card.
+     */
+    ownImage?: boolean;
 }
 
 /**
  * Per-route metadata. Next replaces (does not merge) `openGraph` and `twitter`
  * from the layout, so each page must supply the complete objects.
  */
-export function pageMetadata({ title, description, path, type = "website", publishedTime, modifiedTime, tags }: PageMetadataInput): Metadata {
+export function pageMetadata({ title, description, path, type = "website", publishedTime, modifiedTime, tags, ownImage = false }: PageMetadataInput): Metadata {
     const fullTitle = `${title} | ${SITE_NAME}`;
     return {
         title,
@@ -42,12 +47,12 @@ export function pageMetadata({ title, description, path, type = "website", publi
             locale: "en_US",
             title: fullTitle,
             description,
-            images: [{ url: SOCIAL_IMAGE, width: 1200, height: 630, alt: "Ujjwal Jain: backend and systems engineer" }],
+            ...(ownImage ? {} : { images: [{ url: SOCIAL_IMAGE, width: 1200, height: 630, alt: "Ujjwal Jain: backend and systems engineer" }] }),
             ...(type === "article"
                 ? { publishedTime, modifiedTime, authors: [SITE_NAME], tags }
                 : {}),
         },
-        twitter: { card: "summary_large_image", title: fullTitle, description, images: [SOCIAL_IMAGE] },
+        twitter: { card: "summary_large_image", title: fullTitle, description, ...(ownImage ? {} : { images: [SOCIAL_IMAGE] }) },
     };
 }
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, FileDown, Github, Linkedin, Mail } from "lucide-react";
 import { BootOverlay } from "@/components/landing/BootSequence";
 import { HomeHeader } from "@/components/home/HomeHeader";
+import { Now } from "@/components/home/Now";
 import { ProjectCard } from "@/components/system/ProjectCard";
 import { BLOG_POSTS } from "@/data/blogPosts";
 import { featuredProjects, projects } from "@/data/projects";
@@ -107,6 +108,8 @@ export default function HomePage() {
                             </li>
                         </ul>
                     </section>
+
+                    <Now />
 
                     {/* Featured projects */}
                     <section id="projects" aria-labelledby="projects-heading" className="scroll-mt-6 space-y-6">

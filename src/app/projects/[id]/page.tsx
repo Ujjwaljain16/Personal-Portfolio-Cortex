@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Gallery } from "@/components/projects/Gallery";
+import { Diagram } from "@/components/projects/Diagram";
+import { RelatedRecords } from "@/components/projects/RelatedRecords";
+import { diagrams } from "@/data/diagrams";
 import { records } from "@/data/records";
 import { STATUS_LABEL, getProject, projects, sourceUrl, type ProjectStatus } from "@/data/projects";
 import { pageMetadata } from "@/lib/seo";
@@ -27,6 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         title: project.name,
         description: `${project.tagline} ${project.origin}, ${project.period}.`,
         path: `/projects/${project.id}`,
+        ownImage: true,
     });
 }
 
@@ -36,6 +40,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     if (!project) notFound();
 
     const related = records.filter((r) => r.projectId === project.id);
+    const diagram = diagrams[project.id];
     const index = projects.findIndex((p) => p.id === project.id);
     const next = projects[(index + 1) % projects.length];
 
@@ -95,6 +100,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 </ul>
             </section>
 
+            {diagram && (
+                <section aria-labelledby="diagram">
+                    <h2 id="diagram" className="text-label mb-3">
+                        THE PIPELINE
+                    </h2>
+                    <Diagram id={project.id} diagram={diagram} />
+                </section>
+            )}
+
             {project.gallery && (
                 <section aria-labelledby="screens">
                     <h2 id="screens" className="text-label mb-3">
@@ -138,21 +152,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     <h2 id="related" className="text-label mb-2">
                         DECISIONS &amp; INVESTIGATIONS
                     </h2>
-                    <ul className="space-y-2">
-                        {related.map((r) => (
-                            <li key={r.id} className="text-[15px] leading-relaxed">
-                                <Link
-                                    href={`/${r.kind === "decision" ? "decisions" : "investigations"}#${r.id}`}
-                                    className="text-(--accent-primary) hover:underline"
-                                >
-                                    {r.title}
-                                </Link>
-                                <span className="ml-2 font-mono text-[12px] text-(--text-muted)">
-                                    {r.kind === "decision" ? "decision" : "investigation"}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
+                    <RelatedRecords records={related} />
                 </section>
             )}
 
@@ -166,6 +166,22 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     ))}
                 </ul>
             </section>
+
+            {project.next && project.next.length > 0 && (
+                <section aria-labelledby="next">
+                    <h2 id="next" className="text-label mb-2">
+                        NEXT STEPS
+                    </h2>
+                    <p className="mb-2 text-[13px] text-(--text-muted)">
+                        Each one comes from a gap listed above. It says what fixing the gap would take; it is not a promise.
+                    </p>
+                    <ul className="space-y-2 list-disc pl-5 text-[15px] leading-relaxed text-(--text-secondary)">
+                        {project.next.map((n) => (
+                            <li key={n}>{n}</li>
+                        ))}
+                    </ul>
+                </section>
+            )}
 
             <section aria-labelledby="stack">
                 <h2 id="stack" className="text-label mb-2">

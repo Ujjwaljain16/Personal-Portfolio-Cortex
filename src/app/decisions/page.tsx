@@ -10,6 +10,7 @@ export const metadata = pageMetadata({
     description:
         "Engineering decisions traced to commits and code: the problem, the alternatives considered, what happened, and how each record was checked.",
     path: "/decisions",
+    ownImage: true,
 });
 
 export default function DecisionsPage() {
