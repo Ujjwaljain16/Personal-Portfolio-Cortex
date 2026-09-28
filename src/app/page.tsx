@@ -64,7 +64,7 @@ export default function HomePage() {
                             what it doesn&apos;t do yet.
                         </p>
                         <p className="text-[13px] font-mono text-(--text-muted)">
-                            Bachelor&apos;s in Computer Science · BITS Pilani · 9.3 CGPA · 2024–2028
+                            Bachelor&apos;s in Computer Science · BITS Pilani · 8.82 CGPA · 2024–2028
                         </p>
                         <ul className="flex flex-wrap gap-3 pt-2">
                             <li>
