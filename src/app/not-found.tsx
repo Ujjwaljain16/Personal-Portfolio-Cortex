@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, Home, Wifi } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Home } from "lucide-react";
 
 export default function NotFound() {
     const [glitch, setGlitch] = useState(false);
@@ -60,11 +60,7 @@ export default function NotFound() {
                             → requested path does not map to any monitored service
                         </div>
                         <div className="text-(--text-muted)">
-                            → platform status: <span className="text-(--success)">OPERATIONAL</span> | endpoints: 9
-                        </div>
-                        <div className="flex items-center gap-1.5 text-(--text-muted) pt-1">
-                            <Wifi className="w-3 h-3 text-(--success)" />
-                            <span>health checks passing · uptime nominal</span>
+                            → try the modules in the sidebar, or head back home
                         </div>
                     </div>
                 </div>

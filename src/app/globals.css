@@ -53,7 +53,6 @@
 
   /* Layout */
   --sidebar-width: 240px;
-  --context-width: 320px;
 }
 
 /* ── Light Theme ─────────────────────────── */
@@ -206,31 +205,33 @@ body::before {
 
 .app-grid {
   display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr var(--context-width);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
 .sidebar {
   background: var(--bg-surface-1);
   border-right: 1px solid var(--border-default);
-  height: 100vh;
+  height: 100%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
 .main-panel {
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   overflow-y: auto;
   padding: var(--space-4);
 }
 
-.context-panel {
-  background: var(--bg-surface-1);
-  border-left: 1px solid var(--border-default);
-  height: 100vh;
-  overflow: hidden;
+/* Keep page content readable on very wide screens. */
+.main-panel > * {
+  max-width: 72rem;
+  margin-inline: auto;
 }
 
 /* Custom scrollbar */
@@ -349,26 +350,17 @@ body::before {
 }
 
 /* ============================================
-   RESPONSIVE (Collapse context panel on smaller screens)
+   RESPONSIVE
+   The mobile top bar is the FIRST child of .app-grid, so it lands in the
+   first (auto) row; <main> takes the remaining space and scrolls.
    ============================================ */
-
-@media (max-width: 1200px) {
-  .app-grid {
-    grid-template-columns: var(--sidebar-width) 1fr;
-  }
-  
-  .context-panel {
-    display: none;
-  }
-}
 
 @media (max-width: 768px) {
   .app-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    height: 100vh;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
-  
+
   .sidebar {
     display: none;
   }
@@ -377,20 +369,61 @@ body::before {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 4px 8px 4px 16px;
+    padding-top: max(4px, env(safe-area-inset-top));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
     background: var(--bg-surface-1);
     border-bottom: 1px solid var(--border-default);
-    position: sticky;
-    top: 0;
     z-index: 50;
   }
 
   .main-panel {
-    height: auto;
-    min-height: 0;
-    overflow-y: auto;
     padding: var(--space-2);
+    padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
   }
+}
+
+/* ============================================
+   DISCLOSURES (native <details>) + FOCUS
+   ============================================ */
+
+details.disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+}
+
+details.disclosure > summary > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+details.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.disclosure > summary::before {
+  content: "▸";
+  display: inline-block;
+  flex: 0 0 1.1em;
+  width: 1.1em;
+  transition: transform var(--transition-fast);
+}
+
+details.disclosure[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 /* ============================================
@@ -407,33 +440,10 @@ body::before {
     transform var(--transition-fast);
 }
 
-.project-card-glow {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  border-radius: inherit;
-  transition: opacity var(--transition-smooth);
-  pointer-events: none;
-  background: radial-gradient(
-    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(var(--glow-primary-rgb), 0.08),
-    transparent 40%
-  );
-  z-index: 0;
-}
-
 .project-card:hover,
-.project-card--active {
+.project-card:focus-within {
   border-color: rgba(var(--glow-primary-rgb), 0.3);
-  box-shadow:
-    0 0 20px rgba(var(--glow-primary-rgb), 0.06),
-    0 0 60px rgba(var(--glow-primary-rgb), 0.03),
-    inset 0 0 30px rgba(var(--glow-primary-rgb), 0.02);
-}
-
-.project-card:hover .project-card-glow,
-.project-card--active .project-card-glow {
-  opacity: 1;
+  box-shadow: 0 0 20px rgba(var(--glow-primary-rgb), 0.06);
 }
 
 /* ============================================
@@ -465,48 +475,6 @@ body::before {
 .surface-interactive:hover {
   border-color: var(--border-hover);
 }
-
-/* ============================================
-   MICRO-INTERACTIONS — Context Panel Slide
-   ============================================ */
-
-.context-panel {
-  transition: transform var(--transition-smooth);
-}
-
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.context-panel .animate-in {
-  animation: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* Staggered section reveal inside context panel */
-.context-panel .space-y-6 > div:nth-child(1) { animation: fade-up 0.3s 0.05s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.context-panel .space-y-6 > div:nth-child(2) { animation: fade-up 0.3s 0.10s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.context-panel .space-y-6 > div:nth-child(3) { animation: fade-up 0.3s 0.15s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.context-panel .space-y-6 > div:nth-child(4) { animation: fade-up 0.3s 0.20s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.context-panel .space-y-6 > div:nth-child(5) { animation: fade-up 0.3s 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.context-panel .space-y-6 > div:nth-child(6) { animation: fade-up 0.3s 0.30s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 /* ============================================
    MICRO-INTERACTIONS — Badge Pulse on Hover

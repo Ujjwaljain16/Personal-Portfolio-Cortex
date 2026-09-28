@@ -1,38 +1,23 @@
-"use client";
-
-import { useMemo } from "react";
 import { DecisionCard } from "@/components/decisions/DecisionCard";
 import type { Decision } from "@/data/decisions";
 
-interface TimelineProps {
-    decisions: Decision[];
-}
-
-export function Timeline({ decisions }: TimelineProps) {
-    // Sort by Date Descending (Newest -> Oldest)
-    const sortedDecisions = useMemo(() => {
-        return [...decisions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [decisions]);
-
-    if (!decisions.length) {
-        return (
-            <div className="text-sm text-(--text-muted) py-8 pl-8 italic">
-                No architectural decisions logged yet.
-            </div>
-        );
+/** Newest-first list of decision records on a subtle vertical rail. */
+export function Timeline({ decisions }: { decisions: Decision[] }) {
+    if (decisions.length === 0) {
+        return <p className="text-[14px] text-(--text-secondary) py-8">No decisions match these filters.</p>;
     }
 
     return (
-        <div className="relative min-h-[calc(100vh-200px)]">
-            {/* Timeline line */}
-            <div className="absolute left-4.75 top-0 bottom-0 w-px bg-(--border-default)" />
-
-            {/* Decision cards */}
-            <div className="space-y-4">
-                {sortedDecisions.map((decision) => (
-                    <DecisionCard key={decision.id} decision={decision} />
-                ))}
-            </div>
-        </div>
+        <ol className="space-y-3 border-l border-(--border-default) pl-4 sm:pl-6">
+            {decisions.map((decision) => (
+                <li key={decision.id} className="relative">
+                    <span
+                        aria-hidden="true"
+                        className="absolute -left-[calc(1rem+3px)] sm:-left-[calc(1.5rem+3px)] top-6 w-1.5 h-1.5 rounded-full bg-(--border-hover)"
+                    />
+                    <DecisionCard decision={decision} />
+                </li>
+            ))}
+        </ol>
     );
 }

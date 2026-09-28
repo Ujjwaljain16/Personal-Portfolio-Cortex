@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { LayoutShell } from "@/components/layout/LayoutShell";
@@ -33,6 +34,12 @@ export const metadata = {
     follow: true,
   },
   metadataBase: new URL("https://ujjwaljain.dev"),
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

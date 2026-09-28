@@ -1,263 +1,145 @@
-"use client";
-
-import { useRef, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useSystemStore } from "@/lib/store";
-import { Radio, Smartphone, Package, Upload, BookOpen, ExternalLink, Eye } from "lucide-react";
-import { deployments, CATEGORY_ORDER, CATEGORY_LABELS, type Deployment, type DeploymentStatus } from "@/data/deployments";
+import {
+    deployments,
+    CATEGORY_ORDER,
+    CATEGORY_LABELS,
+    type Deployment,
+    type DeploymentStatus,
+} from "@/data/deployments";
 import { decisions } from "@/data/decisions";
 import { experiments } from "@/data/experiments";
 
-const HOVER_INTENT_MS = 250;
-
-const STATUS_CONFIG: Record<DeploymentStatus, { icon: typeof Radio; label: string; class: string }> = {
-    active: { icon: Radio, label: "ACTIVE", class: "text-(--success)" },
-    device: { icon: Smartphone, label: "DEVICE", class: "text-(--accent-secondary)" },
-    packaged: { icon: Package, label: "PACKAGED", class: "text-(--accent-primary)" },
-    published: { icon: Upload, label: "PUBLISHED", class: "text-(--accent-primary)" },
-    library: { icon: BookOpen, label: "LIBRARY", class: "text-(--text-secondary)" },
+const STATUS: Record<DeploymentStatus, { label: string; className: string }> = {
+    active: { label: "ACTIVE", className: "text-(--success)" },
+    device: { label: "DEVICE", className: "text-(--accent-secondary)" },
+    packaged: { label: "PACKAGED", className: "text-(--accent-primary)" },
+    published: { label: "PUBLISHED", className: "text-(--accent-primary)" },
+    library: { label: "LIBRARY", className: "text-(--text-secondary)" },
 };
 
-const RUNTIME_COLOR: Record<string, string> = {
-    "Web App": "text-(--success)",
-    "CLI": "text-(--accent-primary)",
-    "CLI + Library": "text-(--accent-primary)",
-    "Library": "text-(--text-secondary)",
-    "Mobile": "text-(--accent-secondary)",
-    "Dev Tool": "text-(--accent-primary)",
-};
+// Shared column template: desktop reads as a table, small screens stack as cards.
+const ROW_GRID = "md:grid md:grid-cols-[9rem_minmax(0,1fr)_10rem_7rem] md:gap-4 md:items-center";
 
+function liveLabel(url: string): string {
+    if (url.includes("/releases/download/")) return "Download release";
+    if (url.includes("npmjs.com")) return "View package on npm";
+    return "Open live site";
+}
+
+/**
+ * Deployment surfaces. Each row is a native <details>: keyboard and touch
+ * accessible, no JS. Commit hashes and latency figures are intentionally not
+ * shown until they can be verified (see the data audit).
+ */
 export function DeploymentTable() {
-    const grouped = useMemo(() => {
-        return CATEGORY_ORDER.reduce<{ category: string; label: string; entries: Deployment[]; startIdx: number }[]>((acc, cat) => {
-            const entries = deployments
-                .filter(d => d.category === cat)
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-            const startIdx = acc.length > 0 ? acc[acc.length - 1].startIdx + acc[acc.length - 1].entries.length : 0;
-
-            const group = {
-                category: cat,
-                label: CATEGORY_LABELS[cat],
-                entries,
-                startIdx
-            };
-            return [...acc, group];
-        }, []);
-    }, []);
-
     return (
-        <div className="surface-1 rounded-lg border border-(--border-default) overflow-hidden">
+        <div className="space-y-8">
+            {CATEGORY_ORDER.map((category) => {
+                const entries = deployments
+                    .filter((d) => d.category === category)
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                if (entries.length === 0) return null;
 
-            <div className="sticky top-0 z-10 grid grid-cols-[90px_100px_1fr_90px_90px_80px] gap-3 px-4 py-3 border-b border-(--border-default) bg-(--bg-surface-1) text-label">
-                <div>HASH</div>
-                <div>REPO</div>
-                <div>CHANGE</div>
-                <div>SURFACE</div>
-                <div>STATUS</div>
-                <div className="text-right">SIGNAL</div>
-            </div>
+                return (
+                    <section key={category} aria-labelledby={`dep-${category}`}>
+                        <h2 id={`dep-${category}`} className="text-label mb-3">
+                            {CATEGORY_LABELS[category]} <span className="text-(--text-muted)">({entries.length})</span>
+                        </h2>
 
-
-            <div className="divide-y divide-(--border-default)">
-                {grouped.map(group => {
-                    if (group.entries.length === 0) return null;
-                    return (
-                        <div key={group.category}>
-                            <CategoryHeader label={group.label} count={group.entries.length} />
-                            {group.entries.map((deployment, idx) => (
-                                <DeploymentRow key={deployment.id} deployment={deployment} idx={group.startIdx + idx} />
-                            ))}
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
-
-function CategoryHeader({ label, count }: { label: string; count: number }) {
-    return (
-        <div className="px-4 py-2.5 bg-(--bg-surface-2)/50 border-b border-(--border-default)">
-            <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-(--text-muted)">
-                {label}
-            </span>
-            <span className="ml-2 text-[9px] font-mono text-(--text-muted)/60">
-                ({count})
-            </span>
-        </div>
-    );
-}
-
-function DeploymentRow({ deployment, idx }: { deployment: Deployment; idx: number }) {
-    const selectedDeploymentId = useSystemStore((s) => s.selectedDeploymentId);
-    const setSelectedDeployment = useSystemStore((s) => s.setSelectedDeployment);
-    const setContextContent = useSystemStore((s) => s.setContextContent);
-    const focusLocked = useSystemStore((s) => s.focusLocked);
-
-    const rowRef = useRef<HTMLDivElement>(null);
-    const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const isSelected = selectedDeploymentId === deployment.id;
-
-    const activateDeployment = useCallback(() => {
-        setSelectedDeployment(deployment.id);
-
-        const relatedDecision = deployment.relatedDecisionId
-            ? decisions.find(d => d.id === deployment.relatedDecisionId)
-            : null;
-        const relatedExperiment = deployment.relatedExperimentId
-            ? experiments.find(e => e.id === deployment.relatedExperimentId)
-            : null;
-
-        const relatedLines = [];
-        if (relatedDecision) {
-            relatedLines.push(`- **Decision:** ADR-${relatedDecision.number} — ${relatedDecision.title}`);
-        }
-        if (relatedExperiment) {
-            relatedLines.push(`- **Experiment:** ${relatedExperiment.title}`);
-        }
-        const relatedSection = relatedLines.length > 0
-            ? `\n### Related Work\n${relatedLines.join("\n")}`
-            : "";
-
-        const surfaceLines = [
-            `- **Runtime:** ${deployment.runtime}`,
-            `- **Host:** ${deployment.host}`,
-        ];
-        if (deployment.liveUrl) {
-            surfaceLines.push(`- **Live:** [${deployment.liveUrl}](${deployment.liveUrl})`);
-        }
-        if (deployment.latencyChange) {
-            surfaceLines.push(`- **Measured:** ${deployment.latencyChange}`);
-        }
-
-        setContextContent({
-            type: "markdown",
-            content: `## ${deployment.commitMessage}
-
-> **Repository:** ${deployment.repo}
-> **Commit:** ${deployment.commit}
-
-### Deployment Surface
-${surfaceLines.join("\n")}
-
-### Impact
-${deployment.impact}
-
-### Metadata
-- **Tags:** ${deployment.tags.join(" · ")}
-- **Status:** ${STATUS_CONFIG[deployment.status].label}${deployment.observed ? " · OBSERVED" : ""}
-- **Category:** ${CATEGORY_LABELS[deployment.category]}
-${relatedSection}`
-        });
-    }, [deployment, setSelectedDeployment, setContextContent]);
-
-    const handlePointerEnter = useCallback(() => {
-        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-        if (isSelected || focusLocked) return;
-        hoverTimerRef.current = setTimeout(activateDeployment, HOVER_INTENT_MS);
-    }, [isSelected, focusLocked, activateDeployment]);
-
-    const handlePointerLeave = useCallback(() => {
-        if (hoverTimerRef.current) {
-            clearTimeout(hoverTimerRef.current);
-            hoverTimerRef.current = null;
-        }
-    }, []);
-
-    const handleClick = useCallback(() => {
-        if (isSelected) return;
-        activateDeployment();
-        rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-    }, [isSelected, activateDeployment]);
-
-    const runtimeColor = RUNTIME_COLOR[deployment.runtime] || "text-(--text-muted)";
-    const status = STATUS_CONFIG[deployment.status];
-    const StatusIcon = status.icon;
-
-    return (
-        <motion.div
-            ref={rowRef}
-            className={cn(
-                "group grid grid-cols-[90px_100px_1fr_90px_90px_80px] gap-3 px-4 py-3 items-center cursor-pointer transition-colors duration-150",
-                isSelected
-                    ? "bg-(--bg-surface-2)"
-                    : "hover:bg-(--bg-surface-1)"
-            )}
-            onPointerEnter={handlePointerEnter}
-            onPointerLeave={handlePointerLeave}
-            onClick={handleClick}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: idx * 0.03 }}
-        >
-
-            <code className="text-xs text-(--accent-primary) font-mono">
-                {deployment.commit}
-            </code>
-
-
-            <span className="text-xs text-(--text-secondary) truncate">
-                {deployment.repo}
-            </span>
-
-
-            <div className="min-w-0 flex items-center gap-2">
-                <span className={cn(
-                    "text-xs truncate",
-                    isSelected ? "text-foreground" : "text-(--text-secondary) group-hover:text-foreground"
-                )}>
-                    {deployment.commitMessage}
-                </span>
-                <div className="hidden md:flex items-center gap-1 shrink-0">
-                    {deployment.tags.map(tag => (
-                        <span
-                            key={tag}
-                            className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-(--bg-surface-2) text-(--text-muted) border border-(--border-default) uppercase tracking-wider"
+                        <div
+                            aria-hidden="true"
+                            className={cn("hidden px-4 pb-2 text-label", ROW_GRID, "md:pl-[calc(1rem+1.1em)]")}
                         >
-                            {tag}
-                        </span>
-                    ))}
+                            <div>REPO</div>
+                            <div>WHAT</div>
+                            <div>SURFACE</div>
+                            <div>STATUS</div>
+                        </div>
+
+                        <ul className="space-y-2">
+                            {entries.map((deployment) => (
+                                <li key={deployment.id}>
+                                    <DeploymentRow deployment={deployment} />
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                );
+            })}
+        </div>
+    );
+}
+
+function DeploymentRow({ deployment }: { deployment: Deployment }) {
+    const status = STATUS[deployment.status];
+    const relatedDecision = deployment.relatedDecisionId
+        ? decisions.find((d) => d.id === deployment.relatedDecisionId)
+        : undefined;
+    const relatedExperiment = deployment.relatedExperimentId
+        ? experiments.find((e) => e.id === deployment.relatedExperimentId)
+        : undefined;
+
+    return (
+        <article id={deployment.id} className="scroll-mt-4">
+            <details className="disclosure surface-1">
+                <summary className="p-4">
+                    <div className={cn("flex flex-col gap-1", ROW_GRID)}>
+                        <div className="text-[14px] font-medium text-foreground">{deployment.repo}</div>
+                        <div className="text-[14px] text-(--text-secondary) min-w-0">{deployment.commitMessage}</div>
+                        <div className="text-[12px] font-mono uppercase tracking-wider text-(--text-muted)">
+                            {deployment.runtime}
+                        </div>
+                        <div className={cn("text-[12px] font-mono font-bold tracking-wider", status.className)}>
+                            {status.label}
+                        </div>
+                    </div>
+                </summary>
+
+                <div className="px-4 pb-4 pt-4 border-t border-(--border-default) space-y-4 text-[14px] leading-relaxed text-(--text-secondary)">
+                    <p>{deployment.impact}</p>
+
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
+                        <div className="flex gap-2">
+                            <dt className="font-mono text-(--text-muted)">Host:</dt>
+                            <dd>{deployment.host}</dd>
+                        </div>
+                        <div className="flex gap-2">
+                            <dt className="font-mono text-(--text-muted)">Tags:</dt>
+                            <dd>{deployment.tags.join(" · ")}</dd>
+                        </div>
+                    </dl>
+
+                    <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-mono">
+                        {deployment.liveUrl && (
+                            <li>
+                                <a
+                                    href={deployment.liveUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-(--accent-primary) hover:underline"
+                                >
+                                    {liveLabel(deployment.liveUrl)} ↗
+                                </a>
+                            </li>
+                        )}
+                        {relatedDecision && (
+                            <li>
+                                <Link href={`/decisions#${relatedDecision.id}`} className="text-(--accent-primary) hover:underline">
+                                    ADR-{relatedDecision.number}: {relatedDecision.title}
+                                </Link>
+                            </li>
+                        )}
+                        {relatedExperiment && (
+                            <li>
+                                <Link href={`/experiments#${relatedExperiment.id}`} className="text-(--accent-primary) hover:underline">
+                                    {relatedExperiment.id}: {relatedExperiment.title}
+                                </Link>
+                            </li>
+                        )}
+                    </ul>
                 </div>
-            </div>
-
-
-            {deployment.liveUrl ? (
-                <a
-                    href={deployment.liveUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-1 text-[10px] font-mono font-medium uppercase tracking-wider text-(--success) hover:text-(--accent-primary) transition-colors"
-                >
-                    LIVE
-                    <ExternalLink className="w-3 h-3" />
-                </a>
-            ) : (
-                <span className={cn("text-[10px] font-mono font-medium uppercase tracking-wider", runtimeColor)}>
-                    {deployment.runtime}
-                </span>
-            )}
-
-
-            <div className="flex items-center gap-1.5">
-                <StatusIcon className={cn("w-3.5 h-3.5", status.class)} />
-                <span className={cn("text-[10px] font-bold uppercase tracking-wide", status.class)}>
-                    {status.label}
-                </span>
-            </div>
-
-
-            <div className="flex justify-end">
-                {deployment.observed && (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-mono font-medium px-1.5 py-0.5 rounded border border-(--accent-primary)/30 bg-(--accent-primary)/10 text-(--accent-primary) uppercase tracking-wider">
-                        <Eye className="w-2.5 h-2.5" />
-                        OBS
-                    </span>
-                )}
-            </div>
-        </motion.div>
+            </details>
+        </article>
     );
 }

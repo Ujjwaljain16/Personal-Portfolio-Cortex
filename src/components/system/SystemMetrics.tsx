@@ -1,76 +1,31 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { systemMetrics as staticMetrics, projects } from "@/data/projects";
-import { metricService } from "../../lib/metric-service";
-import {
-    Activity,
-    Clock,
-    GitCommit,
-    Cpu
-} from "lucide-react";
+import { Clock, GitCommit, Layers, Target } from "lucide-react";
+import { projects } from "@/data/projects";
+import type { GitHubSummary } from "@/lib/github";
+import { formatDate } from "@/lib/utils";
 import { MetricCard } from "@/components/system/MetricCard";
 
-export function SystemMetrics() {
-    const [metrics, setMetrics] = useState(staticMetrics);
-    const [loading, setLoading] = useState(true);
+const memberSinceFormatter = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+});
 
-    useEffect(() => {
-        async function fetchRealMetrics() {
-            const startStr = await metricService.getEngineeringTime();
-            const commitData = await metricService.getLastCommit();
-
-            setMetrics(prev => [
-                {
-                    ...prev[0],
-                    value: startStr,
-                    label: "Engineering Time"
-                },
-                {
-                    ...prev[1],
-                    value: projects.length, // Dynamic active modules count
-                },
-                {
-                    ...prev[2],
-                    value: commitData.time,
-                    trendValue: commitData.detail,
-                    label: "Last Commit"
-                },
-                prev[3] // Current Focus
-            ]);
-            setLoading(false);
-        }
-
-        fetchRealMetrics();
-    }, []);
-
-    const icons = [Clock, Activity, GitCommit, Cpu];
-
-    if (loading) return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 rounded-xl bg-(--bg-surface-2) animate-pulse" />
-            ))}
-        </div>
-    );
+export function SystemMetrics({ summary }: { summary: GitHubSummary }) {
+    const since = summary.memberSince ? memberSinceFormatter.format(new Date(summary.memberSince)) : "—";
+    const last = summary.lastPush;
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {metrics.map((metric, idx) => {
-                const Icon = icons[idx];
-                return (
-                    <MetricCard
-                        key={metric.label}
-                        label={metric.label}
-                        value={metric.value}
-                        trend={metric.trend}
-                        trendValue={metric.trendValue}
-                        explanation={metric.explanation}
-                        icon={Icon}
-                        delay={idx * 0.1}
-                    />
-                );
-            })}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard label="On GitHub since" value={since} icon={Clock} />
+            <MetricCard label="Documented projects" value={projects.length} icon={Layers} />
+            <MetricCard
+                label="Latest public commit"
+                value={last ? formatDate(last.date) : "—"}
+                hint={last ? `${last.repo}: ${last.message}` : "GitHub data unavailable right now"}
+                href={last?.url}
+                icon={GitCommit}
+            />
+            <MetricCard label="Current focus" value="System design" hint="Go · Spring Boot" icon={Target} />
         </div>
     );
 }

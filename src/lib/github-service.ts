@@ -8,9 +8,9 @@ export class GitHubService {
     constructor(username: string) {
         this.username = username;
         const base: HeadersInit = { Accept: "application/vnd.github.v3+json" };
-        const token = typeof window === "undefined"
-            ? process.env.NEXT_PUBLIC_GITHUB_TOKEN
-            : process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+        // DEPRECATED (unused): superseded by src/lib/github.ts. Kept only until deleted;
+        // must never read a NEXT_PUBLIC_ secret.
+        const token = process.env.GITHUB_TOKEN;
         if (token) (base as Record<string, string>)["Authorization"] = `token ${token}`;
         this.headers = base;
     }

@@ -12,7 +12,6 @@ import {
     Rocket,
     BookOpen,
     MessageSquare,
-    Settings,
     Power,
     FileDown,
     ArrowRight,
@@ -47,15 +46,13 @@ export function CommandPalette() {
     // Build command list
     const commands = useMemo<CommandItem[]>(() => {
         const nav: CommandItem[] = [
-            { id: "nav-boot", label: "Boot / Landing", icon: Power, category: "Navigate", action: () => router.push("/"), keywords: ["home", "landing", "boot"] },
+            { id: "nav-home", label: "Home", icon: Power, category: "Navigate", action: () => router.push("/"), keywords: ["landing", "boot", "about"] },
             { id: "nav-system", label: "System Overview", icon: Activity, category: "Navigate", action: () => router.push("/system"), keywords: ["dashboard", "metrics", "status"] },
             { id: "nav-decisions", label: "Decisions", icon: GitBranch, category: "Navigate", action: () => router.push("/decisions"), keywords: ["adr", "architecture", "tradeoff"] },
             { id: "nav-experiments", label: "Experiments", icon: FlaskConical, category: "Navigate", action: () => router.push("/experiments"), keywords: ["hypothesis", "test", "variant"] },
             { id: "nav-deployments", label: "Deployments", icon: Rocket, category: "Navigate", action: () => router.push("/deployments"), keywords: ["deploy", "release", "live"] },
             { id: "nav-blogs", label: "Blogs", icon: BookOpen, category: "Navigate", action: () => router.push("/blogs"), keywords: ["writing", "articles", "engineering", "thoughts", "mcp", "architecture"] },
-            // ...removed Founder Simulation entry
             { id: "nav-ask", label: "Ask", icon: MessageSquare, category: "Navigate", action: () => router.push("/ask"), keywords: ["chat", "ai", "query", "cto"] },
-            { id: "nav-settings", label: "Settings", icon: Settings, category: "Navigate", action: () => router.push("/settings"), keywords: ["config", "theme", "preferences"] },
         ];
 
         const projectCmds: CommandItem[] = projects.map(p => ({

@@ -1,71 +1,34 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { useSystemStore } from "@/lib/store";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface MetricCardProps {
     label: string;
     value: string | number;
-    trend?: "up" | "down" | "neutral";
-    trendValue?: string;
-    explanation?: string;
+    hint?: string;
+    href?: string;
+    icon: LucideIcon;
 }
 
-export function MetricCard({
-    label,
-    value,
-    trend = "neutral",
-    trendValue,
-    explanation,
-    icon: Icon,
-    delay = 0,
-}: MetricCardProps & { icon?: React.ElementType; delay?: number }) {
-    const setContextContent = useSystemStore((s) => s.setContextContent);
-    const setActiveCard = useSystemStore((s) => s.setActiveCard);
-
-    const handleHover = () => {
-        // Clear any active project card so only this metric is in focus
-        setActiveCard(null);
-        
-        if (explanation) {
-            setContextContent(`## ${label}\n\n${explanation}`);
-        }
-    };
-
-    const TrendIcon =
-        trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
-
-    const trendColor =
-        trend === "up"
-            ? "text-[var(--success)]"
-            : trend === "down"
-                ? "text-[var(--danger)]"
-                : "text-[var(--text-muted)]";
-
+export function MetricCard({ label, value, hint, href, icon: Icon }: MetricCardProps) {
     return (
-        <motion.div
-            className="surface-1 surface-interactive p-4 cursor-pointer relative overflow-hidden group"
-            onMouseEnter={handleHover}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25, delay }}
-        >
-            <div className="flex justify-between items-start mb-2">
+        <div className="surface-1 p-4">
+            <div className="flex items-start justify-between mb-2">
                 <div className="text-label">{label}</div>
-                {Icon && <Icon className="w-4 h-4 text-(--text-muted) group-hover:text-(--accent-primary) transition-colors" />}
+                <Icon className="w-4 h-4 text-(--text-muted)" aria-hidden="true" />
             </div>
-
-            <div className="flex items-end justify-between">
-                <div className="text-header text-metric">{value}</div>
-                {trendValue && (
-                    <div className={cn("flex items-center gap-1 text-xs", trendColor)}>
-                        <TrendIcon className="w-3 h-3" />
-                        <span className="text-metric">{trendValue}</span>
-                    </div>
-                )}
-            </div>
-        </motion.div>
+            <div className="text-header text-metric">{value}</div>
+            {hint &&
+                (href ? (
+                    <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 block text-[12px] text-(--text-secondary) hover:text-(--accent-primary) line-clamp-2"
+                    >
+                        {hint}
+                    </a>
+                ) : (
+                    <div className="mt-1 text-[12px] text-(--text-secondary) line-clamp-2">{hint}</div>
+                ))}
+        </div>
     );
 }

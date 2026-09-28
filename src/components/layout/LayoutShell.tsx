@@ -2,15 +2,14 @@
 
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { ContextPanel } from "@/components/layout/ContextPanel";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const isBoot = pathname === "/";
+    const isHome = pathname === "/";
 
-    if (isBoot) {
+    if (isHome) {
         return (
             <div className="boot-fullscreen">
                 <CommandPalette />
@@ -19,12 +18,13 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
         );
     }
 
+    // DOM order matters: on small screens the top bar must be the first grid
+    // child so it occupies the first row.
     return (
         <div className="app-grid">
+            <MobileNav />
             <Sidebar />
             <main className="main-panel">{children}</main>
-            <ContextPanel />
-            <MobileNav />
             <CommandPalette />
         </div>
     );
