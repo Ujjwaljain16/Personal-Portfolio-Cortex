@@ -68,11 +68,17 @@ Nothing is prefixed with `NEXT_PUBLIC_`, so no secret can reach the client bundl
 A POST endpoint that streams a Gemini answer. Requests are limited to 32 KB, 24 messages and 500 characters per question,
 and rate limited per IP and globally (in memory, so per server instance). Only the text of user messages is used.
 
-The answer is built from two sources. The **checked portfolio** (every project, decision, investigation, post and
-open-source entry, about 60k tokens) is sent whole with every question, so there is no search step to get wrong. **Repository
-notes** come from the Devin wiki service, only for the one or two repositories the question names, and are labelled
-unchecked: they can repeat outdated README claims. When the two disagree the checked portfolio wins. The answer links to
-portfolio pages, and any link that is not a real page is shown as plain text.
+The answer is built from three sources. The **checked portfolio** (every project, decision, investigation, post and
+open-source entry) is the model's index of everything, plus full detail for the parts a question is about, so there
+is no search step to get wrong. **Personal context** (`src/data/about.ts`) is a short, self-reported "how I think" section,
+kept separate and never treated as evidence for a technical claim. **Repository notes** come from the Devin wiki service,
+only for the one or two repositories the question names, and are labelled unchecked: they can repeat outdated README
+claims. When sources disagree the checked portfolio wins. The answer links to portfolio pages, and any link that is not
+a real page is shown as plain text.
+
+`src/data/about.ts` is public: it is sent to the model with every question and is servable to any visitor who asks. It
+ships with placeholder text (`npm run validate:data` warns until it is replaced) and is meant to be curated by hand, not
+generated from a personal data export; see the comment at the top of the file for what to leave out.
 
 `npm run eval:ask` runs eleven fixed questions against a running site, including the ones where a repository's docs are
 wrong, and checks the answers. It calls the real model, so it is a manual check and not part of CI.

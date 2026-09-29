@@ -6,6 +6,7 @@ import { mergedPRs, openPRs } from "@/data/openSource";
 import { deployments } from "@/data/deployments";
 import { nowItems, nowUpdated } from "@/data/now";
 import { profile } from "@/data/profile";
+import { aboutMe } from "@/data/about";
 import { mentionedProjects } from "@/lib/askRouting";
 import type { EngineeringRecord } from "@/data/records";
 
@@ -81,6 +82,17 @@ const aboutBlock = () =>
 
 const smallerBlock = () => (alsoBuilt.length ? ["## SMALLER PROJECTS", list(alsoBuilt.map((a) => `${a.name} (${a.repo}): ${a.line}`))].join("\n") : "");
 
+/**
+ * Personal context, kept apart from the engineering record: it is self-reported, not checked
+ * against a repository, and the model is told to present it that way (see askPrompt.ts).
+ */
+const aboutMeBlock = () =>
+    aboutMe.length
+        ? ["## HOW I THINK, IN MY OWN WORDS (self-reported, not checked against a repository the way the rest of this document is)", list(aboutMe.map((f) => `${f.category}: ${f.text}`))].join(
+              "\n"
+          )
+        : "";
+
 const openSourceBlock = () =>
     [
         "## OPEN SOURCE [/]",
@@ -114,6 +126,7 @@ function indexBlock(): string {
 export function buildCorpus(): string {
     return [
         aboutBlock(),
+        aboutMeBlock(),
         ...projects.map(projectBlock),
         smallerBlock(),
         ...records.map(recordBlock),
@@ -144,6 +157,7 @@ interface Pieces {
     postItems: { post: (typeof BLOG_POSTS)[number]; text: string; head: string }[];
     index: string;
     about: string;
+    aboutMe: string;
     smaller: string;
 }
 
@@ -158,6 +172,7 @@ function pieces(): Pieces {
         postItems: BLOG_POSTS.map((post) => ({ post, text: postBlock(post), head: `${post.title} ${post.tags.join(" ")}`.toLowerCase() })),
         index: indexBlock(),
         about: aboutBlock(),
+        aboutMe: aboutMeBlock(),
         smaller: smallerBlock(),
     });
 }
@@ -239,7 +254,7 @@ export function selectCorpus(question: string, previous: string | null = null): 
     if (wantsNow) add(nowBlock());
     if (named.length === 0 && projectIds.length === 0) add(p.smaller);
 
-    const text = [p.about, p.index, "## DETAIL (the parts most relevant to this question)", ...detail].filter(Boolean).join("\n\n");
+    const text = [p.about, p.aboutMe, p.index, "## DETAIL (the parts most relevant to this question)", ...detail].filter(Boolean).join("\n\n");
     return { text, projects: projectIds, records: includedRecords, posts: post ? [post.post.slug] : [] };
 }
 

@@ -22,6 +22,7 @@ const { mergedPRs, openPRs } = await import("../src/data/openSource.ts");
 const { deployments } = await import("../src/data/deployments.ts");
 const { BLOG_POSTS } = await import("../src/data/blogPosts.ts");
 const { records } = await import("../src/data/records.ts");
+const { aboutMe } = await import("../src/data/about.ts");
 
 const errors = [];
 const warnings = [];
@@ -165,6 +166,14 @@ for (const r of records) {
         if (!e.href && !PRIVATE_PROJECTS.has(r.project)) err(w, `evidence "${e.label}" has no link (only private-repo projects may omit it)`);
         if (e.type === "commit" && e.href && !/\/commit\/[0-9a-f]{7,40}$/.test(e.href)) err(w, `commit link "${e.href}" is malformed`);
     }
+}
+
+// ─── About me (personal context for /ask; public and self-reported, see src/data/about.ts) ──
+for (const [i, f] of aboutMe.entries()) {
+    const w = `about[${i}]`;
+    if (!nonEmpty(f.category)) err(w, "missing category");
+    if (!nonEmpty(f.text)) err(w, "missing text");
+    if (/PLACEHOLDER/.test(f.text ?? "")) warn(w, "still the placeholder text; replace with a real, curated fact before this is meant to ship");
 }
 
 // ─── Report ──────────────────────────────────────────────────

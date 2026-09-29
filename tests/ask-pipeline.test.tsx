@@ -8,6 +8,7 @@ import { projects } from "@/data/projects";
 import { records } from "@/data/records";
 import { BLOG_POSTS } from "@/data/blogPosts";
 import { profile } from "@/data/profile";
+import { aboutMe } from "@/data/about";
 
 const corpus = buildCorpus();
 const ALLOW = ["Ujjwaljain16/RecoveryOS", "Ujjwaljain16/MiniDB", "Ujjwaljain16/VaultTabs", "Ujjwaljain16/SpentSmart", "Ujjwaljain16/SSE-Observatory"];
@@ -17,6 +18,12 @@ describe("corpus", () => {
         for (const p of projects) expect(corpus, p.id).toContain(`[/projects/${p.id}]`);
         for (const r of records) expect(corpus, r.id).toContain(`${r.id}: ${r.title} [/${r.kind === "decision" ? "decisions" : "investigations"}#${r.id}]`);
         for (const post of BLOG_POSTS) expect(corpus, post.slug).toContain(`[/blogs/${post.slug}]`);
+    });
+
+    it("carries the personal-context facts under their own, clearly unverified heading", () => {
+        expect(corpus).toContain("HOW I THINK");
+        expect(corpus).toContain("not checked against a repository");
+        for (const f of aboutMe) expect(corpus, f.category).toContain(f.text);
     });
 
     it("carries the profile facts, so the assistant can answer them", () => {
@@ -86,6 +93,12 @@ describe("system prompt", () => {
         expect(prompt).toContain(NO_DATA_REPLY);
     });
 
+    it("tells the model the personal-context notes are opinions, not evidence for a technical claim", () => {
+        const prompt = buildSystemPrompt(corpus, { kind: "none" });
+        expect(prompt).toContain("HOW I THINK");
+        expect(prompt).toMatch(/not.*evidence for a technical claim/i);
+    });
+
     it("fences the repository notes as unchecked and puts them after the stable corpus", () => {
         const prompt = buildSystemPrompt(corpus, { kind: "used", repos: ["Ujjwaljain16/MiniDB"], text: "SOME NOTE" });
         expect(prompt).toContain("REPOSITORY NOTES (unchecked; from MiniDB)");
@@ -123,6 +136,14 @@ describe("selecting what to send for a question", () => {
         for (const p of projects) expect(text, p.id).toContain(`[/projects/${p.id}]`);
         for (const r of records) expect(text, r.id).toContain(`[/${r.kind === "decision" ? "decisions" : "investigations"}#${r.id}]`);
         for (const post of BLOG_POSTS) expect(text, post.slug).toContain(`[/blogs/${post.slug}]`);
+    });
+
+    it("always includes the personal-context facts, whatever the question is about", () => {
+        for (const q of ["How does MiniDB recover after a crash?", "What is the weather in Delhi?", "Tell me about VaultTabs"]) {
+            const { text } = selectCorpus(q);
+            expect(text, q).toContain("HOW I THINK");
+            for (const f of aboutMe) expect(text, `${q} | ${f.category}`).toContain(f.text);
+        }
     });
 
     it("gives full detail for a named project and all of its records", () => {

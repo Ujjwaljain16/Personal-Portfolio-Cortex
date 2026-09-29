@@ -59,14 +59,19 @@ Validates the body (size, message count, question length), rate limits by IP and
 1. **Route.** `lib/askRouting.ts` finds which project the question (or, for a follow-up, the earlier question) is about and
    keeps at most two repositories from the allowlist. A question that names no project skips the lookup.
 2. **Repository notes (optional).** `lib/wiki.ts` asks the Devin MCP `ask_wiki_question` tool about only those repositories,
-   with the question reworded to ask for components, files and documented trade-offs. It has a 20 s budget; on any failure the
-   notes are simply left out. Results are cached for an hour, and a repository the service has not indexed is skipped and
-   remembered as unavailable for an hour.
-3. **Checked portfolio.** `lib/corpus.ts` renders all the site's verified content as one block of text with a page path on
-   every item. The whole site is small enough to send with every question, so nothing is retrieved or ranked.
-4. **Answer.** `lib/askPrompt.ts` puts the rules and the portfolio first (the same for every question, so the provider can
+   with the question reworded to ask for components, files and documented trade-offs. Its budget shrinks with whatever time
+   the request has already spent (10 s at most); on any failure the notes are simply left out. Results are cached for an
+   hour, and a repository the service has not indexed is skipped and remembered as unavailable for an hour.
+3. **Checked portfolio and personal context.** `lib/corpus.ts` renders the site's verified content (`selectCorpus`) as an
+   index of everything plus full detail for the projects and records a question is actually about, so a question does not
+   need the whole site's text. `src/data/about.ts` is a short, separately-labelled, self-reported "how I think" section
+   that is always included; unlike everything else in `src/data`, it is not checked against a repository.
+4. **Deadline.** The route computes a deadline from its own start time (`SAFE_DEADLINE_MS`, well under `maxDuration`) and
+   passes down whatever time is left to both the retrieval budget and generation's abort signal, so a slow step ends the
+   request with a visible error rather than leaving the platform to kill it silently mid-stream.
+5. **Answer.** `lib/askPrompt.ts` puts the rules and the portfolio first (the same for every question, so the provider can
    reuse it) and the notes last, marked as unchecked. `lib/answer.ts` streams from the first Gemini model that starts
-   responding.
+   responding within its share of the peek budget.
 
 On the page, `Markdown` shows a link only if it points at a real portfolio page or the author's GitHub, so an invented path
 cannot become a clickable link. Secrets are read server side only.
@@ -75,5 +80,6 @@ cannot become a clickable link. Secrets are read server side only.
 
 - The rate limiter is in memory, so limits are per server instance.
 - Repository notes cover an allowlist of public repositories that the lookup service has indexed. Others are skipped, so questions about them are answered from the checked portfolio alone.
-- Every question sends the whole checked portfolio (about 60k tokens). That is fine at this size; if the content grows past a few hundred thousand tokens, retrieval will be needed.
+- `src/data/about.ts` is public and unverified by design (see the comment in the file). It ships with placeholder text;
+  `npm run validate:data` warns until it is replaced with real, curated facts.
 - Records were verified when they were written; a later change in a source repository is not detected automatically.
