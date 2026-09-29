@@ -16,8 +16,12 @@ const MAX_MESSAGES = 24; // client-side history length (12 exchanges)
 const MAX_QUESTION_CHARS = 500; // one user turn
 const HISTORY_USER_TURNS = 2; // only the latest user turns reach the model
 const MAX_NOTES_CHARS = 12_000; // repository notes passed to the model
-const NOTES_BUDGET_MS = 20_000; // past this, answer from the verified portfolio alone
+const NOTES_BUDGET_MS = 10_000; // past this, answer from the verified portfolio alone
 const MAX_OUTPUT_TOKENS = 800;
+// Vercel kills the function at maxDuration (60s) with no warning: whatever has already been
+// flushed to the visitor is all they get, silently cut off mid-sentence. This is well short of
+// that, so the code itself ends the stream first, with a clear error instead of a silent one.
+const SAFE_DEADLINE_MS = 50_000;
 
 // Repository lookups only ever touch these public repositories. A repository the
 // lookup service has not indexed is skipped (see src/lib/wiki.ts), so listing one
@@ -160,6 +164,8 @@ function parseQuestions(raw: string): Parsed {
 // ─── POST ────────────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
+    const requestStart = Date.now();
+    const msLeft = () => Math.max(0, SAFE_DEADLINE_MS - (Date.now() - requestStart));
     try {
         // 1. Cheap rejections first: rate limit, then size, then shape.
         const limited = checkRateLimit(getClientId(req), PER_CLIENT, GLOBAL);
@@ -185,7 +191,9 @@ export async function POST(req: Request) {
         let notes: NotesStatus = { kind: "none" };
         if (picked.repos.length > 0) {
             try {
-                const answer = await askWiki(buildWikiQuestion(question, picked), picked.repos, { budgetMs: NOTES_BUDGET_MS });
+                const answer = await askWiki(buildWikiQuestion(question, picked), picked.repos, {
+                    budgetMs: Math.min(NOTES_BUDGET_MS, msLeft()),
+                });
                 notes = answer.text.trim()
                     ? { kind: "used", repos: answer.repos, text: answer.text.slice(0, MAX_NOTES_CHARS) }
                     : { kind: "unavailable" };
@@ -195,8 +203,11 @@ export async function POST(req: Request) {
             }
         }
 
-        // 3. Answer from the verified portfolio, with the notes as unchecked extra detail
+        // 3. Answer from the verified portfolio, with the notes as unchecked extra detail.
+        //    A deadline signal ends generation cleanly (a visible error) if it runs long,
+        //    rather than leaving the platform to kill the function mid-flush with no warning.
         const system = buildSystemPrompt(selectCorpus(question, previous).text, notes);
+        const deadlineSignal = AbortSignal.any([req.signal, AbortSignal.timeout(msLeft())]);
 
         const result = await streamWithFallback(
             ANSWER_MODELS.map((id) => google(id)),
@@ -205,9 +216,10 @@ export async function POST(req: Request) {
                 messages: [{ role: "user", content: userContent }],
                 temperature: 0.3,
                 maxOutputTokens: MAX_OUTPUT_TOKENS,
-                abortSignal: req.signal,
+                abortSignal: deadlineSignal,
                 onError: ({ error }) => logError("stream", error),
-            }
+            },
+            { totalPeekBudgetMs: msLeft() }
         );
 
         return result.toUIMessageStreamResponse({

@@ -3,6 +3,9 @@ import { APICallError, simulateReadableStream } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
 import { friendlyStreamError, streamWithFallback } from "@/lib/answer";
 
+/** A model whose stream never emits and never closes: the failure a hung/stuck provider looks like. */
+const hangs = () => new MockLanguageModelV3({ doStream: async () => ({ stream: new ReadableStream() }) });
+
 const usage = {
     inputTokens: { total: 1, noCache: 1, cacheRead: 0, cacheWrite: 0 },
     outputTokens: { total: 2, text: 2, reasoning: 0 },
@@ -83,6 +86,53 @@ describe("streamWithFallback", () => {
 
     it("refuses an empty model list", async () => {
         await expect(streamWithFallback([], params)).rejects.toThrow(/no model/);
+    });
+
+    it("gives up on a model that never sends a chunk, within its time budget, and tries the next", async () => {
+        vi.useFakeTimers();
+        try {
+            const stuck = hangs();
+            const second = answering("from second");
+            const promise = streamWithFallback([stuck, second], params, { totalPeekBudgetMs: 4000 });
+            await vi.advanceTimersByTimeAsync(4100);
+            const result = await promise;
+            expect(await result.text).toBe("from second");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("does not let a single hung model spend the whole budget meant for several", async () => {
+        vi.useFakeTimers();
+        try {
+            const promise = streamWithFallback([hangs(), hangs(), answering("third")], params, { totalPeekBudgetMs: 4500 });
+            // 4500ms split three ways is well under the 10s-per-model ceiling, so this must finish
+            // close to the 4500ms total, not 3 x 10s.
+            await vi.advanceTimersByTimeAsync(4600);
+            const result = await promise;
+            expect(await result.text).toBe("third");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("still returns something (for the caller's error handling) when every model hangs", async () => {
+        vi.useFakeTimers();
+        try {
+            const promise = streamWithFallback([hangs(), hangs()], params, { totalPeekBudgetMs: 2000 });
+            await vi.advanceTimersByTimeAsync(2100);
+            const result = await promise;
+            expect(result).toBeDefined();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("lets a model finish once it has genuinely started, even past the peek budget", async () => {
+        // The peek budget bounds only the wait for the FIRST chunk; once real content is
+        // flowing, startsCleanly returns immediately and generation is not cut off by it.
+        const result = await streamWithFallback([answering("a fully real answer")], params, { totalPeekBudgetMs: 50 });
+        expect(await result.text).toBe("a fully real answer");
     });
 });
 
