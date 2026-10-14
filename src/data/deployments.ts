@@ -37,7 +37,7 @@ export const deployments: Deployment[] = [
         repo: "Fuze",
         summary: "React frontend on Vercel; Flask backend on a free Hugging Face Space",
         impact:
-            "The frontend is deployed on Vercel. The Flask backend ships as a Docker container (gunicorn with gevent, RQ workers under supervisord) on a free Hugging Face Space, with Supabase for PostgreSQL and Upstash for Redis. The Space was flagged twice for browser automation and the image is now browser-free. Its readiness endpoint reported the database, Redis and schema ready on 14 Oct 2026, and CI gates the deploy. There are no real users yet.",
+            "The frontend is deployed on Vercel. The Flask backend ships as a Docker container (gunicorn with gevent, RQ workers under supervisord) on a free Hugging Face Space, with Supabase for PostgreSQL and Upstash for Redis. The Space was flagged twice for browser automation and the image is now browser-free. Its readiness endpoint reported the database, Redis and schema ready on 14 Oct 2026, and CI gates the deploy. Throughput under load has not been measured.",
         category: "live",
         runtime: "Web App",
         host: "Vercel (frontend) · Hugging Face Spaces (backend)",

@@ -235,10 +235,10 @@ export const projects: Project[] = [
         evidence: [
             {
                 text: "On BEIR SciFact (300 queries, run through the production search code) passage retrieval scores nDCG@10 0.718. On a long-document variant it scores 0.504 against 0.016 for one embedding per document.",
-                source: "backend/eval/results/scifact_long8_bge-small-en-v1.5_20261011T182023Z.json",
+                source: "docs/adr/ADR-007-intent-engine.md",
             },
             {
-                text: "Live semantic-search latency on the deployed Space, 30 samples per endpoint: p50 3,026 ms down to 1,661 ms (-45%) and SQL statements per search from about 10 to 1, with each run recorded and the unexplained remainder written down.",
+                text: "Live semantic-search latency on the deployed Space, 30 samples per endpoint: p50 3,026 ms down to about 1,700 ms (1,661 at the best run, -45%) and SQL statements per search from about 10 to 1, with each run recorded and the unexplained remainder written down.",
                 source: "docs/perf/README.md",
             },
             {
@@ -250,24 +250,25 @@ export const projects: Project[] = [
                 source: "docs/OPERATIONS.md",
             },
             {
-                text: "HNSW indexes (m=16, ef_construction=64) built with CREATE INDEX CONCURRENTLY inside an Alembic migration.",
-                source: "backend/alembic/versions/0003_hnsw_indexes.py",
+                text: "The passage table has an HNSW index (m=16, ef_construction=64) created in an Alembic migration.",
+                source: "backend/alembic/versions/0011_content_chunks.py",
             },
             {
                 text: "Backend CI, Frontend CI, a Docker build check and the Space sync all pass on the latest commit (5e47109).",
             },
         ],
         limitations: [
-            "No real users and no load test: the live benchmark is 30 samples per endpoint from one machine in India.",
-            "About 900 ms of each semantic search is unexplained. Postgres runs the statement in about 2 ms, but the database (Supabase, Singapore) is in another region from the backend and a trivial query from the Space costs 213-228 ms. A region move is written up and deferred.",
-            "SciFact is scientific abstracts, not bookmarks, so no benchmark on real saved pages exists. The weak-match floor was calibrated on one 238-bookmark library over 15 requests, and 23% of useful results were also flagged; those relevance labels did not come from independent raters.",
-            "The earlier two-stage recommendation pipeline, its shadow mode and the golden-set regression gate were deleted on 12 Oct 2026, and the decision records about them are marked superseded.",
-            "Built with an AI coding assistant: 11 of the 681 commits carry a Claude co-author trailer.",
+            "Throughput under load is not measured on the live Space: its benchmark is 30 samples per endpoint from one machine in India. Recommendation quality is measured offline, not on real users' feedback.",
+            "About 900 ms of each semantic search is unexplained. Postgres runs the statement in about 2 ms, yet a trivial query from the Space to the database (Supabase, Singapore) costs 213-228 ms. Moving the database closer is written up and deferred; the Space's own region is not documented.",
+            "SciFact is scientific abstracts, not bookmarks, so no benchmark on real saved pages exists. The weak-match floor was calibrated on one 238-bookmark library over 15 requests, 23% of useful results were also flagged, and the repository does not record who assigned the relevance labels.",
+            "The browser extension has not been exercised end to end in real Chrome against the deployed backend.",
+            "The earlier two-stage recommendation pipeline, its shadow mode and the golden-set regression gate were deleted on 12 Oct 2026, and the decision records about them carry a note saying so.",
+            "Built with an AI coding assistant: 11 of the 681 commits carry a Claude co-author trailer, all from before 12 Oct 2026, so that count understates it.",
         ],
         tech: ["Python", "Flask", "PostgreSQL", "pgvector", "Redis", "RQ", "SentenceTransformers", "Gemini", "React", "Vite", "Alembic", "GitHub Actions"],
         next: [
-            "Move the database next to the backend, then re-run the live benchmark to see how much of the unexplained 900 ms was distance.",
-            "Re-label the weak-match calibration set by hand, or with independent raters, before quoting its figures as a benchmark.",
+            "Move the database closer to the Space, then re-run the live benchmark to see how much of the unexplained 900 ms was distance.",
+            "Record who assigned the weak-match relevance labels, and re-check them with independent raters before quoting the figures as a benchmark.",
             "Add a retrieval benchmark on real saved pages, since SciFact only stands in for them.",
         ],
         repo: "Ujjwaljain16/Fuze",

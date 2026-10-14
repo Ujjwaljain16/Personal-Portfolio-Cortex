@@ -67,7 +67,7 @@ export const records: EngineeringRecord[] = [
         "kind": "investigation",
         "project": "Fuze",
         "projectId": "fuze",
-        "title": "Semantic search p50 fell from 3,026 ms to 1,661 ms by cutting round trips; about 900 ms is unexplained",
+        "title": "Semantic search p50 fell from 3,026 ms to about 1,700 ms by cutting round trips; about 900 ms is unexplained",
         "date": "2026-10-14",
         "dateSource": "docs/perf/README.md as last updated in e6ff99e (2026-10-14); the round-trip commits cc04bd3 and e170404 are from 2026-10-13",
         "provenance": "recorded",
@@ -79,7 +79,7 @@ export const records: EngineeringRecord[] = [
         "featured": true,
         "question": "Why does a semantic search on the live Hugging Face Space take about 3 seconds, and how much of that can code remove?",
         "method": "scripts/bench_live.py ran against the deployed Space from a machine in India: 30 samples per endpoint, one baseline run and seven runs after successive changes, with the p50 of GET /health/liveness (no database) as the network floor. An opt-in X-Server-Timing header returns the server's total, embedding and database time and the number of SQL statements, and GET /health/readiness?timing=1 measures the Space's own round trip to the database and to Redis.",
-        "result": "Semantic search p50 went from 3,026 to 1,661 ms (-45%) and p95 from 3,915 to 2,071 ms (-47%) at the best run, and the latest run is 1,686 ms p50. SQL statements per search fell from about 10 to 1: connections are pinged only after sitting idle, details are joined into the passage query, and the vector-search settings became database defaults. The Space is 213-228 ms from its database (Supabase, Singapore) and 2-3.5 ms from Redis, so each statement pays a round trip. One statement still takes about 900 ms longer than a trivial one although Postgres runs it in about 2 ms. That is not the statement count, the embedding (15 ms) or the amount of text returned: trimming 60-140 KB to 41-54 KB left database time at 1,138 ms against 1,122 ms. A database move to the backend's region is written up and deferred.",
+        "result": "Semantic search p50 went from 3,026 to 1,661 ms (-45%) and p95 from 3,915 to 2,071 ms (-47%) at the best run; the latest run is 1,686 ms p50. SQL statements per search fell from about 10 to 1: connections are pinged only after sitting idle, details are joined into the passage query, and the vector-search settings became database defaults. The Space is 213-228 ms from its database (Supabase, Singapore) and 2-3.5 ms from Redis, so each statement pays a round trip. One statement still takes about 900 ms longer than a trivial one although Postgres runs it in about 2 ms. That is not the statement count, the embedding (15 ms) or the amount of text returned: trimming 60-140 KB to 41-54 KB left database time at 1,138 ms against 1,122 ms. Runs 5 and 6 ran the same code and differ by 172 ms (1,833 and 1,661 ms), which is the size of the run-to-run noise. Moving the database closer to the Space is written up and deferred; the Space's own region is not documented.",
         "measured": true,
         "numbers": [
             {
@@ -135,7 +135,7 @@ export const records: EngineeringRecord[] = [
                 "note": "The measured round trips and the deferred database move."
             }
         ],
-        "verification": "Read every live-bench result file in docs/perf and confirmed the p50, p95 and statement counts quoted here, then read the README's account of each run against the commits. The benchmark was not re-run. The 900 ms figure is the project's own estimate, and no experiment that isolates it is recorded. Run 6 coincided with an exhausted Redis quota, which the README marks and excludes."
+        "verification": "Read every live-bench result file in docs/perf and confirmed the p50, p95 and statement counts quoted here, then read the README's account of each run against the commits. The benchmark was not re-run. The 900 ms figure is the project's own estimate, and no experiment that isolates it is recorded. The README marks run 6 as taken during an exhausted Redis quota and says to ignore its two cached-endpoint cells; whether it also affected the semantic-search figure is not stated."
     },
     {
         "id": "fuze-passages-vs-one-vector-per-bookmark",
@@ -1256,7 +1256,7 @@ export const records: EngineeringRecord[] = [
                 "whyNot": "Kept as the fallback when the flag is off. It already orders by cosine distance inside Postgres, so the RPC's advantage is unproven: migration 0006 says it removes 'Python/SQLAlchemy round-trip overhead' but no comparison was measured."
             }
         ],
-        "consequences": "The new code is only partly live. The orchestrator builds RecommendationPipeline() without a Unit of Work and, since RECOMMENDATION_SHADOW_MODE defaults to true, runs it after each uncached legacy request; its data layer logs 'initialized without UnitOfWork' and returns no candidates (verified: results []), so the shadow comparison sees nothing. Serving through the pipeline (RECOMMENDATION_PIPELINE_ENABLED, default false) would return an empty list. No code sets RecommendationRequest.query_embedding, which the ANN branch needs, so CandidateRetriever is unreachable and untested. The RPC functions have no tests, the endpoint has no frontend caller, and the flag defaults to false in code (runtime flag values cannot be checked). HNSW speed and recall are asserted only in the 0003 docstring; no EXPLAIN output or recall measurement is in the repo. Later change (4446a9a, 2026-10-12): the whole stack described here, including the shadow pipeline, the two-stage retriever and their flags, was deleted and replaced by a different engine; see the record on deleting the legacy recommendation stack.",
+        "consequences": "The new code is only partly live. The orchestrator builds RecommendationPipeline() without a Unit of Work and, since RECOMMENDATION_SHADOW_MODE defaults to true, runs it after each uncached legacy request; its data layer logs 'initialized without UnitOfWork' and returns no candidates (verified: results []), so the shadow comparison sees nothing. Serving through the pipeline (RECOMMENDATION_PIPELINE_ENABLED, default false) would return an empty list. No code sets RecommendationRequest.query_embedding, which the ANN branch needs, so CandidateRetriever is unreachable and untested. The RPC functions have no tests, the endpoint has no frontend caller, and the flag defaults to false in code (runtime flag values cannot be checked). HNSW speed and recall are asserted only in the 0003 docstring; no EXPLAIN output or recall measurement is in the repo. Later change (4446a9a, 2026-10-12): the shadow pipeline, the two-stage retriever and their flags were deleted and recommendations moved to a different engine; see the record on deleting the legacy recommendation stack.",
         "status": "superseded",
         "evidence": [
             {
@@ -2309,7 +2309,7 @@ export const records: EngineeringRecord[] = [
                 "whyNot": "On SciFact it moved nDCG@10 by -0.008 and +0.004 for about 700 ms a query, so reranking stays off for search and the model is used only for this flag."
             }
         ],
-        "consequences": "With the floor at -5, 89% of the irrelevant and 45% of the loosely related results were marked weak, and the strong list was 81% clearly useful against 60% unfiltered; 23% of the useful results were also marked weak, mostly bookmarks with no readable page text. These figures come from one library and the relevance labels did not come from independent raters, so they calibrate the floor and are not a benchmark of quality. The flag can be turned off with RECOMMENDATION_CONFIDENCE_ENABLED=false.",
+        "consequences": "With the floor at -5, 89% of the irrelevant and 45% of the loosely related results were marked weak, and the strong list was 81% clearly useful against 60% unfiltered; 23% of the useful results were also marked weak, mostly bookmarks with no readable page text. These figures come from one library, and the repository does not record who assigned the relevance labels, so they calibrate the floor and are not a benchmark of quality. The flag can be turned off with RECOMMENDATION_CONFIDENCE_ENABLED=false.",
         "status": "adopted",
         "evidence": [
             {
@@ -2337,7 +2337,7 @@ export const records: EngineeringRecord[] = [
                 "note": "The \"Weak matches\" section holds the calibration figures."
             }
         ],
-        "verification": "Read the three commits and the \"Weak matches\" section of docs/RECOMMENDATIONS.md; the calibration figures are quoted from that section and were not re-run. That section describes the results as judged by hand, while the project's working notes say an AI assistant assigned the labels in the session, so this record does not call them independent."
+        "verification": "Read the three commits and the \"Weak matches\" section of docs/RECOMMENDATIONS.md; the calibration figures are quoted from that section and were not re-run. That section describes the results as judged by hand; nothing in the repository shows who assigned the labels, so this record does not call them independent."
     },
     {
         "id": "fuze-processing-job-fails-closed",
@@ -2355,14 +2355,14 @@ export const records: EngineeringRecord[] = [
         ],
         "featured": false,
         "context": "Four bookmarks (a Wix page, a Netlify page, neetcode.io and a GitHub repository) were stored with the text of the bookmark saved just before them, which means a background job ran with its neighbour's URL. The code comment in the fix names the four pages and gives no cause for how it happened.",
-        "decision": "Instead of guessing at the cause, remove the way to be wrong: the processing task loads the bookmark row, logs an error and returns without doing anything if the row does not belong to the job's user, and always fetches the row's stored URL, logging an error when the job carried a different one.",
+        "decision": "Instead of guessing at the cause, remove the way to be wrong: the processing task loads the bookmark row, logs an error and returns without doing anything if the row does not belong to the job's user, and fetches the row's stored URL, logging an error when the job carried a different one. The job's URL is used only if the row has none.",
         "alternatives": [
             {
                 "option": "Trust the URL carried by the job, as before",
                 "whyNot": "A job once ran with its neighbour's URL, and four bookmarks were stored with another page's text."
             }
         ],
-        "consequences": "Two tests pin the behaviour: the stored URL wins over the job's, and a job for another user's bookmark does nothing. The guard prevents the symptom; how a job came to carry the wrong URL is still unexplained.",
+        "consequences": "Two tests pin the behaviour: the stored URL wins over the job's, and a job for another user's bookmark does nothing. Backend CI failed on dc01bfd because an existing test's mock bookmark lacked a user and a URL, and 5e47109 fixed the mock. The guard prevents the symptom; how a job came to carry the wrong URL is still unexplained.",
         "status": "adopted",
         "evidence": [
             {
@@ -2376,9 +2376,15 @@ export const records: EngineeringRecord[] = [
                 "label": "test_job_url_guard.py",
                 "href": "https://github.com/Ujjwaljain16/Fuze/blob/dc01bfd/backend/tests/test_job_url_guard.py",
                 "note": "Two tests: the stored URL wins, and a job for someone else's bookmark does nothing."
+            },
+            {
+                "type": "commit",
+                "label": "5e47109",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/5e47109",
+                "note": "Gives the processing task's mock bookmark the user and URL a real one has, after the new checks broke an existing test."
             }
         ],
-        "verification": "Read the diff of dc01bfd, including the comment and both tests. The tests were not run here."
+        "verification": "Read the diff of dc01bfd, including the comment and both tests. The tests were not run here. Checked that Backend CI failed on dc01bfd and passed on 5e47109."
     },
     {
         "id": "fuze-redis-command-budget",
@@ -2395,7 +2401,7 @@ export const records: EngineeringRecord[] = [
             "Ujjwaljain16"
         ],
         "featured": false,
-        "context": "Upstash's free plan allows 500,000 commands a month and then rejects every command until the month rolls over. RQ's scheduler woke every second per worker (about 170,000 commands a day for each worker holding a queue's lock), and the reconciler asked Redis four questions about every stuck bookmark on each five-minute pass (over 100,000 a day with a backlog). The quota ran out during one benchmark run and took the cache layer down.",
+        "context": "Upstash's free plan allows 500,000 commands a month and then rejects every command until the month rolls over. RQ's scheduler woke every second per worker (about 170,000 commands a day for each worker holding a queue's lock), and the reconciler asked Redis four questions about every stuck bookmark on each five-minute pass (over 100,000 a day with a backlog). The quota was exhausted while one benchmark run was taken, and the cache layer was down for that run.",
         "decision": "Drop RQ's scheduler, so the reconciler's pass moves due retries back onto their queues; read all retry counters with one MGET and ask about a job only when it is due; and renew an idle worker's registration every 30 minutes instead of every 7.",
         "alternatives": [
             {

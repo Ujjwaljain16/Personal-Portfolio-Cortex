@@ -42,7 +42,7 @@ export const charts: Record<string, Chart[]> = {
         {
             kind: "bars",
             title: "Semantic search p50 on the live Space, by benchmark run",
-            caption: "POST /api/search/semantic, 30 samples per run, from one machine in India. Run 6 coincided with an exhausted Redis quota, which affected the cached endpoints, not this one.",
+            caption: "POST /api/search/semantic, 30 samples per run, from one machine in India. Runs 5 and 6 ran the same code and differ by about 170 ms, which is the run-to-run noise. The README marks run 6 as taken during an exhausted Redis quota and says to ignore its two cached-endpoint cells.",
             unit: "ms",
             max: 3500,
             refs: [{ value: 300, label: "Network floor, no database: about 300 ms" }],
