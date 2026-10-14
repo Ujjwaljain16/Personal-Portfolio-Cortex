@@ -16,14 +16,34 @@ export interface MergedPR {
 
 export const mergedPRs: MergedPR[] = [
     {
+        project: "Metacog Hypergraph",
+        stars: "23",
+        number: 92,
+        title: "Publish the recovered log end as the first checkpoint's lsn",
+        summary:
+            "After a crash, a transaction that never committed could come back after a second crash and even delete committed data, because the first checkpoint put the old lsn back. The checkpointer now starts from the lsn recovery computed, and recovery raises the next transaction id above any id in the log. Three regression tests fail on main and pass; the bug was reported as #91.",
+        merged: "2026-10-14",
+        url: "https://github.com/metacoglabs/hypergraph/pull/92",
+    },
+    {
         project: "Apache Superset",
         stars: "75k",
-        number: 37982,
-        title: "Resolve SECRET_KEY lazily to fix silent re-encrypt-secrets failures",
+        number: 44248,
+        title: "Fall back to the lean Dockerfile target when publishing a pre-#44100 release",
         summary:
-            "Made EncryptedType resolve SECRET_KEY lazily, fixing silent failures of the re-encrypt-secrets command during key rotation. Added an integration test.",
-        merged: "2026-02-20",
-        url: "https://github.com/apache/superset/pull/37982",
+            "Publishing an image for a release cut before the superset Dockerfile stage existed failed with \"target stage could not be found\". The release workflow now checks the target supersetbot would use against the checked-out Dockerfile and builds from lean when only that stage is missing; any other mismatch still fails.",
+        merged: "2026-09-29",
+        url: "https://github.com/apache/superset/pull/44248",
+    },
+    {
+        project: "Apache Superset",
+        stars: "75k",
+        number: 43985,
+        title: "Vary SQL Lab ad-hoc query cache key by effective RLS predicates",
+        summary:
+            "A SQL Lab query used as a chart datasource added no row-level-security material to its cache key, so two viewers with different RLS on the underlying tables could share a cached result. The key now includes the applicable predicates, with a regression test; a test for the already-fixed query path is added too.",
+        merged: "2026-09-29",
+        url: "https://github.com/apache/superset/pull/43985",
     },
     {
         project: "Apache Superset",
@@ -34,6 +54,15 @@ export const mergedPRs: MergedPR[] = [
             "Added migrations and security-manager logic that remove deprecated permissions left behind by upgrades, with tests and upgrade notes.",
         merged: "2026-09-23",
         url: "https://github.com/apache/superset/pull/44142",
+    },
+    {
+        project: "Apache Superset",
+        stars: "75k",
+        number: 44237,
+        title: "Add configurable display format for time filters",
+        summary: "Added a filter-level display format for native time filters, reusing the D3 time-format setup.",
+        merged: "2026-09-22",
+        url: "https://github.com/apache/superset/pull/44237",
     },
     {
         project: "Apache Superset",
@@ -57,11 +86,11 @@ export const mergedPRs: MergedPR[] = [
     {
         project: "Apache Superset",
         stars: "75k",
-        number: 44237,
-        title: "Add configurable display format for time filters",
-        summary: "Added a filter-level display format for native time filters, reusing the D3 time-format setup.",
-        merged: "2026-09-22",
-        url: "https://github.com/apache/superset/pull/44237",
+        number: 37978,
+        title: "Restore arrow key navigation in modal inputs opened from a dropdown",
+        summary: "Stopped keyboard events bubbling to the menu handler so arrow, Home and End keys work in those inputs.",
+        merged: "2026-07-11",
+        url: "https://github.com/apache/superset/pull/37978",
     },
     {
         project: "Apache Superset",
@@ -75,21 +104,21 @@ export const mergedPRs: MergedPR[] = [
     {
         project: "Apache Superset",
         stars: "75k",
-        number: 37978,
-        title: "Restore arrow key navigation in modal inputs opened from a dropdown",
-        summary: "Stopped keyboard events bubbling to the menu handler so arrow, Home and End keys work in those inputs.",
-        merged: "2026-07-11",
-        url: "https://github.com/apache/superset/pull/37978",
+        number: 37982,
+        title: "Resolve SECRET_KEY lazily to fix silent re-encrypt-secrets failures",
+        summary:
+            "Made EncryptedType resolve SECRET_KEY lazily, fixing silent failures of the re-encrypt-secrets command during key rotation. Added an integration test.",
+        merged: "2026-02-20",
+        url: "https://github.com/apache/superset/pull/37982",
     },
     {
-        project: "Appwrite",
-        stars: "57k",
-        number: 10925,
-        title: "Resolve MFA recovery code validation in 1.8.0",
-        summary:
-            "MFA recovery codes were rejected as invalid because a type constant was lower-cased. Fixed it and added an end-to-end test. First released in v1.9.0-rc.1 (not in 1.8.1).",
-        merged: "2025-12-11",
-        url: "https://github.com/appwrite/appwrite/pull/10925",
+        project: "Vitest",
+        stars: "17k",
+        number: 9214,
+        title: "Improve error message when tsc outputs help text",
+        summary: "Detects when tsc prints its help text (no tsconfig found) and raises a clear error instead of dumping over a hundred lines. With tests.",
+        merged: "2025-12-23",
+        url: "https://github.com/vitest-dev/vitest/pull/9214",
     },
     {
         project: "Vitest",
@@ -102,17 +131,21 @@ export const mergedPRs: MergedPR[] = [
         url: "https://github.com/vitest-dev/vitest/pull/9213",
     },
     {
-        project: "Vitest",
-        stars: "17k",
-        number: 9214,
-        title: "Improve error message when tsc outputs help text",
-        summary: "Detects when tsc prints its help text (no tsconfig found) and raises a clear error instead of dumping over a hundred lines. With tests.",
-        merged: "2025-12-23",
-        url: "https://github.com/vitest-dev/vitest/pull/9214",
+        project: "Appwrite",
+        stars: "57k",
+        number: 10925,
+        title: "Resolve MFA recovery code validation in 1.8.0",
+        summary:
+            "MFA recovery codes were rejected as invalid because a type constant was lower-cased. Fixed it and added an end-to-end test. First released in v1.9.0-rc.1 (not in 1.8.1).",
+        merged: "2025-12-11",
+        url: "https://github.com/appwrite/appwrite/pull/10925",
     },
 ];
 
-/** Pull requests that are open right now. Move one to `mergedPRs` (with its merge date) when it lands. */
+/**
+ * Pull requests that are open right now (none at the moment). Add one here with a short note on where it
+ * stands, and move it to `mergedPRs` with its merge date when it lands.
+ */
 export interface OpenPR {
     project: string;
     number: number;
@@ -121,29 +154,7 @@ export interface OpenPR {
     url: string;
 }
 
-export const openPRs: OpenPR[] = [
-    {
-        project: "Apache Superset",
-        number: 43985,
-        title: "Vary SQL Lab ad-hoc query cache key by effective RLS predicates",
-        note: "Open and approved by a reviewer; not merged yet.",
-        url: "https://github.com/apache/superset/pull/43985",
-    },
-    {
-        project: "Apache Superset",
-        number: 44248,
-        title: "Fall back to the lean Dockerfile target when publishing a pre-#44100 release",
-        note: "Open and approved by a reviewer; not merged yet.",
-        url: "https://github.com/apache/superset/pull/44248",
-    },
-    {
-        project: "Vitest",
-        number: 9662,
-        title: "Add mergeTests utility to compose TestAPI fixtures",
-        note: "Open. The maintainer has requested changes to the tests.",
-        url: "https://github.com/vitest-dev/vitest/pull/9662",
-    },
-];
+export const openPRs: OpenPR[] = [];
 
 export function countByProject(): { project: string; count: number }[] {
     const counts = new Map<string, number>();

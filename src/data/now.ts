@@ -15,7 +15,7 @@ export interface NowItem {
     linkLabel?: string;
 }
 
-export const nowUpdated = "2026-09-28";
+export const nowUpdated = "2026-10-14";
 
 export const nowItems: NowItem[] = [
     // Open pull requests come from src/data/openSource.ts so the two lists cannot disagree.
@@ -25,6 +25,12 @@ export const nowItems: NowItem[] = [
         href: pr.url,
         linkLabel: "Pull request",
     })),
+    {
+        status: "Just merged",
+        text: "Nine Apache Superset pull requests are merged, the latest two on 29 Sep 2026, and so is a crash-recovery fix in Metacog Hypergraph (14 Oct 2026) for a bug found and reported as #91.",
+        href: "https://github.com/metacoglabs/hypergraph/pull/92",
+        linkLabel: "Pull request",
+    },
     {
         status: "Active development",
         text: "LEXIS, a retrieval-augmented generation (RAG) system that is still a work in progress. Recent work replaces a placeholder entailment check with a real model and wires in cross-encoder reranking, which is off by default.",

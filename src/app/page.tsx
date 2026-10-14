@@ -178,6 +178,7 @@ export default function HomePage() {
                                 </li>
                             ))}
                         </ul>
+                        {openPRs.length > 0 && (
                         <div className="space-y-2 text-[14px] text-(--text-secondary)">
                             <p className="font-mono text-(--text-muted)">Open now</p>
                             <ul className="space-y-2">
@@ -196,6 +197,7 @@ export default function HomePage() {
                                 ))}
                             </ul>
                         </div>
+                        )}
                     </section>
 
                     {/* Lessons */}

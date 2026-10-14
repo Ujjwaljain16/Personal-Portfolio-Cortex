@@ -1920,7 +1920,7 @@ export const records: EngineeringRecord[] = [
         "id": "vitest-mergetests-from-extend-chain-to-flat-map",
         "kind": "decision",
         "project": "Vitest",
-        "title": "mergeTests: from a short extend() wrapper to merging fixture registrations directly (PR still open)",
+        "title": "mergeTests: from a short extend() wrapper to merging fixture registrations directly (PR since closed unmerged)",
         "date": "2026-02-18",
         "dateSource": "Commit ddf97bf (2026-02-18) and the author's PR comment of 2026-02-18 announcing direct registration merging, after the maintainer's review of 2026-02-15; reworked in 60bb43a (2026-03-09); head 30ddf39 (2026-03-10). PR #9662 is still open.",
         "provenance": "reconstructed",
@@ -1930,7 +1930,7 @@ export const records: EngineeringRecord[] = [
             "Ujjwaljain16"
         ],
         "featured": true,
-        "context": "Issue #9483 asked for a Playwright-style mergeTests to combine fixtures from several extended tests. In Vitest 4.1.0 a test built with test.extend() holds a TestFixtures object: a Map of registrations (each with scope, auto, deps and a `parent` link to the base implementation of the same-named fixture), a WeakMap of per-suite overrides used by test.override, and WeakMaps of file and worker contexts. Lookup for a suite walks up the suite chain to the nearest override. STATUS: PR #9662 is OPEN and unmerged. Maintainer sheremet-va posted seven CHANGES_REQUESTED reviews from 2026-02-15 to 2026-02-22; the contributor's last push is 2026-03-10 and no maintainer response follows.",
+        "context": "Issue #9483 asked for a Playwright-style mergeTests to combine fixtures from several extended tests. In Vitest 4.1.0 a test built with test.extend() holds a TestFixtures object: a Map of registrations (each with scope, auto, deps and a `parent` link to the base implementation of the same-named fixture), a WeakMap of per-suite overrides used by test.override, and WeakMaps of file and worker contexts. Lookup for a suite walks up the suite chain to the nearest override. STATUS: PR #9662 was open and unmerged when this record was written, and was later closed automatically on 2026-10-05 by a bot enforcing the project's new policy of accepting pull requests only from maintainers and approved contributors (the bot's comment says it is not a judgement of the work and that a maintainer can reopen it); it was never merged. Maintainer sheremet-va posted seven CHANGES_REQUESTED reviews from 2026-02-15 to 2026-02-22; the contributor's last push is 2026-03-10 and no maintainer response follows.",
         "decision": "Stage 1 (d189936, 2026-02-14; also the design pitched in the issue and still in the PR body): mergeTests(a, b) = a.extend(b's resolved fixtures), about 4 statements. Stage 2 (fa60ae8, 02-16): a loop calling currentTest.extend(next.getFixtures().toUserFixtures()), with a comment that overrides on the current test are dropped. Stage 3 (ddf97bf, 02-18, after the maintainer asked for a merge on TestFixtures): the loop passes the TestFixtures itself, and TestFixtures.extend gains an `instanceof TestFixtures` branch that copies registrations. Stage 4 (60bb43a, 03-09; head 30ddf39): mergeTests builds one Map itself with last-writer-wins, throws FixtureDependencyError for a different scope or auto option, keeps built-in fixture names from the first test, runs validateFixtures on the merged Map and wraps it in new TestFixtures(map); it no longer calls extend(). Types: six fixed overloads (1 to 6 arguments) instead of a variadic signature.",
         "alternatives": [
             {
@@ -1953,7 +1953,7 @@ export const records: EngineeringRecord[] = [
                 "type": "pr",
                 "label": "vitest-dev/vitest/pull/9662",
                 "href": "https://github.com/vitest-dev/vitest/pull/9662",
-                "note": "Open PR: +1869 / -15 across 10 files and 29 commits; 7 CHANGES_REQUESTED reviews by maintainer sheremet-va (2026-02-15 to 2026-02-22), none dismissed; last contributor commit 2026-03-10."
+                "note": "PR (later closed unmerged): +1869 / -15 across 10 files and 29 commits; 7 CHANGES_REQUESTED reviews by maintainer sheremet-va (2026-02-15 to 2026-02-22), none dismissed; last contributor commit 2026-03-10."
             },
             {
                 "type": "issue",
@@ -4007,7 +4007,7 @@ export const records: EngineeringRecord[] = [
             "Ujjwaljain16"
         ],
         "featured": false,
-        "context": "After the first review (2026-02-15) the contributor pushed 25 more commits over about three weeks, growing the PR to +1869 lines: 1,260 in test/cli/test/merge-tests.test.ts, 318 in test/core/test/merge-tests.test.ts and 57 in a type test, against 166 added lines of runtime source. At the version the maintainer last reviewed (f3a083c) the two runtime test files held about 1,327 lines; both were rewritten on 2026-03-09 and 03-10 and have had no maintainer response. STATUS: OPEN and unmerged; seven CHANGES_REQUESTED reviews stand.",
+        "context": "After the first review (2026-02-15) the contributor pushed 25 more commits over about three weeks, growing the PR to +1869 lines: 1,260 in test/cli/test/merge-tests.test.ts, 318 in test/core/test/merge-tests.test.ts and 57 in a type test, against 166 added lines of runtime source. At the version the maintainer last reviewed (f3a083c) the two runtime test files held about 1,327 lines; both were rewritten on 2026-03-09 and 03-10 and have had no maintainer response. STATUS: the pull request was closed automatically on 2026-10-05 by a bot enforcing the project's new policy of accepting pull requests only from maintainers and approved contributors (the bot's comment says it is not a judgement of the work and that a maintainer can reopen it); it was never merged; the seven CHANGES_REQUESTED reviews were never resolved.",
         "decision": "Per the review record, the contributor tested the feature mainly by volume and variety of scenarios (the 2026-03-10 PR comment lists merge semantics, nested merges, overrides, dependency graphs, diamond inheritance, type inference, validation errors, scaling, lifecycle ordering, worker/file/test scopes, circular dependency detection, self-merge and 50+ fixture stress tests) rather than starting from the cases where mergeTests could differ from repeated extend(). This is the maintainer's characterisation; the contributor did not state the choice.",
         "alternatives": [
             {

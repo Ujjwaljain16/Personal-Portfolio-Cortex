@@ -99,7 +99,7 @@ const openSourceBlock = () =>
         "Merged pull requests:",
         list(mergedPRs.map((p) => `${p.project} #${p.number} (${p.merged}): ${p.title}. ${p.summary}`)),
         "Open pull requests right now:",
-        list(openPRs.map((p) => `${p.project} #${p.number}: ${p.title}. ${p.note}`)),
+        openPRs.length ? list(openPRs.map((p) => `${p.project} #${p.number}: ${p.title}. ${p.note}`)) : "- None at the moment.",
     ].join("\n");
 
 const deploymentsBlock = () =>

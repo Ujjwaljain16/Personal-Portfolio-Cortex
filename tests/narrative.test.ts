@@ -105,3 +105,21 @@ describe("Now section and open pull requests", () => {
         for (const pr of openPRs) expect(merged.has(pr.url), pr.url).toBe(false);
     });
 });
+
+describe("merged pull requests", () => {
+    it("are listed newest first, and none is also listed as open", () => {
+        const dates = mergedPRs.map((p) => p.merged);
+        expect(dates).toEqual([...dates].sort().reverse());
+        const merged = new Set(mergedPRs.map((p) => p.url));
+        for (const pr of openPRs) expect(merged.has(pr.url), pr.url).toBe(false);
+    });
+
+    it("include the Superset and Hypergraph pull requests that landed in Sep and Oct 2026", () => {
+        for (const n of [44248, 43985]) expect(mergedPRs.some((p) => p.number === n && p.project === "Apache Superset"), `#${n}`).toBe(true);
+        expect(mergedPRs.some((p) => p.number === 92 && p.project === "Metacog Hypergraph")).toBe(true);
+    });
+
+    it("no longer lists the closed Vitest pull request as in review", () => {
+        expect(openPRs.some((p) => p.number === 9662)).toBe(false);
+    });
+});
