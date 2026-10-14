@@ -63,6 +63,150 @@ export interface EngineeringRecord {
 
 export const records: EngineeringRecord[] = [
     {
+        "id": "fuze-semantic-search-latency-series",
+        "kind": "investigation",
+        "project": "Fuze",
+        "projectId": "fuze",
+        "title": "Semantic search p50 fell from 3,026 ms to 1,661 ms by cutting round trips; about 900 ms is unexplained",
+        "date": "2026-10-14",
+        "dateSource": "docs/perf/README.md as last updated in e6ff99e (2026-10-14); the round-trip commits cc04bd3 and e170404 are from 2026-10-13",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": true,
+        "question": "Why does a semantic search on the live Hugging Face Space take about 3 seconds, and how much of that can code remove?",
+        "method": "scripts/bench_live.py ran against the deployed Space from a machine in India: 30 samples per endpoint, one baseline run and seven runs after successive changes, with the p50 of GET /health/liveness (no database) as the network floor. An opt-in X-Server-Timing header returns the server's total, embedding and database time and the number of SQL statements, and GET /health/readiness?timing=1 measures the Space's own round trip to the database and to Redis.",
+        "result": "Semantic search p50 went from 3,026 to 1,661 ms (-45%) and p95 from 3,915 to 2,071 ms (-47%) at the best run, and the latest run is 1,686 ms p50. SQL statements per search fell from about 10 to 1: connections are pinged only after sitting idle, details are joined into the passage query, and the vector-search settings became database defaults. The Space is 213-228 ms from its database (Supabase, Singapore) and 2-3.5 ms from Redis, so each statement pays a round trip. One statement still takes about 900 ms longer than a trivial one although Postgres runs it in about 2 ms. That is not the statement count, the embedding (15 ms) or the amount of text returned: trimming 60-140 KB to 41-54 KB left database time at 1,138 ms against 1,122 ms. A database move to the backend's region is written up and deferred.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Semantic search p50, baseline / best run / latest run",
+                "value": "3,026 / 1,661 / 1,686 ms",
+                "source": "docs/perf/*.json (POST /api/search/semantic, 30 samples each)"
+            },
+            {
+                "label": "Semantic search p95, baseline / best run / latest run",
+                "value": "3,915 / 2,071 / 2,656 ms",
+                "source": "docs/perf/*.json"
+            },
+            {
+                "label": "SQL statements per semantic search, baseline / run 5 onward",
+                "value": "about 10 / 1",
+                "source": "docs/perf/README.md; server.statements in the run 4-7 files"
+            },
+            {
+                "label": "Space to database / Space to Redis round trip",
+                "value": "213-228 ms / 2-3.5 ms",
+                "source": "GET /health/readiness?timing=1, as recorded in docs/REGION_MOVE.md"
+            },
+            {
+                "label": "Database time per search before / after trimming passage text",
+                "value": "1,122 / 1,138 ms",
+                "source": "docs/perf/README.md, runs 6 and 7"
+            }
+        ],
+        "verdict": "partial",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "cc04bd3",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/cc04bd3",
+                "note": "Halves the round trips per search: one settings statement per transaction, details joined into the passage query."
+            },
+            {
+                "type": "commit",
+                "label": "e170404",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/e170404",
+                "note": "Pings pooled connections only after they were idle, not on every checkout."
+            },
+            {
+                "type": "file",
+                "label": "docs/perf/README.md",
+                "href": "https://github.com/Ujjwaljain16/Fuze/blob/5e47109/docs/perf/README.md",
+                "note": "The table of all runs, what each measured, and what the runs rule out."
+            },
+            {
+                "type": "file",
+                "label": "docs/REGION_MOVE.md",
+                "href": "https://github.com/Ujjwaljain16/Fuze/blob/5e47109/docs/REGION_MOVE.md",
+                "note": "The measured round trips and the deferred database move."
+            }
+        ],
+        "verification": "Read every live-bench result file in docs/perf and confirmed the p50, p95 and statement counts quoted here, then read the README's account of each run against the commits. The benchmark was not re-run. The 900 ms figure is the project's own estimate, and no experiment that isolates it is recorded. Run 6 coincided with an exhausted Redis quota, which the README marks and excludes."
+    },
+    {
+        "id": "fuze-passages-vs-one-vector-per-bookmark",
+        "kind": "investigation",
+        "project": "Fuze",
+        "projectId": "fuze",
+        "title": "Passage retrieval scored 0.504 nDCG@10 where one vector per document scored 0.016, on long documents",
+        "date": "2026-10-12",
+        "dateSource": "commit 65758c5 (adds the benchmark and its result files, which are timestamped 2026-10-11)",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": true,
+        "question": "Does splitting each saved page into passages retrieve better than one embedding per page, and which of three 384-dimension embedding models should the engine use?",
+        "method": "backend/scripts/eval_retrieval.py loads a BEIR dataset into a real Postgres with pgvector through the production chunking and embedding code, and scores the production search paths on BEIR SciFact (test split, 300 queries). It runs on two corpora: the original abstracts, and a long-document variant (--long-docs) that buries each abstract at a random non-first position among unrelated abstracts, so the relevant text sits past the model's input window. One vector per document was compared with the best passage per document for all-MiniLM-L6-v2, bge-small-en-v1.5 and e5-small-v2, and a cross-encoder rerank was added to the bge-small runs.",
+        "result": "On the original abstracts, passages barely change the score for bge-small (0.718 against 0.713) and MiniLM (0.652 against 0.648) and help e5-small more (0.687 against 0.636). On the long-document corpus, one vector per document collapses (0.016 for bge-small, 0.001 for MiniLM) while passages hold (0.504 and 0.441). bge-small beat the other two models at the same 384 dimensions, so it became the default. The cross-encoder rerank changed nDCG@10 by -0.008 (original) and +0.004 (long) for about 700 ms a query, so reranking stays off for search. SciFact is scientific abstracts, not saved web pages, and the figures are single runs (the repeated bge-small passage runs gave identical scores); no benchmark on real bookmarks exists.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "bge-small, original documents: one vector per document / passages",
+                "value": "0.713 / 0.718",
+                "source": "backend/eval/results/scifact_orig_bge-small-en-v1.5_*.json"
+            },
+            {
+                "label": "bge-small, long documents: one vector per document / passages",
+                "value": "0.016 / 0.504",
+                "source": "backend/eval/results/scifact_long8_bge-small-en-v1.5_20261011T182023Z.json"
+            },
+            {
+                "label": "MiniLM, long documents: one vector per document / passages",
+                "value": "0.001 / 0.441",
+                "source": "backend/eval/results/scifact_long8_all-MiniLM-L6-v2_20261011T173717Z.json"
+            },
+            {
+                "label": "Passages on original documents: bge-small / MiniLM / e5-small",
+                "value": "0.718 / 0.652 / 0.687",
+                "source": "backend/eval/results/scifact_orig_*.json"
+            },
+            {
+                "label": "Cross-encoder rerank on bge-small passages: original / long",
+                "value": "-0.008 / +0.004 (about 700 ms per query)",
+                "source": "backend/eval/results/scifact_*_bge-small-en-v1.5_20261011T18*.json"
+            }
+        ],
+        "verdict": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "65758c5",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/65758c5",
+                "note": "Adds the SciFact benchmark and its result files; the message lists the recorded figures."
+            },
+            {
+                "type": "file",
+                "label": "scifact_long8_bge-small-en-v1.5_20261011T182023Z.json",
+                "href": "https://github.com/Ujjwaljain16/Fuze/blob/65758c5/backend/eval/results/scifact_long8_bge-small-en-v1.5_20261011T182023Z.json",
+                "note": "The long-document run: doc_vector 0.0163, chunk_vector 0.5040."
+            },
+            {
+                "type": "doc",
+                "label": "ADR-007-intent-engine.md",
+                "href": "https://github.com/Ujjwaljain16/Fuze/blob/5e47109/docs/adr/ADR-007-intent-engine.md",
+                "note": "Table of the same figures and the decision to store passages and use bge-small."
+            }
+        ],
+        "verification": "Read the commit message and every result file, and compared each figure with the ADR-007 table, rounded to three places. The benchmark was not re-run."
+    },
+    {
         "id": "ab-fail-closed-framing-and-config",
         "kind": "decision",
         "project": "AgentBrake",
@@ -1112,8 +1256,8 @@ export const records: EngineeringRecord[] = [
                 "whyNot": "Kept as the fallback when the flag is off. It already orders by cosine distance inside Postgres, so the RPC's advantage is unproven: migration 0006 says it removes 'Python/SQLAlchemy round-trip overhead' but no comparison was measured."
             }
         ],
-        "consequences": "The new code is only partly live. The orchestrator builds RecommendationPipeline() without a Unit of Work and, since RECOMMENDATION_SHADOW_MODE defaults to true, runs it after each uncached legacy request; its data layer logs 'initialized without UnitOfWork' and returns no candidates (verified: results []), so the shadow comparison sees nothing. Serving through the pipeline (RECOMMENDATION_PIPELINE_ENABLED, default false) would return an empty list. No code sets RecommendationRequest.query_embedding, which the ANN branch needs, so CandidateRetriever is unreachable and untested. The RPC functions have no tests, the endpoint has no frontend caller, and the flag defaults to false in code (runtime flag values cannot be checked). HNSW speed and recall are asserted only in the 0003 docstring; no EXPLAIN output or recall measurement is in the repo.",
-        "status": "partial",
+        "consequences": "The new code is only partly live. The orchestrator builds RecommendationPipeline() without a Unit of Work and, since RECOMMENDATION_SHADOW_MODE defaults to true, runs it after each uncached legacy request; its data layer logs 'initialized without UnitOfWork' and returns no candidates (verified: results []), so the shadow comparison sees nothing. Serving through the pipeline (RECOMMENDATION_PIPELINE_ENABLED, default false) would return an empty list. No code sets RecommendationRequest.query_embedding, which the ANN branch needs, so CandidateRetriever is unreachable and untested. The RPC functions have no tests, the endpoint has no frontend caller, and the flag defaults to false in code (runtime flag values cannot be checked). HNSW speed and recall are asserted only in the 0003 docstring; no EXPLAIN output or recall measurement is in the repo. Later change (4446a9a, 2026-10-12): the whole stack described here, including the shadow pipeline, the two-stage retriever and their flags, was deleted and replaced by a different engine; see the record on deleting the legacy recommendation stack.",
+        "status": "superseded",
         "evidence": [
             {
                 "type": "commit",
@@ -2139,6 +2283,208 @@ export const records: EngineeringRecord[] = [
         "verification": "Ran git log --all --diff-filter=A per file to date each migration; git show <sha>:path to read 001, 002 v1, 002 v2, 003 (both), 007, 008; counted CREATE POLICY per file with grep -ic; git grep -l createSupabaseAdminClient HEAD -- src/app/api gives 28 files. Attribution: All cited commits are authored by Ujjwaljain16 with no Co-Authored-By trailer. POLICY-RECURSION-FIX.md and the d15304d message read as AI-assisted; this cannot be proven from the repo."
     },
     {
+        "id": "fuze-weak-match-cross-encoder-not-cosine",
+        "kind": "decision",
+        "project": "Fuze",
+        "projectId": "fuze",
+        "title": "Flag weak matches with a cross-encoder, not a similarity cutoff, and fold them instead of dropping them",
+        "date": "2026-10-14",
+        "dateSource": "commits 478a000 and d9991ef (2026-10-14); the calibration is documented in e4e67e3",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "The engine always returns up to the requested number of results, so a project with few matching bookmarks was padded with loosely related ones. A cosine-similarity cutoff could not separate them: in the project's calibration, irrelevant results reached 77% similarity while some useful ones sat at 66%.",
+        "decision": "After ranking, a small cross-encoder (ms-marco-MiniLM-L-6-v2, about 0.3 s for ten pairs, baked into the Docker image) scores each (intent, best passage) pair, and results with a raw score under -5 are marked weak_match. The page folds them behind a \"Show N weaker matches\" toggle. Nothing is removed and the order does not change. The floor of -5 was chosen from 15 requests (5 projects, 10 tasks, 150 results) over one 238-bookmark library.",
+        "alternatives": [
+            {
+                "option": "A cutoff on cosine similarity",
+                "whyNot": "It could not make the cut: irrelevant results reached 77% similarity while some useful ones were at 66%."
+            },
+            {
+                "option": "Rerank every search with the cross-encoder",
+                "whyNot": "On SciFact it moved nDCG@10 by -0.008 and +0.004 for about 700 ms a query, so reranking stays off for search and the model is used only for this flag."
+            }
+        ],
+        "consequences": "With the floor at -5, 89% of the irrelevant and 45% of the loosely related results were marked weak, and the strong list was 81% clearly useful against 60% unfiltered; 23% of the useful results were also marked weak, mostly bookmarks with no readable page text. These figures come from one library and the relevance labels did not come from independent raters, so they calibrate the floor and are not a benchmark of quality. The flag can be turned off with RECOMMENDATION_CONFIDENCE_ENABLED=false.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "478a000",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/478a000",
+                "note": "Marks results the cross-encoder does not tie to the project or task as weak, without changing the order, and bakes the model into the image."
+            },
+            {
+                "type": "commit",
+                "label": "d9991ef",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/d9991ef",
+                "note": "Folds weak matches behind a toggle and tags them when shown."
+            },
+            {
+                "type": "commit",
+                "label": "e4e67e3",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/e4e67e3",
+                "note": "Documents the check, how its floor was chosen and the new response fields."
+            },
+            {
+                "type": "file",
+                "label": "docs/RECOMMENDATIONS.md",
+                "href": "https://github.com/Ujjwaljain16/Fuze/blob/5e47109/docs/RECOMMENDATIONS.md",
+                "note": "The \"Weak matches\" section holds the calibration figures."
+            }
+        ],
+        "verification": "Read the three commits and the \"Weak matches\" section of docs/RECOMMENDATIONS.md; the calibration figures are quoted from that section and were not re-run. That section describes the results as judged by hand, while the project's working notes say an AI assistant assigned the labels in the session, so this record does not call them independent."
+    },
+    {
+        "id": "fuze-processing-job-fails-closed",
+        "kind": "decision",
+        "project": "Fuze",
+        "projectId": "fuze",
+        "title": "A processing job now fetches the bookmark's stored URL, after four bookmarks got a neighbour's text",
+        "date": "2026-10-14",
+        "dateSource": "commit dc01bfd (2026-10-14)",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "Four bookmarks (a Wix page, a Netlify page, neetcode.io and a GitHub repository) were stored with the text of the bookmark saved just before them, which means a background job ran with its neighbour's URL. The code comment in the fix names the four pages and gives no cause for how it happened.",
+        "decision": "Instead of guessing at the cause, remove the way to be wrong: the processing task loads the bookmark row, logs an error and returns without doing anything if the row does not belong to the job's user, and always fetches the row's stored URL, logging an error when the job carried a different one.",
+        "alternatives": [
+            {
+                "option": "Trust the URL carried by the job, as before",
+                "whyNot": "A job once ran with its neighbour's URL, and four bookmarks were stored with another page's text."
+            }
+        ],
+        "consequences": "Two tests pin the behaviour: the stored URL wins over the job's, and a job for another user's bookmark does nothing. The guard prevents the symptom; how a job came to carry the wrong URL is still unexplained.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "dc01bfd",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/dc01bfd",
+                "note": "Adds the guard in bookmark_processing_service.py and the comment naming the four affected pages."
+            },
+            {
+                "type": "test",
+                "label": "test_job_url_guard.py",
+                "href": "https://github.com/Ujjwaljain16/Fuze/blob/dc01bfd/backend/tests/test_job_url_guard.py",
+                "note": "Two tests: the stored URL wins, and a job for someone else's bookmark does nothing."
+            }
+        ],
+        "verification": "Read the diff of dc01bfd, including the comment and both tests. The tests were not run here."
+    },
+    {
+        "id": "fuze-redis-command-budget",
+        "kind": "decision",
+        "project": "Fuze",
+        "projectId": "fuze",
+        "title": "Stay inside a 500,000-command free Redis plan by removing polling",
+        "date": "2026-10-14",
+        "dateSource": "commits 2d0a5d2 and f6314c6 (2026-10-14)",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "Upstash's free plan allows 500,000 commands a month and then rejects every command until the month rolls over. RQ's scheduler woke every second per worker (about 170,000 commands a day for each worker holding a queue's lock), and the reconciler asked Redis four questions about every stuck bookmark on each five-minute pass (over 100,000 a day with a backlog). The quota ran out during one benchmark run and took the cache layer down.",
+        "decision": "Drop RQ's scheduler, so the reconciler's pass moves due retries back onto their queues; read all retry counters with one MGET and ask about a job only when it is due; and renew an idle worker's registration every 30 minutes instead of every 7.",
+        "alternatives": [
+            {
+                "option": "Keep RQ's per-second scheduler and the per-bookmark Redis checks",
+                "whyNot": "They used about 170,000 and over 100,000 commands a day, against a free-plan limit of about 16,000 a day."
+            }
+        ],
+        "consequences": "A 10-minute idle sample of the production Redis read 2 commands, and a pass over 150 stuck bookmarks costs under 10 commands, which a test asserts. Retries can now be late by up to one reconciler interval (five minutes). One idle 10-minute sample is a weak measure of monthly use: the documentation says only that it should project well under 100,000 a month.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "2d0a5d2",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/2d0a5d2",
+                "note": "Drops RQ's per-second scheduler and slows idle worker registration."
+            },
+            {
+                "type": "commit",
+                "label": "f6314c6",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/f6314c6",
+                "note": "Reads retry counters with one MGET and moves due retries back onto their queues in the same pass."
+            },
+            {
+                "type": "commit",
+                "label": "4ea118d",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/4ea118d",
+                "note": "Adds a read-only Redis usage sampler and documents the command budget."
+            },
+            {
+                "type": "file",
+                "label": "docs/OPERATIONS.md",
+                "href": "https://github.com/Ujjwaljain16/Fuze/blob/5e47109/docs/OPERATIONS.md",
+                "note": "The \"Redis command budget\" section holds the figures quoted here."
+            }
+        ],
+        "verification": "Read the three commits and the \"Redis command budget\" section of docs/OPERATIONS.md, and checked that the perf README marks the benchmark run that coincided with the exhausted quota. The usage sampler was not run."
+    },
+    {
+        "id": "fuze-delete-legacy-recommendation-stack",
+        "kind": "decision",
+        "project": "Fuze",
+        "projectId": "fuze",
+        "title": "Delete the legacy recommendation stack instead of keeping it behind flags",
+        "date": "2026-10-12",
+        "dateSource": "commit 4446a9a (removes the code); ADR-007, added in b8f54d8 on 2026-10-14, records the decision",
+        "provenance": "recorded",
+        "rationaleSource": "inferred",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "Recommendations ran through a weighted sum of a semantic score and rule-based scores (technology lists, word-based content-type rules, an intent classifier with a keyword fallback) in an orchestrator of about 3,000 lines, on one embedding per bookmark. A second pipeline ran beside it in shadow mode behind the smart_engine, two_stage_retrieval and search_rpc flags; the commit message says its evaluator ran on every request against an empty candidate set.",
+        "decision": "Replace the stack with one engine that ranks by meaning only: passages instead of one vector per bookmark, an intent built from the user's own words, nearest chunks with a per-user filter, then MMR for diversity. The old orchestrator, the keyword matcher and its technology lists, the TF-IDF enhancer, the enum intent engine, the shadow evaluator, the golden baseline built from those engines and their flags were deleted in one commit: 32 files, 57 insertions and 7,173 deletions.",
+        "alternatives": [
+            {
+                "option": "Keep the legacy code behind flags while the new engine proves itself",
+                "whyNot": "This was the state before. ADR-007 says the old stack's behaviour was hard to test and to explain; no document states a further reason for deleting it outright."
+            },
+            {
+                "option": "Cut over to the two-stage pipeline that was running in shadow mode",
+                "whyNot": "Its shadow evaluator saw an empty candidate set on every request, according to the commit message, so there was no evidence it retrieved anything."
+            }
+        ],
+        "consequences": "There is now one engine to evaluate, measured on BEIR SciFact instead of by a regression gate that compared two paths sharing one engine. ADR-001 to ADR-006 were deleted two days later (b8f54d8), leaving ADR-007 as the only decision record. Changing the embedding model now means re-embedding every bookmark, with no fallback model. Some old endpoint names, such as /unified-orchestrator, remain because the frontend still uses them. This supersedes the July decision to build the two-stage pipeline.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "4446a9a",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/4446a9a",
+                "note": "Removes the legacy stack; the message lists what went and notes the shadow evaluator's empty candidate set."
+            },
+            {
+                "type": "file",
+                "label": "ADR-007-intent-engine.md",
+                "href": "https://github.com/Ujjwaljain16/Fuze/blob/5e47109/docs/adr/ADR-007-intent-engine.md",
+                "note": "States the context, the replacement engine and decision 6: remove the legacy code instead of keeping it behind flags."
+            },
+            {
+                "type": "commit",
+                "label": "b8f54d8",
+                "href": "https://github.com/Ujjwaljain16/Fuze/commit/b8f54d8",
+                "note": "Adds ADR-007 and deletes ADR-001 to ADR-006."
+            }
+        ],
+        "verification": "Read the message and diffstat of 4446a9a and ADR-007, and confirmed that the golden dataset regression test no longer exists at HEAD and that docs/adr holds only ADR-007 and a README. The deletion itself was not diffed line by line. The reason for deleting rather than flagging is inferred from the ADR's context section."
+    },
+    {
         "id": "bhttp-truncation-must-not-look-complete",
         "kind": "decision",
         "project": "BHTTP-1",
@@ -2818,7 +3164,7 @@ export const records: EngineeringRecord[] = [
         "featured": false,
         "question": "Does ADR-006 Gate 1 (test_two_stage_baseline_regression.py against golden_baseline_v1.json) show that the two-stage retrieval path is equivalent in quality to the legacy orchestrator?",
         "method": "Read the ADR, the test, the baseline generator and the baseline JSON. Ran test_golden_dataset_regression.py, test_two_stage_baseline_regression.py and test_shadow_evaluator.py (Python 3.11.9, Windows, pytest 8.4.2). Instantiated RecommendationPipeline() as the orchestrator does and called run() with a request.",
-        "result": "The gate passes with a delta of exactly 0.0000 because both sides run the same class. golden_baseline_v1.json was generated by generate_golden_baseline.py, which runs SmartEngine; ADR-006 calls it the baseline of the 'validated legacy orchestrator', but SmartEngine was added in the same commit and is not one of the orchestrator's engines. The regression test replaces the data layer with a mock returning a fixed pool (the expected candidates plus 10 noise items), so CandidateRetriever, HNSW and the RPC functions are never called. The set has 4 queries; query_frontend_01 has MRR 0.5, so the average of 0.875 clears the separate 0.85 floor in test_golden_dataset_regression.py by only 0.025. The shadow pipeline built in the orchestrator has no Unit of Work and returns no candidates, so shadow overlap would be 0. The gate therefore catches changes to the scoring code, not to retrieval.",
+        "result": "The gate passes with a delta of exactly 0.0000 because both sides run the same class. golden_baseline_v1.json was generated by generate_golden_baseline.py, which runs SmartEngine; ADR-006 calls it the baseline of the 'validated legacy orchestrator', but SmartEngine was added in the same commit and is not one of the orchestrator's engines. The regression test replaces the data layer with a mock returning a fixed pool (the expected candidates plus 10 noise items), so CandidateRetriever, HNSW and the RPC functions are never called. The set has 4 queries; query_frontend_01 has MRR 0.5, so the average of 0.875 clears the separate 0.85 floor in test_golden_dataset_regression.py by only 0.025. The shadow pipeline built in the orchestrator has no Unit of Work and returns no candidates, so shadow overlap would be 0. The gate therefore catches changes to the scoring code, not to retrieval. Later change (4446a9a, 2026-10-12): the gate and the golden baseline were deleted along with the stack they guarded.",
         "measured": true,
         "numbers": [
             {

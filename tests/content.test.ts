@@ -54,6 +54,14 @@ describe("projects", () => {
         for (const r of related) expect(r.projectId, r.id).toBeUndefined();
     });
 
+    it("Fuze no longer describes the deleted two-stage pipeline or a paused backend as current", () => {
+        const text = JSON.stringify(getProject("fuze")) + JSON.stringify(deployments.find((d) => d.repo === "Fuze"));
+        for (const stale of [/paused/i, /shadow mode (currently )?returns/i, /behind feature flags/i, /backend offline/i, /gaps\.md/i]) expect(text).not.toMatch(stale);
+        // records that describe the deleted stack must say they were superseded
+        expect(getRecord("ml-rewrite-rejected-then-two-stage-reintroduced")?.status).toBe("superseded");
+        expect(getRecord("golden-gate-measures-what")?.result).toContain("Later change (4446a9a");
+    });
+
     it("every alsoBuilt entry names a project that is not also a full page", () => {
         const ids = new Set(projects.map((p) => p.id));
         for (const a of alsoBuilt) expect(ids.has(a.name.toLowerCase()), a.name).toBe(false);

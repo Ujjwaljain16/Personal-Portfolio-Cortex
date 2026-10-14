@@ -35,16 +35,16 @@ export const deployments: Deployment[] = [
     {
         id: "deploy-001",
         repo: "Fuze",
-        summary: "React frontend on Vercel; Flask backend on Hugging Face Spaces (currently paused)",
+        summary: "React frontend on Vercel; Flask backend on a free Hugging Face Space",
         impact:
-            "The frontend is deployed on Vercel. The Flask backend ships as a Docker container managed by supervisord and was hosted on Hugging Face Spaces, but that Space is paused after being flagged, so the live app cannot complete requests right now. It runs locally with the Quick Start in the repository.",
+            "The frontend is deployed on Vercel. The Flask backend ships as a Docker container (gunicorn with gevent, RQ workers under supervisord) on a free Hugging Face Space, with Supabase for PostgreSQL and Upstash for Redis. The Space was flagged twice for browser automation and the image is now browser-free. Its readiness endpoint reported the database, Redis and schema ready on 14 Oct 2026, and CI gates the deploy. There are no real users yet.",
         category: "live",
         runtime: "Web App",
-        host: "Vercel (frontend) · Hugging Face Spaces (backend, paused)",
+        host: "Vercel (frontend) · Hugging Face Spaces (backend)",
         liveUrl: "https://itsfuze.vercel.app",
-        status: "partial",
+        status: "active",
         tags: ["fullstack", "ai"],
-        relatedRecordIds: ["verify-against-real-infrastructure"],
+        relatedRecordIds: ["verify-against-real-infrastructure", "fuze-semantic-search-latency-series", "fuze-redis-command-budget"],
     },
     {
         id: "deploy-002",

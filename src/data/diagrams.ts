@@ -36,13 +36,13 @@ export const diagrams: Record<string, Diagram> = {
         ],
     },
     fuze: {
-        caption: "The two-stage recommendation pipeline is built and tested but is not serving traffic yet.",
+        caption: "One engine ranks by meaning only. The page text is acquired without a browser on the server, and a weak match is flagged, never silently dropped.",
         steps: [
-            { title: "Content", detail: "Bookmarks and web clips." },
-            { title: "RQ workers on Redis", detail: "Extract content and compute 384-dimension MiniLM embeddings." },
-            { title: "PostgreSQL with pgvector", detail: "HNSW indexes built concurrently through Alembic migrations." },
-            { title: "Search functions", detail: "Exposed as Postgres search functions." },
-            { title: "Recommendations (behind flags)", detail: "ANN candidates, then re-ranking, with shadow evaluation and CI gates." },
+            { title: "Save a page", detail: "From the browser extension, which can send the text the browser already rendered, or from a URL." },
+            { title: "Acquire the text", detail: "Ordered tiers: extension capture, official site APIs, our own fetch, a remote reader, then the Wayback Machine, with SSRF and robots.txt checks first." },
+            { title: "RQ workers on Redis", detail: "Split the text into overlapping passages of about 200 words and embed them with bge-small (384 dimensions); Gemini adds a content profile." },
+            { title: "PostgreSQL with pgvector", detail: "Passages and profiles stored with HNSW indexes; every vector records its embedding model." },
+            { title: "Retrieve and rank", detail: "Nearest passages for your project and task, diversified with MMR; a cross-encoder flags weak matches." },
         ],
     },
     "sse-observatory": {

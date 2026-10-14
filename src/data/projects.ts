@@ -221,53 +221,59 @@ export const projects: Project[] = [
         id: "fuze",
         name: "Fuze",
         tier: "flagship",
-        tagline: "Semantic bookmark manager: pgvector search, a worker pipeline, and recommendations gated by regression tests.",
+        tagline: "A bookmark manager that recommends saved pages for the project you are building, with its retrieval quality and latency measured.",
         status: "ongoing",
         origin: "Personal project, ongoing",
-        period: "Jul 2025 – present · 455 commits",
+        period: "Jul 2025 – present · 681 commits",
         problem:
-            "Saved bookmarks and posts pile up across tabs and apps and can't be searched by meaning.",
+            "Saved bookmarks and posts pile up across tabs and apps and can't be searched by meaning, and a project needs the few saved pages that help with it, not a list of everything loosely related.",
         approach: [
-            "RQ workers on Redis extract content and compute 384-dimension MiniLM embeddings, which are stored in PostgreSQL with pgvector.",
-            "Search uses HNSW indexes built concurrently through Alembic migrations and exposed as Postgres search functions.",
-            "A rebuilt two-stage recommendation pipeline (ANN candidates, then re-ranking) exists behind feature flags, with shadow evaluation and CI gates. It is not serving production traffic yet.",
+            "You create a project and tasks; the engine builds an intent from your own words and ranks saved pages by their best matching passage. Pages are split into overlapping chunks, embedded with bge-small (384 dimensions) and stored in PostgreSQL with pgvector, searched with HNSW indexes and diversified with MMR.",
+            "RQ workers on Redis fetch and embed pages in the background; Gemini adds a content profile per page and refines the intent, in jobs that no request waits for. A small cross-encoder flags weak matches, which the page folds behind a toggle.",
+            "A React frontend on Vercel, a Flask API in a Docker container on a free Hugging Face Space (gunicorn with gevent, workers under supervisord), Supabase Postgres, Upstash Redis and a Manifest V3 browser extension.",
         ],
         evidence: [
+            {
+                text: "On BEIR SciFact (300 queries, run through the production search code) passage retrieval scores nDCG@10 0.718. On a long-document variant it scores 0.504 against 0.016 for one embedding per document.",
+                source: "backend/eval/results/scifact_long8_bge-small-en-v1.5_20261011T182023Z.json",
+            },
+            {
+                text: "Live semantic-search latency on the deployed Space, 30 samples per endpoint: p50 3,026 ms down to 1,661 ms (-45%) and SQL statements per search from about 10 to 1, with each run recorded and the unexplained remainder written down.",
+                source: "docs/perf/README.md",
+            },
+            {
+                text: "A cross-encoder rerank was measured and left off for search: it moved nDCG@10 by -0.008 and +0.004 for about 700 ms a query. It is used only to flag weak matches.",
+                source: "docs/adr/ADR-007-intent-engine.md",
+            },
+            {
+                text: "The free Redis plan's 500,000 monthly commands ran out. Removing the scheduler and per-bookmark polling brought an idle 10-minute sample to 2 commands.",
+                source: "docs/OPERATIONS.md",
+            },
             {
                 text: "HNSW indexes (m=16, ef_construction=64) built with CREATE INDEX CONCURRENTLY inside an Alembic migration.",
                 source: "backend/alembic/versions/0003_hnsw_indexes.py",
             },
             {
-                text: "A golden-set regression test in CI requires NDCG@10 and MRR of at least 0.85 on four queries. It compares paths that share one engine, so it is a regression guard, not a quality measurement.",
-                source: "backend/tests/test_golden_dataset_regression.py",
-            },
-            {
-                text: "Reliability primitives: a circuit breaker, a distributed lock, an event and unit-of-work layer, and account lockout.",
-                source: "backend/core/circuit_breaker.py",
-            },
-            {
-                text: "About 207 test functions in 65 files, 7 GitHub Actions workflows, 10 migrations and 6 ADRs.",
-            },
-            {
-                text: "Local benchmark (400 seeded rows, local PostgreSQL, 30 iterations): ANN search p50 0.64 ms and p99 1.02 ms; embedding generation on a cache miss p50 99 ms.",
+                text: "Backend CI, Frontend CI, a Docker build check and the Space sync all pass on the latest commit (5e47109).",
             },
         ],
         limitations: [
-            "The hosted backend on Hugging Face Spaces is paused, so the live frontend cannot complete requests. Run it locally with the Quick Start.",
-            "Some optimisation figures in the repository docs have no benchmark behind them, so they are not repeated here.",
-            "In shadow mode the new recommendation pipeline currently returns an empty list, because no unit of work is passed to it. Turning on the cutover flag would serve that empty list.",
-            "Parts were built with an AI coding assistant: some commits carry a Claude co-author trailer, and gaps.md is AI-written.",
+            "No real users and no load test: the live benchmark is 30 samples per endpoint from one machine in India.",
+            "About 900 ms of each semantic search is unexplained. Postgres runs the statement in about 2 ms, but the database (Supabase, Singapore) is in another region from the backend and a trivial query from the Space costs 213-228 ms. A region move is written up and deferred.",
+            "SciFact is scientific abstracts, not bookmarks, so no benchmark on real saved pages exists. The weak-match floor was calibrated on one 238-bookmark library over 15 requests, and 23% of useful results were also flagged; those relevance labels did not come from independent raters.",
+            "The earlier two-stage recommendation pipeline, its shadow mode and the golden-set regression gate were deleted on 12 Oct 2026, and the decision records about them are marked superseded.",
+            "Built with an AI coding assistant: 11 of the 681 commits carry a Claude co-author trailer.",
         ],
-        tech: ["Python", "Flask", "PostgreSQL", "pgvector", "Redis", "RQ", "SentenceTransformers", "React", "Alembic", "GitHub Actions"],
+        tech: ["Python", "Flask", "PostgreSQL", "pgvector", "Redis", "RQ", "SentenceTransformers", "Gemini", "React", "Vite", "Alembic", "GitHub Actions"],
         next: [
-            "Pass a unit of work to the new recommendation pipeline so shadow mode returns real results, before turning on the cutover flag.",
-            "Back the optimisation figures in the repository docs with benchmarks, or remove them.",
-            "Bring the hosted backend back so the live frontend works.",
+            "Move the database next to the backend, then re-run the live benchmark to see how much of the unexplained 900 ms was distance.",
+            "Re-label the weak-match calibration set by hand, or with independent raters, before quoting its figures as a benchmark.",
+            "Add a retrieval benchmark on real saved pages, since SciFact only stands in for them.",
         ],
         repo: "Ujjwaljain16/Fuze",
         links: [
             { label: "Source on GitHub", href: gh("Ujjwaljain16/Fuze") },
-            { label: "Frontend (backend offline)", href: "https://itsfuze.vercel.app" },
+            { label: "Live app", href: "https://itsfuze.vercel.app" },
         ],
     },
     {

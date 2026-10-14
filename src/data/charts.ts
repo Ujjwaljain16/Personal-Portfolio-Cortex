@@ -38,6 +38,27 @@ export interface RangesChart {
 export type Chart = BarsChart | RangesChart;
 
 export const charts: Record<string, Chart[]> = {
+    "fuze-semantic-search-latency-series": [
+        {
+            kind: "bars",
+            title: "Semantic search p50 on the live Space, by benchmark run",
+            caption: "POST /api/search/semantic, 30 samples per run, from one machine in India. Run 6 coincided with an exhausted Redis quota, which affected the cached endpoints, not this one.",
+            unit: "ms",
+            max: 3500,
+            refs: [{ value: 300, label: "Network floor, no database: about 300 ms" }],
+            rows: [
+                { label: "Baseline", value: 3026, display: "3,026 ms", tag: "p95 3,915 ms", tone: "bad" },
+                { label: "Run 1", value: 2104, display: "2,104 ms", tag: "p95 2,569 ms · 3 statements", tone: "neutral" },
+                { label: "Run 2", value: 2154, display: "2,154 ms", tag: "p95 2,604 ms", tone: "neutral" },
+                { label: "Run 3", value: 2209, display: "2,209 ms", tag: "p95 2,605 ms", tone: "neutral" },
+                { label: "Run 4", value: 2167, display: "2,167 ms", tag: "p95 4,310 ms · 2 statements", tone: "neutral" },
+                { label: "Run 5", value: 1833, display: "1,833 ms", tag: "p95 2,302 ms · 1 statement", tone: "neutral" },
+                { label: "Run 6", value: 1661, display: "1,661 ms", tag: "p95 2,071 ms · best run", tone: "good" },
+                { label: "Run 7", value: 1686, display: "1,686 ms", tag: "p95 2,656 ms · latest", tone: "good" },
+            ],
+            source: "docs/perf/*.json in the Fuze repository (POST /api/search/semantic, p50 and p95 as recorded)",
+        },
+    ],
     "minidb-volcano-vs-vectorized-benchmark": [
         {
             kind: "ranges",
