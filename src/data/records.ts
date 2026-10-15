@@ -1489,7 +1489,7 @@ export const records: EngineeringRecord[] = [
         "featured": true,
         "question": "Is the 60% share of redis-a in the 100,000-request benchmark a defect in the ring, or a result of the Zipfian workload?",
         "method": "Recreated the workload of scripts/final_benchmark.py offline: 10,000 items (10 named queries such as 'iphone 16', then query_item_10 to query_item_9999), ranks from numpy.random.zipf(a=1.3) clipped to 10,000, 100,000 requests, mapped to nodes through ConsistentHashRing(500) using the cache key 'suggestion:<query>' (the service lower-cases and trims the prefix, which does not change these keys). Five seeds. Counted the owner of every item and of the top ten. This assumes every request is a hit on its owning node, which the live metrics count only for hits. The reproduction script is not in the repository.",
-        "result": "The ring balances keys but not traffic. The 10,000 keys split 3,361 (redis-a), 3,477 (redis-b) and 3,162 (redis-c), about 33.6% / 34.8% / 31.6%. The three most popular items ('iphone 16', 'chatgpt', 'samsung galaxy s24') all hash to redis-a; rank 1 alone is 25.2 to 25.7% of requests and rank 2 is 10.2 to 10.5%. Simulated request share of redis-a over five seeds: 59.77% to 59.98%. The repo reports 60.30 / 20.99 / 18.71 (docs/performance-report.md) and 60.58 / 20.82 / 18.60 (README.md, docs/unexpected-findings.md) for the same finding, and the README calls the workload 'real traffic', although the hot query names are synthetic and defined in final_benchmark.py. The proposed fix (an in-process L1 cache or hot-key replication) is not implemented: nothing like it exists in backend/app.",
+        "result": "The ring balances keys but not traffic. The 10,000 keys split 3,361 (redis-a), 3,477 (redis-b) and 3,162 (redis-c), about 33.6% / 34.8% / 31.6%. The three most popular items ('iphone 16', 'chatgpt', 'samsung galaxy s24') all hash to redis-a; rank 1 alone is 25.2 to 25.7% of requests and rank 2 is 10.2 to 10.5%. Simulated request share of redis-a over five seeds: 59.77% to 59.98%. A later, committed script (benchmarks/exp_claims.py) over 20 seeds gives 59.7% to 60.3%, with the rank-1 query alone at 25.2% to 25.7% of requests, and shows the 10,000 hot keys are named query_item_N and are not in the 150,000-row dataset. The repo reports 60.30 / 20.99 / 18.71 (docs/performance-report.md) and 60.58 / 20.82 / 18.60 (README.md, docs/unexpected-findings.md) for the same finding, and the README calls the workload 'real traffic', although the hot query names are synthetic and defined in final_benchmark.py. The proposed fix (an in-process L1 cache or hot-key replication) is not implemented: nothing like it exists in backend/app.",
         "measured": true,
         "numbers": [
             {
@@ -1532,6 +1532,12 @@ export const records: EngineeringRecord[] = [
                 "label": "66845c0",
                 "href": "https://github.com/Ujjwaljain16/TypeAheadX/commit/66845c0",
                 "note": "The ring whose placement produces the skew."
+            },
+            {
+                "type": "file",
+                "label": "benchmarks/exp_claims.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/benchmarks/exp_claims.py",
+                "note": "the committed script that reproduces the 59.7-60.3% hot-node share over 20 seeds"
             }
         ],
         "verification": "Ran my offline reproduction (hot.py) five seeds; read final_benchmark.py, performance-report.md, unexpected-findings.md; grepped backend/app for LRU/L1. The full stack (Redis x3, Postgres, API) was not started. Attribution: Course project: the README does not say so, but docs/phase4-completion.md@66845c0 contains 'Viva Talking Points' and the phase briefs 3.md, 4.md and 5.md (committed, then deleted in the next phase) are written as instructions to a student ('most students will completely mess up'), so the work followed a written brief. All 15 commits are by Ujjwaljain16, none has a Co-Authored-By trailer, and 14 of 15 fall on one day (2026-06-10, 00:23 to 21:22 +05:30; the last is 2026-06-22).",
@@ -3529,7 +3535,7 @@ export const records: EngineeringRecord[] = [
         "featured": false,
         "question": "How many of 100,000 cache keys change owner when a 4th node is added under hash(key) % N and under the 500-vnode ring?",
         "method": "scripts/rebalance_experiment.py generates 100,000 unique random keys 'suggestion:<4-10 random lowercase letters>' (unseeded), maps them with MD5 modulo over 3 then 4 nodes, then with ConsistentHashRing(virtual_nodes=500) over 3 nodes then after add_node('redis-d'), and counts changes. It was run three times. The arc ownership of redis-d in the 4-node ring was computed separately (deterministic). This is a course project.",
-        "result": "The repo reports 74.88% (modulo) and 26.44% (ring) in README.md and Project_Report.md. Three re-runs gave modulo 74,963 / 74,741 / 74,800 keys moved (74.96%, 74.74%, 74.80%) and ring 26,391 / 26,626 / 26,200 (26.39%, 26.63%, 26.20%). The values differ per run because the keys are unseeded; the repo figures are within that spread. Ring movement is about the new node's share of the ring: redis-d owns 26.27% of the 128-bit space with 500 vnodes (versus the ideal 25%), and the 4-node ownership is 24.54 / 25.18 / 24.01 / 26.27. Earlier doc versions: 75.00% and 24.64% at 1000 vnodes (66845c0), 74.97% and 26.18% at 500 (b116d06). Caveat: uniformly random keys, no traffic skew, and no runtime code path adds a node.",
+        "result": "The repo reports 74.88% (modulo) and 26.44% (ring) in README.md and Project_Report.md. A later audit script (benchmarks/exp_claims.py, committed) reports 26.36% of keys moving when a fourth node is added, against an ideal of 25%. Three re-runs gave modulo 74,963 / 74,741 / 74,800 keys moved (74.96%, 74.74%, 74.80%) and ring 26,391 / 26,626 / 26,200 (26.39%, 26.63%, 26.20%). The values differ per run because the keys are unseeded; the repo figures are within that spread. Ring movement is about the new node's share of the ring: redis-d owns 26.27% of the 128-bit space with 500 vnodes (versus the ideal 25%), and the 4-node ownership is 24.54 / 25.18 / 24.01 / 26.27. Earlier doc versions: 75.00% and 24.64% at 1000 vnodes (66845c0), 74.97% and 26.18% at 500 (b116d06). Caveat: uniformly random keys, no traffic skew, and no runtime code path adds a node.",
         "measured": true,
         "numbers": [
             {
@@ -3572,6 +3578,12 @@ export const records: EngineeringRecord[] = [
                 "label": "rebalance_experiment.py",
                 "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/scripts/rebalance_experiment.py",
                 "note": "Re-runnable without Redis or Postgres."
+            },
+            {
+                "type": "file",
+                "label": "benchmarks/results/experiments/claims.json",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/benchmarks/results/experiments/claims.json",
+                "note": "keys_moved_adding_4th_node_pct 26.36 and the ring ownership at 150 and 500 virtual nodes"
             }
         ],
         "verification": "Ran the script three times (Python 3.11.9) and my own ownership script; compared with README.md, Project_Report.md and the docs at 66845c0 and b116d06. Attribution: Course project: the README does not say so, but docs/phase4-completion.md@66845c0 contains 'Viva Talking Points' and the phase briefs 3.md, 4.md and 5.md (committed, then deleted in the next phase) are written as instructions to a student ('most students will completely mess up'), so the work followed a written brief. All 15 commits are by Ujjwaljain16, none has a Co-Authored-By trailer, and 14 of 15 fall on one day (2026-06-10, 00:23 to 21:22 +05:30; the last is 2026-06-22)."
@@ -5857,6 +5869,757 @@ export const records: EngineeringRecord[] = [
             }
         ],
         "verification": "Read the pull request description (the read-only filesystem, the two volumes, the Docker check and the kind-cluster check it reports) and static-analysis.md, which says the exception was removed instead of extended. I did not re-run those checks."
+    },
+    {
+        "id": "typeaheadx-cache-invalidation-never-invalidated",
+        "kind": "investigation",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "The cache's 'active invalidation' never invalidated: reads and deletes used two different key strings",
+        "date": "2026-10-15",
+        "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); finding F-03 in docs/postmortems.md",
+        "featured": false,
+        "question": "The architecture's freshness story is that a flush invalidates the cached suggestions for the prefixes it changed. Does a new query become visible after a flush?",
+        "method": "The simplest end-to-end loop: GET /suggest?q=zzq (cached as an empty result), POST /search five times, flush, GET again, and read the debug endpoint for the key's remaining TTL. Then two tests that run the loop.",
+        "result": "No: it stayed empty, and the debug endpoint showed the key alive with 288 s of TTL left. Reads cached under suggestion:<prefix> while the batch worker deleted suggest:<prefix>, two hand-written strings that never matched. The fix is one function that builds the key, used by reads, invalidation and the debug endpoint, and invalidation is batched per node. Limit: invalidation is still best-effort; a reader that loaded from PostgreSQL before a commit can re-populate a key after the delete, and that entry lives at most the 300 s TTL. Closing that needs versioned keys or write-through.",
+        "measured": false,
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "test",
+                "label": "test_batch_worker.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/tests/test_batch_worker.py",
+                "note": "test_invalidation_deletes_exactly_the_keys_the_read_path_uses"
+            },
+            {
+                "type": "test",
+                "label": "test_api_integration.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/tests/test_api_integration.py",
+                "note": "test_search_then_flush_makes_the_new_query_visible_despite_a_cached_empty_result"
+            },
+            {
+                "type": "doc",
+                "label": "docs/postmortems.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/postmortems.md",
+                "note": "symptom, root cause, fix, trade-off and lesson for each finding"
+            }
+        ],
+        "verification": "Read postmortems.md finding 1 and the two test names in the repository. I did not re-run the loop; the audit's mutation check (benchmarks/mutation_smoke.py, mutant M1) re-introduces this exact defect and the suite fails."
+    },
+    {
+        "id": "typeaheadx-one-redis-node-down-took-the-api-down",
+        "kind": "investigation",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Losing one of three Redis nodes caused 36-38% errors; the root cause was the client's default retries",
+        "date": "2026-10-15",
+        "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); ADR-004 and finding F-07 in docs/postmortems.md",
+        "featured": true,
+        "question": "Two thirds of the keys live on healthy nodes. Why would stopping one Redis node take down the API?",
+        "method": "benchmarks/run_bench.py --scenario outage at 100 requests per second, stopping and, separately, pausing one Redis container for 20 s, with a per-second timeline of successes, two repetitions each. Then direct timing of a single Redis call with a 250 ms timeout against a black-holed address and a refused port.",
+        "result": "The original code logged the error and treated it as a miss, but the endpoint is synchronous in a 40-thread pool: each request routed to the dead node blocked a thread on its socket timeout for the GET and again for the SET, so after about 40 such requests nothing could be served. Measured: 36-38% errors and about 16-17 s with zero successful requests. A per-node circuit breaker with 250 ms timeouts helped, but the timeline still showed a 5 s stall at the moment of failure. The real cause was the client: redis-py 6 retries failed commands three times with exponential backoff by default, so a 250 ms timeout took 7.65 s against a black hole and 4.8 s against a refused port, against 0.25 s with retries disabled. With the breaker and retries off, the same runs show 0 errors and a p99 of about 9 ms. One Windows laptop (16 logical CPUs, 16 GB), Docker Desktop with PostgreSQL 15 and three Redis 7 nodes, one uvicorn worker, loopback, synthetic keystroke traffic drawn from a 150,000-row dataset; no production traffic exists.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Errors at 100 rps with one node stopped or frozen, original / now",
+                "value": "36-38% / 0%",
+                "source": "docs/postmortems.md finding 2; benchmarks/results/ab_baseline and ab2_final2 (2 repetitions each)"
+            },
+            {
+                "label": "Seconds with zero successful requests, original",
+                "value": "about 16-17 s",
+                "source": "docs/postmortems.md finding 2"
+            },
+            {
+                "label": "A 250 ms timeout, with redis-py's default retries / retries off",
+                "value": "7.65 s (black hole), 4.8 s (refused) / 0.25 s",
+                "source": "docs/adrs/004-cache-failure-handling.md"
+            },
+            {
+                "label": "p99 with a node down, now",
+                "value": "about 9 ms",
+                "source": "docs/adrs/004-cache-failure-handling.md"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "doc",
+                "label": "ADR-004",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/adrs/004-cache-failure-handling.md",
+                "note": "problem, alternatives, decision and consequences"
+            },
+            {
+                "type": "test",
+                "label": "test_cache_resilience.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/tests/test_cache_resilience.py",
+                "note": "a dead node costs one call; a single probe among 16 racing threads; a failed call is bounded under 1 s with a real black-holed socket"
+            },
+            {
+                "type": "file",
+                "label": "backend/app/utils/breaker.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/app/utils/breaker.py",
+                "note": "the per-node circuit breaker"
+            },
+            {
+                "type": "doc",
+                "label": "docs/postmortems.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/postmortems.md",
+                "note": "symptom, root cause, fix, trade-off and lesson for each finding"
+            }
+        ],
+        "verification": "Read ADR-004 and the post-mortem, and checked the committed outage result files exist under benchmarks/results. I did not re-run the outage scenarios. Two repetitions per case."
+    },
+    {
+        "id": "typeaheadx-lost-updates-in-the-flush",
+        "kind": "investigation",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Concurrent flushers lost 67-70% of the counter updates, until the merge moved into one SQL statement",
+        "date": "2026-10-15",
+        "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); finding F-06 in docs/postmortems.md",
+        "featured": true,
+        "question": "Does the batch flush keep every popularity increment when more than one process flushes at once?",
+        "method": "benchmarks/exp_lost_update.py: 6 processes, each doing 40 flushes of 3 increments on the same query, so 720 increments are expected; run against the original code and the fixed code. With one process the original loses nothing.",
+        "result": "The original stored 234 and 216 of the expected 720 (67.5% and 70.0% lost) in two runs; the fixed code stored 720. The cause is a classic lost update: SELECT the row, add in Python, UPSERT the computed value, which is invisible with one worker. The merge now happens in SQL under the row lock (historical_count = queries.historical_count + EXCLUDED.historical_count), the decay is computed on the database clock, and rows are inserted in sorted order so overlapping batches cannot deadlock, all in one INSERT ... SELECT FROM unnest(...) statement. A flush of 100 queries went from about 500 ms to about 14 ms. A related fault in the same path: one 6,000-character query in a batch made PostgreSQL reject its index entry and the whole batch of five events was dropped silently; the fix validates once centrally, bisects a rejected batch to drop only the bad row, and re-queues the remainder if the database is unreachable (a committed batch is never re-queued, so nothing is double counted). Trade-off: the decay formula now lives in SQL and in a Python reference class that a test pins to it.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Increments stored of 720 expected, original (2 runs) / fixed",
+                "value": "234 and 216 / 720",
+                "source": "benchmarks/results/experiments/lost_update.jsonl"
+            },
+            {
+                "label": "Share lost, original",
+                "value": "67.5% and 70.0%",
+                "source": "benchmarks/results/experiments/lost_update.jsonl"
+            },
+            {
+                "label": "Flush of 100 queries, original / fixed",
+                "value": "about 500 ms / about 14 ms",
+                "source": "docs/postmortems.md finding 3; benchmarks/exp_flush_duration.py"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "test",
+                "label": "test_repository_pg.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/tests/test_repository_pg.py",
+                "note": "test_concurrent_flushers_do_not_lose_updates, against real PostgreSQL"
+            },
+            {
+                "type": "test",
+                "label": "test_batch_worker.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/tests/test_batch_worker.py",
+                "note": "the seven batch-failure cases: poison row, bisect, re-queue, no double count"
+            },
+            {
+                "type": "file",
+                "label": "benchmarks/exp_lost_update.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/benchmarks/exp_lost_update.py",
+                "note": "the experiment"
+            },
+            {
+                "type": "file",
+                "label": "lost_update.jsonl",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/benchmarks/results/experiments/lost_update.jsonl",
+                "note": "the raw results: baseline 234 and 216 of 720, fixed 720"
+            }
+        ],
+        "verification": "Read the committed lost_update.jsonl (234 and 216 of 720, 67.5% and 70.0%; fixed 720) and the post-mortem. I did not re-run the experiment. One machine, 6 processes."
+    },
+    {
+        "id": "typeaheadx-frozen-postgres-starved-the-service",
+        "kind": "investigation",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "A frozen PostgreSQL left 14 s of zero successful requests; a deadline, bulkhead and breaker cut it to 0",
+        "date": "2026-10-15",
+        "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); ADR-006 and finding F-27 in docs/postmortems.md",
+        "featured": true,
+        "question": "What does the API do when PostgreSQL stops answering without closing its connections, as a frozen process or a stuck failover would?",
+        "method": "docker pause on the PostgreSQL container for 20 s at about 60 requests per second, two repetitions per variant, with a per-second timeline. Then the healthy-path cost, measured in four interleaved repetitions at 400 requests per second of all-miss traffic.",
+        "result": "The original had 14 s with zero successful requests, with requests hanging for about 6 s, including requests that could have been answered from the cache. A synchronous driver call cannot be interrupted client-side, and when a server freezes the kernel still ACKs, so no TCP timeout ever fires; every cache miss holds one of the 40 request threads. Reads now go through a 2 s deadline, a bulkhead of at most 15 calls with a 50 ms wait for a slot, and a circuit breaker, so misses fail instantly with 503 and Retry-After while cache hits keep being served: 0 seconds without a success, slowest request 2.0 s, p99 12-18 ms. The error rate is unchanged (about 26-32%, because misses cannot be answered), but the errors are immediate. Cost when healthy: about 0.4 ms median on the miss path. A regression the audit introduced and then measured away: the first guard rejected instantly at 12 slots and let saturation open the breaker, which produced spurious 503s in 3 of 6 runs; raising the limit to the pool size and not letting saturation trip the breaker gave 0 of 4. One Windows laptop (16 logical CPUs, 16 GB), Docker Desktop with PostgreSQL 15 and three Redis 7 nodes, one uvicorn worker, loopback, synthetic keystroke traffic drawn from a 150,000-row dataset; no production traffic exists.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Seconds with zero successful requests during a 20 s freeze, original / now",
+                "value": "14 / 0",
+                "source": "docs/adrs/006-write-path-durability-and-db-deadlines.md (2 repetitions)"
+            },
+            {
+                "label": "Slowest request, original / now",
+                "value": "about 6 s / 2.0 s",
+                "source": "docs/adrs/006-write-path-durability-and-db-deadlines.md"
+            },
+            {
+                "label": "p99, original / now",
+                "value": "about 5 s / 12-18 ms",
+                "source": "docs/adrs/006-write-path-durability-and-db-deadlines.md"
+            },
+            {
+                "label": "Added median latency on the healthy miss path",
+                "value": "about 0.4 ms",
+                "source": "docs/postmortems.md finding 5 (4 interleaved repetitions)"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "doc",
+                "label": "ADR-006",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/adrs/006-write-path-durability-and-db-deadlines.md",
+                "note": "the read deadline, bulkhead and breaker, and why writes are deliberately not guarded"
+            },
+            {
+                "type": "file",
+                "label": "backend/app/database/guard.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/app/database/guard.py",
+                "note": "the guard"
+            },
+            {
+                "type": "test",
+                "label": "test_database_guard.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/tests/test_database_guard.py",
+                "note": "tests of the guard"
+            },
+            {
+                "type": "doc",
+                "label": "docs/postmortems.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/postmortems.md",
+                "note": "symptom, root cause, fix, trade-off and lesson for each finding"
+            }
+        ],
+        "verification": "Read ADR-006, the post-mortem and the guard's test file name. I did not re-run the freeze. Two repetitions per variant; the guard does not tear down the hung connection, so up to 15 worker threads can stay blocked until the database answers."
+    },
+    {
+        "id": "typeaheadx-trending-ranking-did-not-trend",
+        "kind": "investigation",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "The 'trending' feature did not trend: the docs ranked by recent activity and the SQL ignored it",
+        "date": "2026-10-15",
+        "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); ADR-005 and finding F-10 in docs/postmortems.md",
+        "featured": false,
+        "question": "The documentation says results are ranked by historical_count + 10 x recent_count. Is that what the query does?",
+        "method": "Reading the SQL against the documented formula and the index statistics, then an end-to-end test: 120 searches for one query, flush, and read the ranking.",
+        "result": "The documented formula was not implemented: the SQL ordered by historical_count only; recent_count was written and never read, and the supporting index had zero scans. Wiring the stored value in would not have been enough either, because a stored decayed value only decays when the row is written, so a query that went viral yesterday and was never searched again would stay boosted forever. The score is now decayed at read time, score = historical_count + beta x recent_count x exp(-lambda x hours since update), with the same lambda as the write path. Queries never searched through /search sort exactly as before. Verified end to end: 120 searches make a query with count 347 rank above one with count 987, and with no new writes it falls back as the decay proceeds. Cost: the score is computed for every row matching the prefix, so the worst case, a one-character prefix matching 6,177 rows, went from 4.4 to 5.2 ms (EXPLAIN ANALYZE, same plan). Beta and lambda are the documented defaults, not tuned on real traffic.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Worst-case one-character prefix (6,177 rows), before / after",
+                "value": "4.4 ms / 5.2 ms",
+                "source": "docs/adrs/005-read-time-trending-ranking.md (EXPLAIN ANALYZE)"
+            },
+            {
+                "label": "120 searches: count of the boosted query / count it outranks",
+                "value": "347 / 987",
+                "source": "docs/postmortems.md finding 6"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "doc",
+                "label": "ADR-005",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/adrs/005-read-time-trending-ranking.md",
+                "note": "alternatives (stored value, periodic decay job, precomputed top-K), decision and consequences"
+            },
+            {
+                "type": "test",
+                "label": "test_trending.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/tests/test_trending.py",
+                "note": "ranking tests, including that the decay formula in SQL matches the Python reference"
+            },
+            {
+                "type": "doc",
+                "label": "docs/postmortems.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/postmortems.md",
+                "note": "symptom, root cause, fix, trade-off and lesson for each finding"
+            }
+        ],
+        "verification": "Read ADR-005, the post-mortem and the test file name. I did not re-run the EXPLAIN. A local 150,000-row sample."
+    },
+    {
+        "id": "typeaheadx-unbounded-write-buffer-and-50mb-post",
+        "kind": "investigation",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "The unauthenticated write path accepted a 50 MB query and an unbounded buffer; it now sheds load with a 503",
+        "date": "2026-10-15",
+        "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); findings F-11 and the write-freeze experiment",
+        "featured": false,
+        "question": "What can an anonymous client do to the service through POST /search, and what happens to the write buffer while the database is frozen?",
+        "method": "A single 50 MB POST /search. And benchmarks/exp_write_freeze.py: 150,000 unique POSTs while the database is frozen, then recovery, comparing the original with the fixed code.",
+        "result": "The 50 MB body was accepted (HTTP 200, about 147 MB more server memory) and queued as one query. With the database frozen, the original accepted all 150,000 unique queries, its buffer held 149,492 of them and its memory grew from 81.9 to 112.5 MB; all 150,000 persisted after recovery. The fix is a 16 KiB body limit (also for chunked bodies), a 200-character query limit and a cap of 50,000 distinct queries in the buffer, with an explicit 503 and Retry-After beyond it. Same experiment afterwards: 50,537 accepted and persisted, 99,463 rejected with 503, memory 83.1 to 98.9 MB. An early reading of this experiment as '99% data loss' was a measurement bug, retracted: the problem is unbounded memory, not loss. Still open: there is no authentication or rate limiting, so anyone can inject suggestions; that needs a gateway or product decision.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Server memory while the database is frozen and 150,000 unique queries are posted, original / fixed",
+                "value": "81.9 to 112.5 MB / 83.1 to 98.9 MB",
+                "source": "benchmarks/results/experiments/write_freeze.jsonl"
+            },
+            {
+                "label": "Queries rejected with 503 by the fixed code",
+                "value": "99,463 of 150,000 (50,537 accepted, all persisted)",
+                "source": "benchmarks/results/experiments/write_freeze.jsonl"
+            },
+            {
+                "label": "Memory added by one 50 MB POST, original",
+                "value": "about 147 MB",
+                "source": "docs/postmortems.md finding 8"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "file",
+                "label": "write_freeze.jsonl",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/benchmarks/results/experiments/write_freeze.jsonl",
+                "note": "raw results for the baseline and the fixed code"
+            },
+            {
+                "type": "file",
+                "label": "benchmarks/exp_write_freeze.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/benchmarks/exp_write_freeze.py",
+                "note": "the experiment"
+            },
+            {
+                "type": "doc",
+                "label": "docs/postmortems.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/postmortems.md",
+                "note": "findings 4 and 8, including what is still open"
+            }
+        ],
+        "verification": "Read the committed write_freeze.jsonl (baseline 150,000 accepted, 81.9 to 112.5 MB; fixed 50,537 accepted, 99,463 rejected, 83.1 to 98.9 MB) and the post-mortem. I did not re-run it."
+    },
+    {
+        "id": "typeaheadx-cache-stampede-single-flight",
+        "kind": "investigation",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "200 simultaneous identical misses ran 3.5-10 database queries each; single-flight made it exactly 1",
+        "date": "2026-10-15",
+        "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); optimization O-4 in docs/optimizations.md",
+        "featured": false,
+        "question": "When many requests miss the cache for the same prefix at once, how many times does the database run the same query?",
+        "method": "200 simultaneous requests for each of 20 prefixes, five interleaved repetitions of original against current, counting the exact statements in the PostgreSQL log rather than inferring from latency.",
+        "result": "The original ran 3.5 to 10.1 queries per prefix, depending on the session. With a per-process single-flight (concurrent identical misses wait for one load) it ran exactly 1.0 in all 15 runs, and the burst median latency fell from about 430 ms to about 180 ms. On the Linux CI runner, where the PostgreSQL log is not available, transactions were counted instead: about 17-20 per key for the original against about 2 per key now (p50 383 ms to 121 ms), so the exact 1.0 is the laptop result. Limit: the single-flight is per process, so with several workers each can still run one query; a shared Redis lock was considered and not built, because the per-process version already removes the observed amplification.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Database queries per prefix, original / current",
+                "value": "3.5-10.1 / 1.0 (15 of 15 runs)",
+                "source": "docs/optimizations.md O-4 (exact statement count from the PostgreSQL log)"
+            },
+            {
+                "label": "Burst p50, original / current",
+                "value": "about 430 ms / about 180 ms",
+                "source": "docs/benchmarks.md"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "doc",
+                "label": "docs/optimizations.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/optimizations.md",
+                "note": "O-4: problem, change, result and the alternatives not taken"
+            },
+            {
+                "type": "doc",
+                "label": "docs/benchmarks.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/benchmarks.md",
+                "note": "the headline table with the stampede row and the measurement conditions"
+            }
+        ],
+        "verification": "Read optimizations.md O-4 and the benchmarks table (3.5-10.1 to 1.0, 430 to 180 ms). I did not re-run it. One Windows laptop (16 logical CPUs, 16 GB), Docker Desktop with PostgreSQL 15 and three Redis 7 nodes, one uvicorn worker, loopback, synthetic keystroke traffic drawn from a 150,000-row dataset; no production traffic exists."
+    },
+    {
+        "id": "typeaheadx-benchmark-harness-measurement-traps",
+        "kind": "investigation",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "The benchmark could not be trusted: closed-loop load, a 12 ms timer bug and a machine that drifted by 2x",
+        "date": "2026-10-15",
+        "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); finding 10 in docs/postmortems.md and docs/benchmarks.md",
+        "featured": true,
+        "question": "Are the original benchmark's numbers, and the audit's first replacement numbers, measuring the service or the instrument?",
+        "method": "Calibrating the load generator against /health, repeating identical code across hours, and comparing every original-versus-current pair in interleaved order (A, B, A, B), with three repetitions per point, medians with ranges and block-bootstrap confidence intervals on the raw per-request data.",
+        "result": "Four problems, each fixed or avoided. (1) The original benchmark was closed-loop: it sent chunks of 100 and waited, so '100,000 concurrent requests' never exceeded 100 in flight and a slow server simply received fewer requests. The new generator is open-loop: it schedules arrivals at a fixed rate and measures latency from the intended send time, so it does not hide queueing (coordinated omission). (2) The first replacement generator lied too: asyncio.sleep(1 ms) took 12-15 ms on Windows (a power-throttled timer), inflating every latency by up to 15 ms, and a psutil call holding the GIL added jitter; spinning before each send, persistent connections and recording dispatch lag fixed it. (3) The machine drifts: identical baseline code measured 3.5-4 ms p50 in one hour and 1.8-2 ms two hours later, with a knee at 300 rps against 650 rps, so every headline comparison is interleaved. (4) A result that confirmed the hypothesis too neatly was wrong: an early 'about 99% data loss' during a database freeze was a measurement bug and the claim was deleted. A first non-interleaved matrix was invalid because of the drift and is kept only as a sanity set.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "asyncio.sleep(1 ms) on the Windows laptop",
+                "value": "12-15 ms",
+                "source": "docs/postmortems.md finding 10"
+            },
+            {
+                "label": "Identical baseline code, p50 an hour apart",
+                "value": "3.5-4 ms / 1.8-2 ms",
+                "source": "docs/postmortems.md finding 10"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "file",
+                "label": "benchmarks/loadgen.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/benchmarks/loadgen.py",
+                "note": "the open-loop load generator"
+            },
+            {
+                "type": "doc",
+                "label": "docs/benchmarks.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/benchmarks.md",
+                "note": "method, headline results and every caveat"
+            },
+            {
+                "type": "doc",
+                "label": "docs/postmortems.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/postmortems.md",
+                "note": "finding 10: measuring the system without fooling myself"
+            }
+        ],
+        "verification": "Read postmortems.md finding 10 and benchmarks.md, and listed the generator file. I did not re-run the calibration."
+    },
+    {
+        "id": "typeaheadx-linux-ci-runner-original-collapses",
+        "kind": "investigation",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "On a free Linux CI runner the original code collapsed at 500 rps and the current code held 900 rps",
+        "date": "2026-10-15",
+        "dateSource": "GitHub Actions run 38814469507 of benchmark.yml on 2026-10-15; documented in pull request #3 (2026-10-16 IST (2026-10-15 UTC))",
+        "featured": false,
+        "question": "Is the laptop result just a Windows artifact? Does the direction hold on Linux and with more than one worker?",
+        "method": "A workflow that runs the same interleaved original-versus-current comparison on a GitHub-hosted Ubuntu runner (4 vCPU shared with PostgreSQL, Redis and the load generator), with 1 and 2 workers and three repetitions per point.",
+        "result": "The direction and size agree with the laptop: per-request CPU is cut by roughly half or more, and the original saturates much earlier. At 500 requests per second with one worker the original served 61 OK per second with 99.5% errors, while the current code served 500 OK per second (p50 1.09 ms, p99 3.9 ms, CPU 44%); at 900 rps the original served nothing and the current code 900 OK per second (p99 6.7 ms, CPU 78%); with 2 workers the current code ran 1,500 rps with no errors while the original collapsed. Limits: the runner is shared and noisy, single points are unreliable, the saturation knees were not bracketed (the original was already collapsed at the first overloaded rate tried), and nothing beyond 2 workers was measured.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "500 rps, 1 worker, successful requests per second, original / current",
+                "value": "61 (99.5% errors) / 500",
+                "source": "docs/benchmarks.md, Linux section (run 38814469507)"
+            },
+            {
+                "label": "900 rps, 1 worker, successful requests per second, original / current",
+                "value": "0 / 900",
+                "source": "docs/benchmarks.md, Linux section"
+            }
+        ],
+        "verdict": "partial",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #3",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/3",
+                "note": "Showcase polish: docs, README, frontend tests and the Linux CI benchmark"
+            },
+            {
+                "type": "benchmark",
+                "label": "GitHub Actions run 38814469507",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/actions/runs/38814469507",
+                "note": "the benchmark workflow run (conclusion: success)"
+            },
+            {
+                "type": "file",
+                "label": ".github/workflows/benchmark.yml",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/.github/workflows/benchmark.yml",
+                "note": "the workflow that reproduces it"
+            },
+            {
+                "type": "doc",
+                "label": "docs/benchmarks.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/benchmarks.md",
+                "note": "the Linux section and its noise caveats"
+            }
+        ],
+        "verification": "Confirmed with the GitHub CLI that the run exists and concluded successfully, and read the Linux section of benchmarks.md. I did not re-run the workflow."
+    },
+    {
+        "id": "typeaheadx-circuit-breaker-and-retries-off",
+        "kind": "decision",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "One failing Redis node is isolated by a per-node circuit breaker with 250 ms timeouts and no client retries",
+        "date": "2026-10-15",
+        "dateSource": "ADR-004, dated 2026-10-16 IST (2026-10-15 UTC), implemented in pull request #1",
+        "featured": false,
+        "context": "The read path is synchronous Python in a 40-thread pool. A single dead Redis node out of three made each request routed to it block a thread on its socket timeout, and after about 40 such requests the pool was exhausted, including for requests that healthy nodes could have answered: 36-38% errors at 100 rps.",
+        "decision": "Each Redis node owns a circuit breaker: the first failure opens it for 5 s (with 0-20% jitter so processes do not probe in lock-step); while open, operations on that node are skipped as a miss with no network I/O; then exactly one probe is allowed; success closes it. Socket and connect timeouts are 250 ms, since a miss costs about 5 ms from PostgreSQL. Client retries are disabled. The client is created lazily so a node that is down at start-up is probed again later. Ring membership is not changed automatically.",
+        "alternatives": [
+            {
+                "option": "Remove the dead node from the ring",
+                "whyNot": "Remaps a third of the keyspace onto the survivors and needs health checking and agreement between processes."
+            },
+            {
+                "option": "Shorter timeouts only",
+                "whyNot": "Bounds each call but still pays it for every request routed to the dead node."
+            },
+            {
+                "option": "An async Redis client",
+                "whyNot": "Removes the thread-per-request cost but is a rewrite and does not by itself stop calling a dead dependency."
+            }
+        ],
+        "consequences": "A failed node's keys are cold misses that PostgreSQL absorbs, and invalidations sent while its breaker is open are skipped, so a node that was only partitioned can keep stale entries until the TTL. The breaker is per process, so with N workers each discovers the failure on its own with one failed call. Measured with a node stopped or frozen for 20 s at 100 rps: 0 errors, p99 about 9 ms, against 36-38% errors. A mutation check that re-introduces the default retries is caught by the suite.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "doc",
+                "label": "ADR-004",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/adrs/004-cache-failure-handling.md",
+                "note": "problem, the four alternatives, decision and consequences"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "file",
+                "label": "backend/app/utils/breaker.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/app/utils/breaker.py",
+                "note": "the breaker, shared with the database guard"
+            },
+            {
+                "type": "test",
+                "label": "test_cache_resilience.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/tests/test_cache_resilience.py",
+                "note": "dead node costs one call; single probe among racing threads; failed probe re-opens"
+            }
+        ],
+        "verification": "Read ADR-004 and listed the breaker and its test file. I did not run the tests."
+    },
+    {
+        "id": "typeaheadx-writes-at-most-once-reads-guarded",
+        "kind": "decision",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Database calls on reads get a deadline, bulkhead and breaker; writes deliberately get none",
+        "date": "2026-10-15",
+        "dateSource": "ADR-006, dated 2026-10-16 IST (2026-10-15 UTC), implemented in pull request #1",
+        "featured": true,
+        "context": "Selections arrive in bursts and are flushed in batches; separately, a hung database froze the whole service. Two coupled questions: what durability is promised for writes, and how a hung database is survived.",
+        "decision": "Reads: database calls run on at most 15 daemon worker threads (the pool size) and the request thread waits at most 2 s; a caller that cannot get a slot within 50 ms is rejected with 503 rather than queued; the first timeout or connection error opens a breaker for 5 s so misses fail instantly while cache hits are untouched. Writes: aggregated in process memory (bounded at 50,000 distinct queries, then 503 and Retry-After), flushed as one atomic statement every 10 s or 100 distinct queries, at most once, with no deadline. If the database is unreachable the uncommitted remainder is re-queued; a rejected batch is bisected to drop only the bad row; a committed batch is never re-queued.",
+        "alternatives": [
+            {
+                "option": "statement_timeout, TCP keepalives or tcp_user_timeout",
+                "whyNot": "Server-side or kernel-side, and none helps when the server process is frozen but the kernel still ACKs."
+            },
+            {
+                "option": "An async driver with task cancellation",
+                "whyNot": "The right long-term answer, but a rewrite of the repository, service, endpoints and flush."
+            },
+            {
+                "option": "Retrying writes with a deadline",
+                "whyNot": "A timed-out write may still execute when the database resumes, so retrying or re-queueing it would double count."
+            },
+            {
+                "option": "A journal or message broker for the write buffer",
+                "whyNot": "The measured exposure, at most about 10 s of counter increments on a crash, does not justify the operational cost."
+            }
+        ],
+        "consequences": "A crash loses at most one flush window of popularity counters, which the ADR accepts because they are statistics, not financial data, and says to revisit if the counters ever feed something that must be exact. Writes still block while the database is frozen, and up to 15 worker threads can stay blocked in hung calls because the guard does not tear down the connection. Measured: 0 seconds without a success in a 20 s freeze, slowest request 2.0 s; about 0.4 ms extra on the healthy miss path.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "doc",
+                "label": "ADR-006",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/adrs/006-write-path-durability-and-db-deadlines.md",
+                "note": "the decisions, the alternatives and the residual risks"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "file",
+                "label": "backend/app/database/guard.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/app/database/guard.py",
+                "note": "the read guard"
+            },
+            {
+                "type": "file",
+                "label": "backend/app/write_buffer/batch_worker.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/app/write_buffer/batch_worker.py",
+                "note": "the flush: bisect, re-queue and the bounded buffer"
+            }
+        ],
+        "verification": "Read ADR-006 and listed the guard and the batch worker. I did not run them."
+    },
+    {
+        "id": "typeaheadx-trending-score-decayed-at-read-time",
+        "kind": "decision",
+        "project": "TypeAheadX",
+        "projectId": "typeaheadx",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal (the original app is a course project; this work followed it)",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "The trending score is decayed when it is read, not when it is stored, and its index was dropped",
+        "date": "2026-10-15",
+        "dateSource": "ADR-005, dated 2026-10-16 IST (2026-10-15 UTC), implemented in pull request #1",
+        "featured": false,
+        "context": "ADR-003 stores a decayed recent_count per query, updated on flush, but the ranking itself was never implemented, and a stored decayed value only decays when the row is written.",
+        "decision": "Apply the remaining decay at read time: score = historical_count + beta x recent_count x exp(-lambda x hours since last_decay_at), with beta 10 and lambda 0.5 per hour shared with the write path. Ties fall back to historical_count descending then query ascending, so rows never searched through /search sort exactly as before, and the displayed count stays historical_count. The expression index is dropped, because an index cannot express a time-dependent score and the prefix index already narrows the candidates.",
+        "alternatives": [
+            {
+                "option": "Rank by the stored value",
+                "whyNot": "Wrong for idle queries: a query that went viral and was never searched again would stay boosted."
+            },
+            {
+                "option": "A periodic decay job over the whole table",
+                "whyNot": "O(rows) work on a schedule, which ADR-003 wanted to avoid."
+            },
+            {
+                "option": "Precompute top-K per prefix on write",
+                "whyNot": "Fastest reads but much more machinery; not justified at 150,000 rows."
+            }
+        ],
+        "consequences": "The score is computed for every row matching the prefix (worst case 4.4 to 5.2 ms for a one-character prefix), results are cached so a trend appears after the next invalidation and an old order can survive up to 300 s in the invalidation race, and result order can now differ from raw counts, which is intended. Beta and lambda are not tuned against real traffic.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "doc",
+                "label": "ADR-005",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/adrs/005-read-time-trending-ranking.md",
+                "note": "problem, four alternatives, decision, consequences and what is open"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #1",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/pull/1",
+                "note": "Audit: fix correctness and reliability defects, trending ranking, DB guard, CI, benchmarks and reports (squash commit b5d2a76)"
+            },
+            {
+                "type": "test",
+                "label": "test_trending.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/backend/tests/test_trending.py",
+                "note": "the ranking behaviour"
+            }
+        ],
+        "verification": "Read ADR-005 and listed the test file. I did not run the queries."
     }
 ];
 
