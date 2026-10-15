@@ -127,4 +127,22 @@ export const charts: Record<string, Chart[]> = {
             source: "GitHub releases API, asset sizes in bytes divided by 1,000,000",
         },
     ],
+    "campusslot-overlap-query-range-gist-index": [
+        {
+            kind: "bars",
+            title: "Pages read at 200,000 bookings, before and after the range index",
+            caption: "Pages read is the same on every run, so it is the number to trust; timings vary. Synthetic, regular data on a shared 4-CPU Minikube node.",
+            unit: "pages",
+            max: 2600,
+            rows: [
+                { label: "Overlap check, before", value: 2469, display: "2,469", tag: "19.47 ms", tone: "bad" },
+                { label: "Overlap check, after", value: 30, display: "30", tag: "0.41 ms", tone: "good" },
+                { label: "Day view, all rooms, before", value: 2515, display: "2,515", tag: "9.28 ms", tone: "bad" },
+                { label: "Day view, all rooms, after", value: 5, display: "5", tag: "0.11 ms", tone: "good" },
+                { label: "Rooms in use now, before", value: 2469, display: "2,469", tag: "81.95 ms", tone: "bad" },
+                { label: "Rooms in use now, after", value: 4, display: "4", tag: "0.11 ms", tone: "good" },
+            ],
+            source: "docs/engineering/data-scale.md in the CampusSlot repository (result table; times are medians of three runs)",
+        },
+    ],
 };

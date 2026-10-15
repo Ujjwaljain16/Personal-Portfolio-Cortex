@@ -95,4 +95,14 @@ export const diagrams: Record<string, Diagram> = {
             { title: "Public verification", detail: "Anyone can check a credential." },
         ],
     },
+    campusslot: {
+        caption: "Nothing is installed unless every gate passed and the image's signed attestation verifies. The cluster runs in CI (kind) and on a laptop (Minikube), not in production.",
+        steps: [
+            { title: "Push to main", detail: "Documentation-only changes skip the heavy jobs; the secret scan always runs." },
+            { title: "Gates", detail: "Backend and frontend tests, PostgreSQL tests, static analysis, and Trivy on the images, the Terraform and the Helm chart." },
+            { title: "Build, scan, attest", detail: "Both images are built in parallel, pushed by digest, and given signed provenance and an SBOM." },
+            { title: "Verify, then deploy", detail: "The deploy job refuses an image without a valid attestation, installs the chart into a throw-away kind cluster and smoke-tests it through the ingress." },
+            { title: "Observe", detail: "Prometheus SLO alerts, Loki logs and a Grafana dashboard on the local cluster; Argo CD applies the promoted values." },
+        ],
+    },
 };

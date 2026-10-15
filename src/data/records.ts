@@ -4676,6 +4676,1187 @@ export const records: EngineeringRecord[] = [
             }
         ],
         "verification": "Read commit messages and diffs of 2fe5988, 583c5c4, 33419b4, 7fb60ed, f360bba; read embedding_utils.py at HEAD; ran git log --all --name-only and searched for production_optimizations (only two .md summary files match, no .py); ran tests/test_embedding_utils.py (passes, 3 tests, none about lazy loading). Attribution: Authored by Ujjwaljain16; none of the cited commits carries a Claude co-author trailer."
+    },
+    {
+        "id": "campus-public-verification-failed-on-every-credential",
+        "kind": "investigation",
+        "project": "CampusSync",
+        "projectId": "campussync",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Public credential verification failed for every credential: the verifier was handed the private key",
+        "date": "2026-10-14",
+        "dateSource": "commit d775688 (2026-10-14), merged to main in pull request #11 on 2026-10-14",
+        "featured": true,
+        "question": "Does the public verification endpoint, the thing a recruiter relies on, work, and is revocation enforced on every path that answers a verification request?",
+        "method": "A review of commit 91d0c77 (static reading of the verification routes plus targeted tests; not a penetration test and no outside reviewer). Findings C-02 and C-03 in docs/AUDIT-CLOSURE.md. The fix added tests that reproduce the old behaviour as well as tests of the new one.",
+        "result": "Every public verification failed. The old code imported the private signing key and passed it to jwtVerify, which throws, so every genuine credential verified as invalid (a regression test, 'importJWK(privateJwk) + jwtVerify throws', reproduces it, and a second one shows the old code pinned no algorithm). Revocation was also enforced on only one verification path: it read a revocation_list table the database does not have and a revoked column that nothing else read. The fix is one verifyCredential() service, used by every public endpoint, that derives the public key, pins the algorithm and reads status from verifiable_credentials.status. It is fail-closed: a lookup error, a lookup that throws, or an unrecognised status all make the credential invalid. Tests cover a tampered payload, a token signed by another key, alg:none, an HS256 token signed with the public key bytes (algorithm confusion), expiry and not-before. Who was affected: anyone calling the public endpoint got wrong answers (availability and trust, not a data leak). After deployment the public verify route, /.well-known/did.json and /.well-known/jwks.json were checked on the live site.",
+        "measured": false,
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "d775688",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/commit/d775688",
+                "note": "fix(vc): verify with public key, enforce revocation on every path, add jwks endpoint"
+            },
+            {
+                "type": "test",
+                "label": "tests/vc/vcVerify.test.ts",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/tests/vc/vcVerify.test.ts",
+                "note": "sign then verify, tampered, wrong key, alg:none, HS256 confusion, revoked, fail-closed lookups, and a 'regression: the old verifyCredentialJws logic' block that reproduces the old failure"
+            },
+            {
+                "type": "file",
+                "label": "src/lib/vcVerify.ts",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/src/lib/vcVerify.ts",
+                "note": "the single verifyCredential() service used by every public endpoint"
+            },
+            {
+                "type": "doc",
+                "label": "docs/AUDIT-CLOSURE.md",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/docs/AUDIT-CLOSURE.md",
+                "note": "findings C-02 and C-03 and their status; also says what 'fixed' does and does not mean"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #11",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/pull/11",
+                "note": "Audit fixes: verification, authorization, privacy, ops"
+            }
+        ],
+        "verification": "Read vcVerify.test.ts and vcVerify.ts at HEAD and the closure report; ran the whole suite on main on 2026-10-16 (80 files, 1,432 tests pass). The 'old logic' block in the test file is the reproduction of the old failure; I did not check out the old commit and run it."
+    },
+    {
+        "id": "campus-cross-tenant-admin-escalation",
+        "kind": "investigation",
+        "project": "CampusSync",
+        "projectId": "campussync",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "An admin of one organization could act on another: a global role plus membership in any organization",
+        "date": "2026-10-14",
+        "dateSource": "commit 1e4d1cd (2026-10-14), merged to main in pull request #11 on 2026-10-14",
+        "featured": false,
+        "question": "In a multi-tenant system where roles are stored per organization, can an admin of organization A act on organization B's data?",
+        "method": "Reading the authorization code path of every admin route in the review of commit 91d0c77 (finding C-05), then writing route tests against a fake database to demonstrate it and to pin the fix. Not tried against the production database.",
+        "result": "Yes: an admin of one organization could act on another, because authorization combined a global role check with 'the user has some role row in some organization', so being admin in A and a member anywhere in B was enough. Some guards also compared a value to itself and so never refused anything. The fix is one function, authorizeOrg(), that reads only the caller's approved role rows and requires the role in the organization being acted on; guards were replaced and a per-route test suite under tests/api/authz runs the real route handlers against a fake database. A related finding (C-06) is that users with several role rows were resolved by the earliest row; they are now ranked deterministically. Limit: the escalation was shown only against the fake database, never against production, and it needed a signed-in admin account to exploit.",
+        "measured": false,
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "1e4d1cd",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/commit/1e4d1cd",
+                "note": "fix(authz): per-organization authorization core; enforce organization-scoped authorization"
+            },
+            {
+                "type": "file",
+                "label": "src/lib/api/utils/authorize.ts",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/src/lib/api/utils/authorize.ts",
+                "note": "authorizeOrg(), resolveAdminOrg() and assertSuperAdmin()"
+            },
+            {
+                "type": "test",
+                "label": "tests/api/authz",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/tree/HEAD/my-app/tests/api/authz",
+                "note": "route tests that run the real handlers against a fake database"
+            },
+            {
+                "type": "doc",
+                "label": "docs/AUDIT-CLOSURE.md",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/docs/AUDIT-CLOSURE.md",
+                "note": "findings C-05 and C-06"
+            }
+        ],
+        "verification": "Read authorize.ts and the authz tests at HEAD and the closure report; ran the suite on main on 2026-10-16 (80 files, 1,432 tests pass). I did not try the escalation against any database."
+    },
+    {
+        "id": "campus-credential-lookup-json-scan-benchmark",
+        "kind": "investigation",
+        "project": "CampusSync",
+        "projectId": "campussync",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Credential lookup fell from 1,172 ms to 0.2 ms with an indexed column; one claimed speed-up was withdrawn",
+        "date": "2026-10-15",
+        "dateSource": "commit f17aadf (2026-10-15) adds the GitHub Actions reference run and withdraws the insert claim; merged in pull request #30",
+        "featured": true,
+        "question": "How much of the schema cleanup (17 tables to 13, fewer indexes, an indexed certificate_id on credentials) actually makes queries faster, and which of the early numbers survive a controlled repeat?",
+        "method": "pgbench-style query shapes on PostgreSQL 17 with about one million certificates, run on the original schema and on the schema produced by the 20261015 migrations, with identical rows in both. Run 1 was a single run on a laptop; run 2 (the reference) ran three rounds on a GitHub Actions runner, with median and range per query. The 'before' schema is a reconstruction of production from the owner's introspection of 2026-10-14: it matches the live database in table count (17) and index count (109) but is not a dump of it. Data is synthetic. Database time only: no API layer, no network, no real traffic.",
+        "result": "The credential lookup (find the credential for a certificate) was a JSON-containment scan on the signed credential, with no index that could serve it. It now uses an indexed certificate_id column filled by a trigger and backfilled by the migration. At about 280,000 credentials the median went from 1,172 ms to 0.207 ms and throughput from 6 to 37,280 queries per second (run 1 on a laptop: 434 ms to 0.102 ms; two machines agree). A paginated top-50 pending query for an organization is about 3.9 times faster, but the production route has no LIMIT and selects every column, and it is about 9 percent slower after the cleanup because rows are wider; the 3.9x applies only to a paginated version the route does not use. Organization analytics did not change (0.97x). The 5.3x insert speed-up seen in run 1 did not reproduce (about 6 percent in the controlled run), so it was withdrawn in writing in the same commit that added the reference run.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Credential lookup median, before / after",
+                "value": "1,172 ms / 0.207 ms",
+                "source": "docs/BENCHMARKS.md, run 2 (GitHub Actions run 38721869813), range 883-1,188 / 0.206-0.208 ms over 3 rounds"
+            },
+            {
+                "label": "Credential lookup throughput, before / after",
+                "value": "6 / 37,280 per second",
+                "source": "docs/BENCHMARKS.md, run 2"
+            },
+            {
+                "label": "Paginated top-50 pending query, before / after",
+                "value": "4,227 / 16,286 per second (about 3.9x)",
+                "source": "docs/BENCHMARKS.md, run 2; not the shape the production route uses"
+            },
+            {
+                "label": "Production pending route (no LIMIT, select all columns)",
+                "value": "about 9 percent slower",
+                "source": "docs/BENCHMARKS.md, run 2"
+            },
+            {
+                "label": "Insert throughput, run 1 / run 2",
+                "value": "5.3x claimed / about 6 percent (withdrawn)",
+                "source": "docs/BENCHMARKS.md section 5"
+            }
+        ],
+        "verdict": "partial",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "f17aadf",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/commit/f17aadf",
+                "note": "benchmarks: reference run on GitHub Actions (3 rounds, median and range); withdraw the insert speed-up that did not reproduce"
+            },
+            {
+                "type": "benchmark",
+                "label": "docs/BENCHMARKS.md",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/docs/BENCHMARKS.md",
+                "note": "both runs, the baseline definition, what each claim rests on and which were withdrawn"
+            },
+            {
+                "type": "benchmark",
+                "label": "GitHub Actions run 38721869813",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/actions/runs/38721869813",
+                "note": "the reference run, workflow benchmark-db.yml at revision a704d22"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #26",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/pull/26",
+                "note": "the schema cleanup the 'after' side measures"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #30",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/pull/30",
+                "note": "benchmarks: reference run; withdraw the insert claim"
+            }
+        ],
+        "verification": "Read BENCHMARKS.md and checked the figures quoted here against its tables (1,172 / 0.207 ms, 6 / 37,280 per second, 3.9x, 9 percent, the withdrawn 5.3x). I did not re-run the benchmark."
+    },
+    {
+        "id": "campus-authorization-from-one-table",
+        "kind": "decision",
+        "project": "CampusSync",
+        "projectId": "campussync",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Roles live in one table: profiles.role and user_roles.is_super_admin were removed, not kept in sync",
+        "date": "2026-10-15",
+        "dateSource": "pull request #26 (schema cleanup, migrations 20261015_*), merged 2026-10-15",
+        "featured": false,
+        "context": "Authority was spread over several places: profiles.role, a legacy is_super_admin flag on user_roles, a recruiter_org_access table that was disjoint from user_roles (so revoking a recruiter changed nothing).",
+        "decision": "user_roles is the single source of truth for who may do what. profiles holds profile data only; the duplicated columns are dropped (each drop checks the data first) and the application code that read them was changed first. Revoking access sets approval_status to denied on the role row, and every policy helper function is approval-aware.",
+        "alternatives": [
+            {
+                "option": "Keep the duplicate columns and keep them in sync with triggers",
+                "whyNot": "A role copy in profiles is user-editable, so nothing may trust it, and two copies drift; a sync trigger would have to be perfect in both directions."
+            },
+            {
+                "option": "Fix each endpoint to check the right copy",
+                "whyNot": "That is the situation that produced the bugs: each route chose a copy, and some chose wrongly or compared a value to itself."
+            }
+        ],
+        "consequences": "The migration is larger and had to be deployed in order (see the expand, deploy, contract record). Tables went from 17 to 13 in the schema model. The cost is that role changes now depend on one table being right, which is why last-admin and primary-admin guards were added in the database too.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #26",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/pull/26",
+                "note": "Schema cleanup: code changes and migrations 20261015"
+            },
+            {
+                "type": "doc",
+                "label": "docs/DATABASE-SCHEMA.md",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/docs/DATABASE-SCHEMA.md",
+                "note": "principle 1: user_roles is the single source of truth; the before and after counts and the list of dropped columns"
+            },
+            {
+                "type": "file",
+                "label": "20261015_08_contract.sql",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/supabase/migrations/20261015_08_contract.sql",
+                "note": "the contract step that drops the duplicated objects"
+            }
+        ],
+        "verification": "Read DATABASE-SCHEMA.md (principle 1, the summary table and the dropped-column list) and the migration file names. The counts are from the schema model, not the production database. I did not run the migrations."
+    },
+    {
+        "id": "campus-expand-deploy-contract-migrations-with-runner",
+        "kind": "decision",
+        "project": "CampusSync",
+        "projectId": "campussync",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Schema changes ship as expand, deploy, contract, applied by a small gated runner instead of pasted by hand",
+        "date": "2026-10-15",
+        "dateSource": "pull requests #26 (the staged migrations) and #32 (the runner), both merged 2026-10-15",
+        "featured": true,
+        "context": "The setup instructions told the reader to paste SQL files into the Supabase SQL editor, so nothing recorded which files had run, in what order, or against which version of the code. The cleanup drops columns and tightens policies that the running code still used.",
+        "decision": "Every migration is idempotent and phased. Additive changes run before or with the deploy; changes that break the old code (making the certificates bucket private, dropping a column, adding NOT NULL) carry a post directive and run only after the deployment succeeded. A zero-dependency runner (Node built-ins and psql) applies pending files in name order, records each file's SHA-256 checksum in a ledger table, and sits behind an approval gate in a GitHub workflow. CI replays the whole chain on a real PostgreSQL 17 for every pull request, and a model of the schema is checked in an in-process PostgreSQL (PGlite).",
+        "alternatives": [
+            {
+                "option": "One big-bang migration applied with the deploy",
+                "whyNot": "The old code still ran against the old shape for a while after the deploy began; the staged order avoids a window where either is wrong."
+            },
+            {
+                "option": "Keep applying SQL by hand in the Supabase editor",
+                "whyNot": "No ledger, no order, no check that a file was run or what changed; this is what the cleanup replaced."
+            },
+            {
+                "option": "The Supabase CLI's db push",
+                "whyNot": "The author's reasoning was file naming and the lack of a baseline schema in the repository. That was not tested against the CLI, so it is an unverified rejection."
+            }
+        ],
+        "consequences": "The runner and the model are not production: the model replays the migrations on a reconstruction of the schema, and the original baseline schema is still not in the repository (older files are marked baseline and are recorded, never executed). On a copy with about one million certificates the whole chain took about 4.0 minutes on a laptop and about 5.4 minutes on a GitHub runner; only the expand step, which backfills every row, was long. The approval gate is a manual step by design.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #32",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/pull/32",
+                "note": "Automatic migrations: ordered, gated, validated in CI on a real Postgres"
+            },
+            {
+                "type": "commit",
+                "label": "1a569d6",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/commit/1a569d6",
+                "note": "migrations: automatic, ordered, gated application with a zero-dependency runner, a GitHub workflow and a CI replay"
+            },
+            {
+                "type": "doc",
+                "label": "docs/MIGRATIONS.md",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/docs/MIGRATIONS.md",
+                "note": "how it works: phases, directives, ledger, approval gate and the CI replay"
+            },
+            {
+                "type": "file",
+                "label": "supabase/migrate/migrate.mjs",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/supabase/migrate/migrate.mjs",
+                "note": "the runner"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #26",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/pull/26",
+                "note": "the staged cleanup migrations it applies"
+            },
+            {
+                "type": "benchmark",
+                "label": "docs/BENCHMARKS.md section 7",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/docs/BENCHMARKS.md",
+                "note": "the timings of the whole migration chain on a copy with about one million certificates"
+            }
+        ],
+        "verification": "Read MIGRATIONS.md (phases, directives, ledger, CI job) and listed the runner and migration files. I did not run the runner or the migrations. The Supabase CLI rejection is the author's reasoning and was never tested."
+    },
+    {
+        "id": "campus-credentials-written-only-by-the-backend",
+        "kind": "decision",
+        "project": "CampusSync",
+        "projectId": "campussync",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Credentials and the audit log are written only by the backend; one active credential per certificate",
+        "date": "2026-10-15",
+        "dateSource": "pull request #26 (migrations 20261015_03, _05 and _06) and commit cc9cfc6 (2026-10-14), merged 2026-10-15",
+        "featured": false,
+        "context": "The review found that 'verified' was the only gate to issuing a credential and that recruiters or the reviewer themselves could set it (finding C-04), that certificates could be issued many times, and that the audit trail was written with three different sets of columns and ignored errors (C-14).",
+        "decision": "Issuance goes through one state machine in the certificate service: self-review is refused, reverting or rejecting revokes the credential, and issuing is idempotent. In the database, credentials can be written only by the backend with the service role after authorization, a partial unique index allows one active credential per certificate, and audit rows are written only by the backend in one canonical shape into an append-only table.",
+        "alternatives": [
+            {
+                "option": "Let owners insert credentials and rely on signature checks",
+                "whyNot": "A signature proves who signed a payload, not that the signer was entitled to issue it; a user-writable table is forgeable."
+            },
+            {
+                "option": "A log that users or browsers can write under row-level security",
+                "whyNot": "Whoever the log describes could write it, so it could be forged or silently incomplete."
+            }
+        ],
+        "consequences": "Every write goes through the server, so a bug in the server's authorization check is no longer backed by a database rule on those tables. Faculty see only their own audit rows. The transitions are pinned by tests (for example, a reviewer cannot act on their own certificate and reverting revokes the credential).",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "cc9cfc6",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/commit/cc9cfc6",
+                "note": "fix(certificates): single state machine for approval, idempotent issuance, safe delete"
+            },
+            {
+                "type": "test",
+                "label": "tests/certificates/stateMachine.test.ts",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/tests/certificates/stateMachine.test.ts",
+                "note": "every allowed and refused transition, revoke-on-revert, and 'cannot act on own certificate'"
+            },
+            {
+                "type": "file",
+                "label": "20261015_06_credentials_service_only.sql",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/supabase/migrations/20261015_06_credentials_service_only.sql",
+                "note": "credentials writable by the service role only"
+            },
+            {
+                "type": "file",
+                "label": "20261015_05_lock_audit_writes.sql",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/supabase/migrations/20261015_05_lock_audit_writes.sql",
+                "note": "audit rows written only by the backend, append-only"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #26",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/pull/26",
+                "note": "the schema migrations"
+            }
+        ],
+        "verification": "Read the state-machine test names, the two migration file names and the closure report entries C-04 and C-14. I did not run the migrations; the state machine is tested against in-memory fakes, not production."
+    },
+    {
+        "id": "campus-private-certificate-bucket-and-signed-urls",
+        "kind": "decision",
+        "project": "CampusSync",
+        "projectId": "campussync",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Certificate files are served by 5-minute signed URLs after an authorization check, and the bucket is private",
+        "date": "2026-10-15",
+        "dateSource": "commit 38167c0 (2026-10-14); the bucket migration 20261016_01 was applied to production on 2026-10-15; pull request #28 merged 2026-10-15",
+        "featured": false,
+        "context": "Certificate uploads sit in a public storage bucket, so anyone holding or guessing an object URL could read a student's certificate, whatever the application's role checks said.",
+        "decision": "GET /api/certificates/[id]/file checks authorization and returns a signed URL valid for 300 seconds; the UI uses it for every view, and a post-deploy migration makes the bucket private. Deletes have no user policy and are done by the server after the check.",
+        "alternatives": [
+            {
+                "option": "Keep the bucket public and rely on unguessable names",
+                "whyNot": "A leaked or logged URL stays valid forever, and the role checks never apply to it."
+            },
+            {
+                "option": "Proxy every download through the server",
+                "whyNot": "Puts every file's bytes through the application; a short signed URL gives the same access control without that cost."
+            }
+        ],
+        "consequences": "A signed URL is a bearer link: anyone who receives it can read the file for five minutes. The bucket change had to be a post-deploy migration, because the old code still linked to public URLs. After it was applied, an existing certificate's old public URL went from HTTP 200 to blocked on the live site.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "38167c0",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/commit/38167c0",
+                "note": "storage: serve certificate files through short-lived signed URLs; migration makes the bucket private"
+            },
+            {
+                "type": "file",
+                "label": "20261016_01_private_certificates_bucket.sql",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/supabase/migrations/20261016_01_private_certificates_bucket.sql",
+                "note": "the post-deploy migration that makes the bucket private"
+            },
+            {
+                "type": "doc",
+                "label": "docs/AUDIT-CLOSURE.md",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/docs/AUDIT-CLOSURE.md",
+                "note": "'Hardening changes after the cleanup': what was checked live"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #28",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/pull/28",
+                "note": "Hardening after the schema cleanup: HttpOnly sessions, signed file URLs, global rate limits"
+            }
+        ],
+        "verification": "Read the closure report's hardening table, which records the live check (the old object URL went from HTTP 200 to blocked), and the migration file name. I did not repeat the live check."
+    },
+    {
+        "id": "campus-postgres-rate-limiter-no-new-service",
+        "kind": "decision",
+        "project": "CampusSync",
+        "projectId": "campussync",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Rate limits are counted in PostgreSQL, with no new service, and fail open to the in-memory limiter",
+        "date": "2026-10-14",
+        "dateSource": "commit 16e1007 (2026-10-14), merged in pull request #28 on 2026-10-15",
+        "featured": false,
+        "context": "The only limiter was in memory and per server instance, so on a serverless host each instance counted separately and the limits meant little.",
+        "decision": "A rate_limit_hit database function, called through the service role, counts hits per key on login completion, signup, the email checks, OCR, public verification, the public portfolio and the selective-disclosure routes. If the database call fails, the request falls back to the in-memory limiter instead of failing.",
+        "alternatives": [
+            {
+                "option": "Redis or another shared store",
+                "whyNot": "A new service to run and pay for, for a project that already has a database."
+            },
+            {
+                "option": "Keep the in-memory limiter only",
+                "whyNot": "Per instance, so it does not bound a distributed caller."
+            }
+        ],
+        "consequences": "Fail-open means a database outage removes the global limit rather than blocking users, and the windows are fixed, not sliding. Endpoints not on the list above keep the per-instance limiter. After the migration was applied, a public endpoint allowed 30 requests and then answered 429 with a Retry-After header on the live site.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "16e1007",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/commit/16e1007",
+                "note": "rate limiting: Postgres-backed global limiter on the high-value endpoints, fails open to the in-memory limiter"
+            },
+            {
+                "type": "file",
+                "label": "20261016_02_rate_limits.sql",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/supabase/migrations/20261016_02_rate_limits.sql",
+                "note": "the rate_limit_hit function and its table"
+            },
+            {
+                "type": "doc",
+                "label": "docs/RATE-LIMITING.md",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/blob/HEAD/my-app/docs/RATE-LIMITING.md",
+                "note": "which endpoints use the global limiter and which keep the per-instance one"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #28",
+                "href": "https://github.com/Ujjwaljain16/CampusSync/pull/28",
+                "note": "Hardening after the schema cleanup"
+            }
+        ],
+        "verification": "Read the commit message, the migration file name, RATE-LIMITING.md and the closure report's live check (30 allowed, then 429 with Retry-After). I did not repeat the live check."
+    },
+    {
+        "id": "campusslot-rolling-updates-dropped-requests",
+        "kind": "investigation",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "A rolling update that was configured as zero-downtime lost requests until a preStop delay was added",
+        "date": "2026-10-06",
+        "dateSource": "pull request #5 (merge commit 6f22604), 2026-10-06",
+        "featured": true,
+        "question": "The README claimed a deploy loses no requests, and the chart is set up for it (maxUnavailable 0, readiness probes, two replicas). Is that true?",
+        "method": "scripts/probe.py sends one request every 100 ms (about 10 per second) through the ingress and counts timeouts, connection errors and 5xx responses, while the backend or frontend is rolled. Cluster: single-node Minikube with 2 backend pods, 2 frontend pods and 1 PostgreSQL pod. The probe runs on a laptop through kubectl port-forward, so that path is in the numbers. Raw transcripts are in docs/evidence.",
+        "result": "No, it was not zero downtime. Every rolling update lost one or two requests, always as timeouts and never as error responses: 7 of 2,500 backend requests failed (0.28 percent) and 6 of 2,500 frontend requests (0.24 percent), and every before-run had failures (8 of 8). The explanation that fits is that a terminating pod stops accepting connections at once while the ingress controller learns about the removed endpoint a moment later; this was not traced at packet level, and the evidence is that the fix removed the symptom. The fix is a preStop hook that sleeps 8 seconds (preStopDelaySeconds in the chart values), shorter than the 30-second grace period. After it, 0 of 1,800 requests failed in 3 backend runs and 0 of 1,800 in 3 frontend runs. Cost: each rollout takes about 8 seconds longer per pod. Limits: about 10 requests per second, one machine, 3 repeats per case: it shows the failure pattern disappeared, not that the rate is exactly zero under real traffic.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Backend rolling update, failed requests before",
+                "value": "7 of 2,500 (0.28 percent)",
+                "source": "docs/engineering/resilience.md, results table"
+            },
+            {
+                "label": "Frontend rolling update, failed requests before",
+                "value": "6 of 2,500 (0.24 percent)",
+                "source": "docs/engineering/resilience.md, results table"
+            },
+            {
+                "label": "Failed requests after the preStop delay (backend / frontend)",
+                "value": "0 of 1,800 / 0 of 1,800",
+                "source": "docs/engineering/resilience.md, 3 runs each"
+            },
+            {
+                "label": "Run-to-run variation of one configuration",
+                "value": "up to 18 percent",
+                "source": "docs/engineering/performance.md"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #5",
+                "href": "https://github.com/Ujjwaljain16/campusslot/pull/5",
+                "note": "Add SLO alerts, runbooks, resilience fixes and a tested backup and restore"
+            },
+            {
+                "type": "doc",
+                "label": "docs/engineering/resilience.md",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/engineering/resilience.md",
+                "note": "method, the before and after table, the explanation and its limits"
+            },
+            {
+                "type": "file",
+                "label": "helm/campusslot/values.yaml",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/helm/campusslot/values.yaml",
+                "note": "preStopDelaySeconds: 8"
+            },
+            {
+                "type": "file",
+                "label": "scripts/probe.py",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/scripts/probe.py",
+                "note": "the request probe"
+            },
+            {
+                "type": "file",
+                "label": "docs/evidence/rollout-before.txt",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/evidence/rollout-before.txt",
+                "note": "raw transcript of a rollout that lost requests"
+            }
+        ],
+        "verification": "Read resilience.md and checked the figures quoted here against its table (7 of 2,500, 6 of 2,500, 0 of 1,800), and the preStopDelaySeconds line in the chart values. I did not re-run the drills. One laptop, a single-node Minikube cluster, small samples; repeats of the same run differ by up to 18 percent."
+    },
+    {
+        "id": "campusslot-database-outage-invisible-to-alerts",
+        "kind": "investigation",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "A database outage returned 500s that Prometheus never counted, so availability alerts stayed silent",
+        "date": "2026-10-06",
+        "dateSource": "pull request #5 (merge commit 6f22604), 2026-10-06",
+        "featured": false,
+        "question": "If the database goes away, do the availability alerts notice?",
+        "method": "Killed the PostgreSQL pod under the same 10-requests-per-second probe and compared what users received with what Prometheus recorded and with the ingress and backend logs. Then ran an alert drill: pointed the backend at a database that does not exist, so a rollout never became ready, and timed the alert.",
+        "result": "Users received 18 responses with status 500; Prometheus recorded none and the 5-minute error ratio stayed at 0. The exception escaped outside the request-metrics middleware, so it was never counted, which means the SLO burn-rate alerts built on it would have stayed silent in a database outage. The backend now handles OperationalError, InterfaceError and pool timeouts with an explicit 503 and Retry-After: 5, which passes through the middleware, and a test checks that the 503 is counted in the metrics. On the cluster the next outage produced 16 responses with status 503 and Prometheus counted all 16. The outage itself still lasts about 6 seconds because there is one database pod; the change improves what is known, not how long it lasts, and a 6-second blip correctly does not page anyone. In the alert drill the CampusSlotBackendReplicasUnavailable alert went pending after 62 seconds and fired after 185 seconds; after kubectl rollout undo it resolved after 52 seconds. During the drill the probe sent 1,650 requests and none failed, so this alert reports a stuck deployment, not user pain.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Responses with status 500 in the outage / counted by Prometheus before",
+                "value": "18 / 0",
+                "source": "docs/engineering/resilience.md, finding 2"
+            },
+            {
+                "label": "Responses with status 503 in the outage / counted by Prometheus after",
+                "value": "16 / 16",
+                "source": "docs/engineering/resilience.md, finding 2"
+            },
+            {
+                "label": "Alert drill: pending / firing / resolved after the undo",
+                "value": "62 s / 185 s / 52 s",
+                "source": "docs/engineering/resilience.md, finding 3; docs/evidence/alert-drill.txt"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #5",
+                "href": "https://github.com/Ujjwaljain16/campusslot/pull/5",
+                "note": "Add SLO alerts, runbooks, resilience fixes and a tested backup and restore"
+            },
+            {
+                "type": "test",
+                "label": "test_health.py",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/backend/tests/test_health.py",
+                "note": "test_database_outage_is_a_handled_503_and_is_counted_in_the_metrics"
+            },
+            {
+                "type": "doc",
+                "label": "docs/engineering/resilience.md",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/engineering/resilience.md",
+                "note": "findings 2 and 3, and what was not tested (no database replica, no node failure)"
+            },
+            {
+                "type": "file",
+                "label": "docs/evidence/alert-drill.txt",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/evidence/alert-drill.txt",
+                "note": "transcript of the alert drill"
+            }
+        ],
+        "verification": "Read resilience.md findings 2 and 3 and the test name; checked that the figures here match. I did not re-run the drills. One laptop, a single-node Minikube cluster, small samples; repeats of the same run differ by up to 18 percent."
+    },
+    {
+        "id": "campusslot-overlap-query-range-gist-index",
+        "kind": "investigation",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "The overlap query read 2,469 pages at 200,000 bookings; a range operator and GiST index brought it to 30",
+        "date": "2026-10-06",
+        "dateSource": "pull request #11 (merge commit 1e44832), 2026-10-06",
+        "featured": true,
+        "question": "Does the booking API stay fast when the table grows? The indexes looked reasonable, but nobody had checked that PostgreSQL uses them for the questions the API asks.",
+        "method": "scripts/scale-test.sh loads 1,000, 10,000, 50,000 and 200,000 non-overlapping bookings across 6 rooms, runs ANALYZE, and runs each query the API sends (day view, overlap check before a booking, statistics) twice, keeping the warm run, under EXPLAIN (ANALYZE, BUFFERS). Pages read is the number to trust, because it is the same on every run; timings are given as medians with ranges. Then the same requests through the API with one backend replica and 4 client threads. Data is synthetic and regular, with no cancelled bookings.",
+        "result": "Before: cost grew in exact proportion to the table, because the overlap question was written as start_time < end AND end_time > start; for a period near today the first condition is true for almost every old row, and no index served it, so a sequential scan was correct. After: the same question as a range, tstzrange(start_time, end_time, '[)') && tstzrange(...), answered by a GiST index (the existing exclusion constraint for the overlap check, and migration 0004 for the day view and statistics). At 200,000 rows the overlap check reads 30 pages instead of 2,469 (19.47 ms to 0.41 ms), the day view of all rooms 5 instead of 2,515, and pages read stay flat from 1,000 to 200,000 rows. Through the API the all-rooms day view went from 21 to 113 requests per second (median 197 ms to 14 ms). Costs: the index grows from 29 to 43 MB, a 200,000-row bulk load from 27 to 37 s, and small tables get slightly slower (the overlap check at 1,000 rows takes 0.37 ms instead of 0.05 ms), so this is headroom for growth, not a fix for a slowness that exists at campus volume. The first scale run missed one query ('rooms in use right now'), which was found because the statistics endpoint stayed slow, and was then added. Count(*) of confirmed bookings is still linear (about 57 ms at 200,000 rows) and was left alone on purpose.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Overlap check, pages read at 200,000 rows, before / after",
+                "value": "2,469 / 30",
+                "source": "docs/engineering/data-scale.md, result table"
+            },
+            {
+                "label": "Overlap check, time at 200,000 rows, median of 3, before / after",
+                "value": "19.47 ms / 0.41 ms",
+                "source": "docs/engineering/data-scale.md, result table"
+            },
+            {
+                "label": "Day view of all rooms, pages read, before / after",
+                "value": "2,515 / 5",
+                "source": "docs/engineering/data-scale.md, result table"
+            },
+            {
+                "label": "Day view of all rooms through the API, before / after",
+                "value": "21 / 113 requests per second",
+                "source": "docs/engineering/data-scale.md, API table (docs/evidence/scale-api.txt)"
+            },
+            {
+                "label": "Index size at 200,000 rows, before / after",
+                "value": "29 MB / 43 MB",
+                "source": "docs/engineering/data-scale.md, what it costs"
+            }
+        ],
+        "verdict": "adopted",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #11",
+                "href": "https://github.com/Ujjwaljain16/campusslot/pull/11",
+                "note": "Measure query cost at scale, load test one pod and size the pods from measurements"
+            },
+            {
+                "type": "commit",
+                "label": "1e44832",
+                "href": "https://github.com/Ujjwaljain16/campusslot/commit/1e44832",
+                "note": "the merge of the scale test, the range queries and ADR 0013"
+            },
+            {
+                "type": "doc",
+                "label": "docs/engineering/data-scale.md",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/engineering/data-scale.md",
+                "note": "method, baseline, the change, results, what the first attempt missed and what did not change"
+            },
+            {
+                "type": "file",
+                "label": "0004_index_booking_time_ranges.py",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/backend/alembic/versions/0004_index_booking_time_ranges.py",
+                "note": "the migration that adds the GiST index on the range"
+            },
+            {
+                "type": "test",
+                "label": "test_postgres.py",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/backend/tests/test_postgres.py",
+                "note": "the range answer equals two comparisons at every boundary, and overlap queries are answered from an index on a large table"
+            },
+            {
+                "type": "doc",
+                "label": "ADR 0013",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/adr/0013-range-operator-for-overlap-queries.md",
+                "note": "the decision and the alternatives that were rejected"
+            }
+        ],
+        "verification": "Read data-scale.md and checked the quoted figures against its tables (2,469 to 30 pages, 19.47 to 0.41 ms, 21 to 113 requests per second, 29 to 43 MB), and listed the migration and test names. I did not re-run the load. Synthetic data on a shared 4-CPU Minikube node."
+    },
+    {
+        "id": "campusslot-cpu-limit-throttling-and-ideas-removed",
+        "kind": "investigation",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "A CPU limit chosen without measuring throttled the pod; two workers and an ETag cache gave nothing",
+        "date": "2026-10-06",
+        "dateSource": "pull request #11 (merge commit 1e44832), 2026-10-06",
+        "featured": false,
+        "question": "How many requests can one backend pod serve, what limits it, and are the requests and limits in the chart right?",
+        "method": "A closed-loop load generator (scripts/loadgen.py) inside the cluster, changing one variable at a time against a baseline (500m CPU limit, one worker), watching throttling and memory. Then sizing from measured usage: 60 requests per second for 4 minutes against the old and the new request settings with the autoscaler allowed 2 to 5 pods.",
+        "result": "At the original 500m limit one pod served 153 requests per second on the room list (p95 178 ms) and the kernel throttled it in 96 to 100 percent of scheduling periods, so it was waiting for CPU quota. Raising the limit to 1,000m gave 342 requests per second (p95 74 ms). Two uvicorn workers did not help: at 500m they were a third slower, and at 1,000m 316 against 342 requests per second, while memory per pod went from 75 to 170 MiB and the per-process metrics counters became wrong. The cause was not found (the load generator, the node and sticky connections were each ruled out), so the result is reported without an explanation. An ETag on the room list also gave nothing measurable (155 and 175 against 153, inside the noise), and the code was removed. Sizing: with the old settings (100m request, scale at 50 percent) 60 requests per second filled the maximum of 5 pods; with a measured request of 250m and a 70 percent target, 2 pods were enough, and memory reserved by requests fell from 640 to 192 MiB. The decision is one worker per pod, scaling with pods (ADR 0014).",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Requests per second on one pod, 500m limit / 1000m limit",
+                "value": "153 / 342",
+                "source": "docs/engineering/performance.md, configurations C0 and C1"
+            },
+            {
+                "label": "Two workers against one at a 1000m limit",
+                "value": "316 / 342 requests per second",
+                "source": "docs/engineering/performance.md"
+            },
+            {
+                "label": "Pods needed for 60 requests per second, old / new sizing",
+                "value": "5 / 2",
+                "source": "docs/engineering/cost-and-sizing.md (docs/evidence/hpa-sizing.txt)"
+            },
+            {
+                "label": "Memory reserved by requests, old / new sizing",
+                "value": "640 / 192 MiB",
+                "source": "docs/engineering/cost-and-sizing.md"
+            }
+        ],
+        "verdict": "adopted",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #11",
+                "href": "https://github.com/Ujjwaljain16/campusslot/pull/11",
+                "note": "Measure query cost at scale, load test one pod and size the pods from measurements"
+            },
+            {
+                "type": "doc",
+                "label": "docs/engineering/performance.md",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/engineering/performance.md",
+                "note": "the configurations, the throttling, and the two ideas that were removed"
+            },
+            {
+                "type": "doc",
+                "label": "docs/engineering/cost-and-sizing.md",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/engineering/cost-and-sizing.md",
+                "note": "usage per request rate and the old against the new sizing"
+            },
+            {
+                "type": "doc",
+                "label": "ADR 0014",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/adr/0014-one-worker-per-pod-scale-with-pods.md",
+                "note": "one worker per pod; what was rejected and the trade-off"
+            }
+        ],
+        "verification": "Read performance.md and cost-and-sizing.md and checked the quoted figures (153 and 342 requests per second, 316 against 342, 5 against 2 pods, 640 against 192 MiB). I did not re-run the load. One laptop, a single-node Minikube cluster, small samples; repeats of the same run differ by up to 18 percent."
+    },
+    {
+        "id": "campusslot-bad-release-automatic-rollback",
+        "kind": "investigation",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "A broken release rolled back at 62 s with 0 of 4,800 requests failing; a control shows what --atomic adds",
+        "date": "2026-10-06",
+        "dateSource": "pull request #17 (merge commit db50829), 2026-10-06",
+        "featured": true,
+        "question": "What happens to users, and to the release, when a deployment is broken in a way the tests, the build and the vulnerability scan cannot see?",
+        "method": "A one-line change that is never committed: the container entrypoint listens on port 8080 while the Kubernetes probes use 8000. It was deployed with helm upgrade --atomic --timeout 60s under a steady 10-requests-per-second stream, three runs, plus a control with --wait and no --atomic. The timeout came from measuring healthy rollouts first (9.2 to 9.4 s with the image on the node, 17.3 s when it must be pulled), so 60 s is about 3.5 times the slowest normal rollout. A hypothesis was written down before the first run: no user request fails.",
+        "result": "Kubernetes saw the new pod was not answering within 3.6 to 5.4 s. Helm decided at 62.1 to 62.3 s and the broken pod was gone at 71.6 to 72.5 s. Across the three runs 0 of 4,800 user requests failed and latency did not change, because maxUnavailable 0, the readiness probe and the old pods kept serving. The control, which does not use --atomic, gave up at 62 s with the release marked failed and the broken pod left in place, the alert fired at 187 s, and recovery needed a person. So --atomic does not protect users (the rolling update already does); it removes the stuck release and the need for a person. The alert reached pending and never fired in the atomic runs, so nobody is told a rollback happened; there is no Alertmanager. A mistake found along the way: the first run tested a missing image, not the planned scenario, because the script reported the image as built when the build had failed without an error code; the script now checks the node's image list.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Helm's automatic decision, 3 runs",
+                "value": "62.1 / 62.2 / 62.3 s",
+                "source": "docs/engineering/bad-release-drill.md, results table"
+            },
+            {
+                "label": "User requests failed during the 3 runs",
+                "value": "0 of 4,800",
+                "source": "docs/engineering/bad-release-drill.md"
+            },
+            {
+                "label": "Control without --atomic: alert fired at",
+                "value": "187 s, release stays failed",
+                "source": "docs/engineering/bad-release-drill.md, control table"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #17",
+                "href": "https://github.com/Ujjwaljain16/campusslot/pull/17",
+                "note": "Bad release drill with automatic rollback, and the demo guide"
+            },
+            {
+                "type": "doc",
+                "label": "docs/engineering/bad-release-drill.md",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/engineering/bad-release-drill.md",
+                "note": "scenario, where the timeout comes from, three runs, the control and the limits"
+            },
+            {
+                "type": "file",
+                "label": "scripts/bad-release-drill.sh",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/scripts/bad-release-drill.sh",
+                "note": "the drill as one script"
+            },
+            {
+                "type": "file",
+                "label": "docs/evidence/bad-release-control-no-atomic.txt",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/evidence/bad-release-control-no-atomic.txt",
+                "note": "the control run"
+            }
+        ],
+        "verification": "Read bad-release-drill.md and checked the quoted timings and counts against its tables. I did not re-run the drill. One laptop, a single-node Minikube cluster, small samples; repeats of the same run differ by up to 18 percent."
+    },
+    {
+        "id": "campusslot-pipeline-238-to-148-seconds",
+        "kind": "investigation",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "The pipeline's median fell from 238 s to 148 s once jobs that did not depend on each other ran in parallel",
+        "date": "2026-10-06",
+        "dateSource": "commit 2471aae (pull request #3), 2026-10-06; the secret-scan follow-up is pull request #15",
+        "featured": false,
+        "question": "Where does a push spend its time in CI, and is any of it waste?",
+        "method": "Timed the finished runs on main as a baseline, then rebuilt the pipeline and ran it three times from a branch with workflow_dispatch so that the deployment really runs. Also counted how many past runs touched documentation only.",
+        "result": "The jobs ran one after another: gates (about 34 s), build, scan and push (about 98 s), deploy (about 97 s). The deploy job spent about 58 s creating a kind cluster and installing the ingress controller before it needed the images, and the build did not depend on the tests, only the push did. After the change, the build, scans and cluster setup start at once with the gates, and the push waits for every gate. Median wall clock went from 238 s (range 211 to 275) to 148 s (range 115 to 205 over three runs), 38 percent faster, even though a new static-analysis job of about 55 s was added. 13 of the 28 finished runs on main (46 percent) touched documentation only, so change detection now skips the heavy jobs for them; a final audit then found that this had skipped the secret scan on a documentation-only change, so the scan was made unconditional (pull request #15). Three runs is a small sample, and the ranges overlap.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Pipeline wall clock, median before / after",
+                "value": "238 s / 148 s",
+                "source": "docs/engineering/ci-speed.md (3 runs after, range 115-205 s)"
+            },
+            {
+                "label": "Share of past runs that were documentation-only",
+                "value": "13 of 28 (46 percent)",
+                "source": "docs/engineering/ci-speed.md"
+            }
+        ],
+        "verdict": "adopted",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #3",
+                "href": "https://github.com/Ujjwaljain16/campusslot/pull/3",
+                "note": "Run the build and cluster setup in parallel with the gates, and skip heavy jobs for docs"
+            },
+            {
+                "type": "commit",
+                "label": "2471aae",
+                "href": "https://github.com/Ujjwaljain16/campusslot/commit/2471aae",
+                "note": "Document the pipeline speed-up with the baseline, the three measured runs and the failure test"
+            },
+            {
+                "type": "pr",
+                "label": "Pull request #15",
+                "href": "https://github.com/Ujjwaljain16/campusslot/pull/15",
+                "note": "Run the secret scan on every change, including documentation-only ones"
+            },
+            {
+                "type": "doc",
+                "label": "docs/engineering/ci-speed.md",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/engineering/ci-speed.md",
+                "note": "baseline, what changed, the three runs and the failure test"
+            }
+        ],
+        "verification": "Read ci-speed.md and checked the quoted medians, ranges and the 13-of-28 count. I did not re-run the pipeline. GitHub-hosted runners, three runs after the change."
+    },
+    {
+        "id": "campusslot-eks-first-apply-failed-then-destroyed",
+        "kind": "investigation",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "The first EKS apply failed on a subnet setting; the cluster was destroyed after 45 minutes for about 6 cents",
+        "date": "2026-10-05",
+        "dateSource": "commit 80739c6 (2026-10-05) adds the Terraform; apply and destroy are recorded in docs/evidence/terraform-apply*.txt and terraform-destroy.txt",
+        "featured": false,
+        "question": "Does the Terraform for a VPC and an EKS cluster actually apply, and can it be torn down cleanly and cheaply?",
+        "method": "terraform plan (48 to add), apply to a real account in ap-south-1, diagnose with aws eks describe-nodegroup when it failed, fix, apply again, then terraform plan -destroy and apply, followed by an all-region check for anything left running. Public worker subnets and no NAT gateway were chosen on purpose for cost (ADR 0001).",
+        "result": "The first apply failed: the node group was created in CREATE_FAILED with Ec2SubnetInvalidConfiguration, because the public subnets did not assign public IPs and EKS refuses such a group when there is no NAT gateway. map_public_ip_on_launch = true fixed it and the second apply succeeded. The destroy plan removed exactly the 48 resources about 45 minutes after creation, and a final check found no cluster, VPC, subnet, NAT gateway, Elastic IP, instance, volume, load balancer, role or OIDC provider left in the region. The run used about 6 US cents of credit (the first estimate was 10). Limit: no application was deployed to this cluster; it carried no workload, and Argo CD, Loki and Alloy ran only on the local Minikube cluster.",
+        "measured": false,
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "80739c6",
+                "href": "https://github.com/Ujjwaljain16/campusslot/commit/80739c6",
+                "note": "Add Terraform for a VPC and EKS cluster with a reviewed, non-empty plan"
+            },
+            {
+                "type": "file",
+                "label": "docs/evidence/terraform-apply.txt",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/evidence/terraform-apply.txt",
+                "note": "the failed first apply (CREATE_FAILED, Ec2SubnetInvalidConfiguration)"
+            },
+            {
+                "type": "file",
+                "label": "docs/evidence/terraform-destroy.txt",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/evidence/terraform-destroy.txt",
+                "note": "ends with 'Apply complete! Resources: 0 added, 0 changed, 48 destroyed.'"
+            },
+            {
+                "type": "file",
+                "label": "docs/evidence/aws-final-sweep.txt",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/evidence/aws-final-sweep.txt",
+                "note": "the all-region check after the destroy"
+            },
+            {
+                "type": "doc",
+                "label": "ADR 0001",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/adr/0001-public-subnets-no-nat.md",
+                "note": "public subnets without NAT, the cost and the first-apply failure"
+            }
+        ],
+        "verification": "Read ADR 0001, README section 12, the failed-apply error line and the last line of terraform-destroy.txt (48 destroyed). I did not run Terraform or query AWS; the cost figure is the repository's own."
+    },
+    {
+        "id": "campusslot-booking-rule-in-three-layers",
+        "kind": "decision",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "The no-double-booking rule is enforced three times, ending in a PostgreSQL exclusion constraint",
+        "date": "2026-10-06",
+        "dateSource": "ADR 0002 (added in commit 96cceea, 2026-10-06); the concurrency test lives in backend/tests/test_postgres.py",
+        "featured": true,
+        "context": "The only thing the application must guarantee is that two confirmed bookings in one room never overlap. A check in application code alone has a race: two requests can both see a free slot and both insert.",
+        "decision": "Three layers: request validation (HTTP 422), an application overlap check that names the blocking booking (HTTP 409), and a PostgreSQL EXCLUDE USING gist constraint over tstzrange(start_time, end_time, '[)') as the final safety net, which the API also turns into HTTP 409. Half-open ranges make back-to-back slots legal. A metric, campusslot_booking_conflicts_total{layer}, shows which layer caught each conflict.",
+        "alternatives": [
+            {
+                "option": "An application check only",
+                "whyNot": "Simple, but wrong under concurrency."
+            },
+            {
+                "option": "A database constraint only",
+                "whyNot": "Correct, but the error is a raw database error with no useful message."
+            },
+            {
+                "option": "SERIALIZABLE transactions or advisory locks",
+                "whyNot": "Correct, but moves complexity into every write path."
+            }
+        ],
+        "consequences": "Some redundancy is accepted on purpose. SQLite cannot express the constraint, so the fast tests run on SQLite and a separate PostgreSQL suite proves the constraint, including a concurrent race that creates exactly one booking. An idempotency key on the create request, so that a client retry cannot create a second booking, is listed as the next production step and is not built.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "doc",
+                "label": "ADR 0002",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/adr/0002-three-layer-conflict-protection.md",
+                "note": "context, options, decision and consequences"
+            },
+            {
+                "type": "test",
+                "label": "test_postgres.py",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/backend/tests/test_postgres.py",
+                "note": "test_simultaneous_identical_requests_create_exactly_one_booking, test_database_rejects_overlapping_rows_even_without_the_application_check, test_api_returns_409_from_the_database_layer_when_the_application_check_is_bypassed"
+            },
+            {
+                "type": "commit",
+                "label": "96cceea",
+                "href": "https://github.com/Ujjwaljain16/campusslot/commit/96cceea",
+                "note": "adds ADR 0002 and ADR 0001"
+            }
+        ],
+        "verification": "Read ADR 0002 and listed the three PostgreSQL test names in test_postgres.py. I did not run the tests. (ADR 0002 was added in commit 96cceea; the code predates the pull-request flow.)"
+    },
+    {
+        "id": "campusslot-verify-image-attestations-before-deploy",
+        "kind": "decision",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Images are attested at build and the deploy job refuses any image whose attestation does not verify",
+        "date": "2026-10-06",
+        "dateSource": "pull request #6 (merge commit 354b89e), 2026-10-06",
+        "featured": false,
+        "context": "The pipeline scanned the images and pushed them with the commit SHA, but nothing proved afterwards that an image in the registry came from this pipeline and this commit. Anyone with write access to the registry could replace a tag and the deploy job would install it.",
+        "decision": "GitHub artifact attestations (build provenance and an SPDX SBOM from Syft) for both images, bound to the image digest. The deploy job runs gh attestation verify for each and installs nothing without a valid attestation made by this repository's workflow. No key is stored anywhere.",
+        "alternatives": [
+            {
+                "option": "Rely on registry permissions",
+                "whyNot": "A tag can be moved by anyone with write access, and the deploy would not notice."
+            },
+            {
+                "option": "cosign with a long-lived key",
+                "whyNot": "A key to store and leak."
+            },
+            {
+                "option": "cosign keyless",
+                "whyNot": "Viable; GitHub attestations give the same workflow identity and are stored by GitHub with less to set up."
+            }
+        ],
+        "consequences": "A full pipeline run took about a minute longer (143 s without attestations; 202 and 214 s with them; three runs is a small sample). An image from before the change fails verification (docs/evidence/supply-chain.txt). The first end-to-end run found a bug in the author's own check (a wrong SPDX predicate type). Verification proves where the image came from, not that the code has no vulnerabilities, which the scans are for; enforcing the same check inside the cluster with an admission policy is listed as the production step and is not done.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #6",
+                "href": "https://github.com/Ujjwaljain16/campusslot/pull/6",
+                "note": "Attest every image and verify it before the deploy, add Dependabot"
+            },
+            {
+                "type": "doc",
+                "label": "ADR 0012",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/adr/0012-attest-images-and-verify-before-deploy.md",
+                "note": "options, decision, measured cost and the bug in the first check"
+            },
+            {
+                "type": "doc",
+                "label": "docs/engineering/supply-chain.md",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/engineering/supply-chain.md",
+                "note": "what the pipeline does and what verification proves"
+            },
+            {
+                "type": "file",
+                "label": "docs/evidence/supply-chain.txt",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/evidence/supply-chain.txt",
+                "note": "an unattested image failing verification"
+            }
+        ],
+        "verification": "Read ADR 0012 and supply-chain.md and checked the 143 s against 202 and 214 s figures. I did not run the pipeline or the verification."
+    },
+    {
+        "id": "campusslot-backup-in-the-same-cluster-with-restore-drill",
+        "kind": "decision",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "Backups are a CronJob dump in the same cluster, accepted after a restore drill that deleted the data",
+        "date": "2026-10-06",
+        "dateSource": "pull request #5 (merge commit 6f22604), 2026-10-06",
+        "featured": false,
+        "context": "All data lived in one PostgreSQL pod with one volume, and nothing copied it anywhere. A backup that has never been restored is a hope.",
+        "decision": "A CronJob in the Helm chart runs pg_dump --format=custom to its own volume, keeps the newest few files and writes to a .partial name first, and scripts/restore-backup.sh restores into the live database inside one transaction. The drill: 40 bookings written and checksummed, a backup (4 s, 9,138 bytes), 5 more bookings, DELETE FROM bookings with no WHERE clause, restore. The row count and checksum were identical to the first state and the constraints, including the overlap exclusion, were present.",
+        "alternatives": [
+            {
+                "option": "No backup",
+                "whyNot": "A mistake or a lost volume would lose everything."
+            },
+            {
+                "option": "Copy the backup off the cluster (for example to S3 in another region) or a managed database with point-in-time recovery",
+                "whyNot": "That is the production answer, named in the document as the next step; it was not built for a course-sized project."
+            }
+        ],
+        "consequences": "Stated plainly: the backup volume is separate from the database volume, so a mistake or a corrupted database volume is covered, but losing the node or the cluster loses both. Recovery took 4 seconds for a 40-row database and grows with the data; the 5 rows written after the backup were lost, so the recovery point is the backup interval (at most 5 minutes with the dev schedule, at most 24 hours with the default). pg_dump is a snapshot, not point-in-time recovery.",
+        "status": "partial",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #5",
+                "href": "https://github.com/Ujjwaljain16/campusslot/pull/5",
+                "note": "Add SLO alerts, runbooks, resilience fixes and a tested backup and restore"
+            },
+            {
+                "type": "doc",
+                "label": "docs/engineering/backup-drill.md",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/engineering/backup-drill.md",
+                "note": "what was added, the six-step drill, the results and the limits"
+            },
+            {
+                "type": "file",
+                "label": "docs/evidence/backup-drill.txt",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/evidence/backup-drill.txt",
+                "note": "the full transcript"
+            },
+            {
+                "type": "file",
+                "label": "scripts/restore-backup.sh",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/scripts/restore-backup.sh",
+                "note": "the restore script"
+            }
+        ],
+        "verification": "Read backup-drill.md and checked the 40 rows, the 4-second restore, the 9,138-byte file and the limits. I did not run the drill."
+    },
+    {
+        "id": "campusslot-read-only-postgres-instead-of-extending-an-exception",
+        "kind": "decision",
+        "project": "CampusSlot",
+        "projectId": "campusslot",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "course",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "title": "An expiring scanner exception was fixed at the root: PostgreSQL now runs with a read-only root filesystem",
+        "date": "2026-10-07",
+        "dateSource": "pull request #24 (merge commit 3b94beb), 2026-10-07",
+        "featured": false,
+        "context": "The Trivy exception for the PostgreSQL container (KSV-0014, a writable root filesystem) carried an expiry date. Once it passed, the static-analysis job would have started failing on later code pushes.",
+        "decision": "Instead of moving the date, run PostgreSQL with readOnlyRootFilesystem and give it two emptyDir volumes for the paths it writes besides its data volume (the socket directory, memory-backed, and /tmp), then delete the exception.",
+        "alternatives": [
+            {
+                "option": "Extend the exception's expiry date",
+                "whyNot": "It only moves the problem and leaves a known weakness accepted without a reason."
+            }
+        ],
+        "consequences": "The change was checked three ways: the same settings in Docker (a write to /etc is refused and the database accepts writes), the real chart on a throw-away local kind cluster with the real published images (rooms 200, booking 201, the same slot 409, the booking still there after restarting the database pod), and the deploy job's own smoke test on main (HTTP 201 then 409; reported by the author, not re-checked).",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #24",
+                "href": "https://github.com/Ujjwaljain16/campusslot/pull/24",
+                "note": "Run PostgreSQL read-only and drop the expiring Trivy exception"
+            },
+            {
+                "type": "commit",
+                "label": "3b94beb",
+                "href": "https://github.com/Ujjwaljain16/campusslot/commit/3b94beb",
+                "note": "the merge of the change"
+            },
+            {
+                "type": "doc",
+                "label": "docs/engineering/static-analysis.md",
+                "href": "https://github.com/Ujjwaljain16/campusslot/blob/HEAD/docs/engineering/static-analysis.md",
+                "note": "how the scan and its accepted exceptions are handled"
+            }
+        ],
+        "verification": "Read the pull request description (the read-only filesystem, the two volumes, the Docker check and the kind-cluster check it reports) and static-analysis.md, which says the exception was removed instead of extended. I did not re-run those checks."
     }
 ];
 
