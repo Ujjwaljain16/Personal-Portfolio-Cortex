@@ -5168,7 +5168,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],
@@ -5244,7 +5244,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],
@@ -5309,7 +5309,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],
@@ -5396,7 +5396,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],
@@ -5466,7 +5466,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],
@@ -5531,7 +5531,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],
@@ -5591,7 +5591,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],
@@ -5645,7 +5645,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],
@@ -5700,7 +5700,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],
@@ -5761,7 +5761,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],
@@ -5818,7 +5818,7 @@ export const records: EngineeringRecord[] = [
         "projectId": "campusslot",
         "provenance": "recorded",
         "rationaleSource": "stated",
-        "origin": "course",
+        "origin": "personal",
         "authors": [
             "Ujjwaljain16"
         ],

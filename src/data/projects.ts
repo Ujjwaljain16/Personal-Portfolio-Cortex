@@ -674,9 +674,9 @@ export const projects: Project[] = [
         tier: "more",
         tagline: "A campus room-booking service built to show the delivery side: measured rollouts, a measured rollback, and query costs at scale.",
         status: "prototype",
-        origin: "Course capstone (Scaler School of Technology, DevOps and Cloud). A graded assignment, not a production system.",
+        origin: "Personal project",
         period: "Oct 2026 · 92 commits on main",
-        problem: "A small booking service is easy to make work once. The assignment was to show what happens when it is deployed, changed, broken and grown, with numbers instead of claims.",
+        problem: "A small booking service is easy to make work once. This project shows what happens when it is deployed, changed, broken and grown, with numbers instead of claims.",
         approach: [
             "FastAPI, React and PostgreSQL. The rule that two confirmed bookings never overlap is enforced in request validation, in an application check and by a PostgreSQL exclusion constraint on a time range.",
             "Delivery: GitHub Actions gates (tests, secret scan, Trivy on the images, the Terraform and the Helm chart), signed image attestations verified before deploy, a deploy job that installs the chart into a throw-away kind cluster and smoke-tests it through the ingress, Argo CD, Prometheus, Loki and Grafana on a local Minikube cluster, and Terraform for a VPC and EKS cluster that was applied once and destroyed.",
@@ -692,7 +692,7 @@ export const projects: Project[] = [
             { text: "14 architecture decision records on main, each listing the options that were rejected, and 26 merged pull requests.", source: "docs/adr/README.md" },
         ],
         limitations: [
-            "A graded course assignment with no real users and no production traffic. The cluster ran on one laptop (Minikube) and in CI (kind); every performance and resilience number comes from one machine, small samples, and runs that differ by up to 18 percent.",
+            "No real users and no production traffic: it is a demonstration system, not a production one. The cluster ran on one laptop (Minikube) and in CI (kind); every performance and resilience number comes from one machine, small samples, and runs that differ by up to 18 percent.",
             "The application was never deployed to EKS: the cluster carried no workload. Argo CD, Loki and Alloy ran only on the local cluster.",
             "The application has no login or roles on purpose, and the chart defines no network policies.",
             "There is no Alertmanager, so alerts are visible in Prometheus but not delivered anywhere, and nobody is told when an automatic rollback happens. Promotion to the cluster is manual.",
