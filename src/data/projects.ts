@@ -716,6 +716,7 @@ export const projects: Project[] = [
         links: [
             { label: "Source on GitHub", href: gh("Ujjwaljain16/campusslot") },
             { label: "Recorded demo", href: gh("Ujjwaljain16/campusslot/blob/HEAD/docs/demo/CampusSlot-demo.mp4") },
+            { label: "Blog post: the overlap-query investigation", href: "https://medium.com/@jainujjwal1609/why-postgresql-ignored-my-gist-index-until-i-rewrote-the-overlap-query-feb971225225" },
         ],
     },
     {

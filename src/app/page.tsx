@@ -5,7 +5,7 @@ import { HomeHeader } from "@/components/home/HomeHeader";
 import { Now } from "@/components/home/Now";
 import { StartHere } from "@/components/home/StartHere";
 import { ProjectCard } from "@/components/system/ProjectCard";
-import { BLOG_POSTS } from "@/data/blogPosts";
+import { getWritingItems } from "@/lib/writing";
 import { featuredProjects, projects } from "@/data/projects";
 import { countByProject, mergedPRs, openPRs } from "@/data/openSource";
 import { formatDate } from "@/lib/utils";
@@ -28,8 +28,6 @@ const LESSONS = [
     },
 ];
 
-const WRITING_SLUGS = ["integration-complexity", "unicode-corruption-base64"];
-
 const EXPLORE = [
     { href: "/decisions", label: "Decisions", desc: "Engineering decisions with the alternative I rejected and what happened." },
     { href: "/investigations", label: "Investigations", desc: "Benchmarks and root-cause analyses, with the numbers and their sources." },
@@ -38,8 +36,12 @@ const EXPLORE = [
     { href: "/ask", label: "Ask", desc: "Ask questions about my projects." },
 ];
 
-export default function HomePage() {
-    const posts = WRITING_SLUGS.map((s) => BLOG_POSTS.find((p) => p.slug === s)).filter((p) => p !== undefined);
+// The latest posts come from the same list as /blogs (native posts and the Medium feed), so this page
+// refreshes on the same schedule.
+export const revalidate = 3600;
+
+export default async function HomePage() {
+    const posts = (await getWritingItems()).slice(0, 2);
     const prCounts = countByProject();
 
     return (
@@ -236,13 +238,13 @@ export default function HomePage() {
                         </h2>
                         <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {posts.map((post) => (
-                                <li key={post.slug}>
+                                <li key={post.href}>
                                     <article className="group relative surface-1 p-5 h-full hover:border-(--border-hover) transition-colors">
                                         <div className="flex items-start justify-between gap-3">
                                             <h3 className="text-[16px] font-semibold text-foreground group-hover:text-(--accent-primary)">
-                                                {post.migratedTo ? (
+                                                {post.external ? (
                                                     <a
-                                                        href={post.migratedTo}
+                                                        href={post.href}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="after:absolute after:inset-0 after:content-['']"
@@ -250,15 +252,12 @@ export default function HomePage() {
                                                         {post.title}
                                                     </a>
                                                 ) : (
-                                                    <Link
-                                                        href={`/blogs/${post.slug}`}
-                                                        className="after:absolute after:inset-0 after:content-['']"
-                                                    >
+                                                    <Link href={post.href} className="after:absolute after:inset-0 after:content-['']">
                                                         {post.title}
                                                     </Link>
                                                 )}
                                             </h3>
-                                            {post.migratedTo && (
+                                            {post.external && (
                                                 <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-wider text-(--text-muted)">
                                                     Medium
                                                     <ArrowUpRight className="w-3 h-3" aria-hidden="true" />

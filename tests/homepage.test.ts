@@ -54,3 +54,14 @@ describe("about me", () => {
         for (const f of aboutMe) expect(f.text).not.toMatch(/PLACEHOLDER/);
     });
 });
+
+describe("featured records", () => {
+    it("stay few enough to mean something, and include everything the home page points at", () => {
+        for (const kind of ["investigation", "decision"] as const) {
+            const featured = records.filter((r) => r.kind === kind && r.featured);
+            expect(featured.length, kind).toBeGreaterThanOrEqual(6);
+            expect(featured.length, kind).toBeLessThanOrEqual(12);
+        }
+        for (const item of startHere) for (const l of item.links) expect(getRecord(l.recordId)?.featured, l.recordId).toBe(true);
+    });
+});

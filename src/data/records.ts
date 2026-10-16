@@ -270,7 +270,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "Issue #33272 (opened 2025-04-29) showed that installs upgraded from 1.5.x keep many permissions that fresh installs lack (for example `can select star on Superset`): 286-291 permissions after upgrading 1.5.2 to 5.0.0-RC2, against 160 on a fresh install. `clean_perms` only deletes PermissionView rows with NULL foreign keys. On the issue, maintainer rusackas noted that the hard part is not deleting a permission a custom role still needs. The per-object database_access/datasource_access/schema_access/catalog_access permissions share names across many view menus, so a name-based sweep is unsafe.",
         "decision": "Two Alembic migrations that name exact (view_menu, permission) pairs on the `Superset` view menu. One deletes permissions with no proportionate successor (`PVM_LIST`, 10 entries in the merged file) through a new `delete_pvms()` helper in superset/migrations/shared/security_converge.py, which unassigns each PVM from roles and reuses `_delete_old_permissions()` for orphan-safe removal. The other maps old permissions to verified live successors (`PVM_MAP`, 29 entries) with the existing `migrate_roles()`, so roles keep access. A rename is used only when the successor is proportionate: four dead permissions whose only successor was a write-level grant (`can_testconn`, `can_sqllab_viz`, `can_import_dashboards`, `can_add_slices`) are deleted instead. The one write-level rename left is `can_copy_dash` to `Dashboard.can_write`, argued in the migration as the same action. Downgrades are documented no-ops.",
         "alternatives": [
@@ -337,7 +337,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "If a program closes a TCP connection while unread data is pending, the operating system may send a reset, and the reset can reach the peer before the ERROR frame it just sent, destroying it. All 41 commits in the public repository are timestamped within 74 minutes (2026-09-22 00:10 to 01:24 +05:30) and the first ten share the times 00:10:25 to 00:10:26, so the history does not show how the design evolved over time; the reasoning below comes from a code comment, the specification and docs/ARCHITECTURE.md.",
         "decision": "fail() writes the ERROR frame, then drain() calls CloseWrite (TCP FIN), sets a 1 s read deadline and copies at most 64 KiB (io.LimitReader) to io.Discard before the connection is closed. SPEC section 9 makes the FIN mandatory and the bounded drain a SHOULD with those reference values. c68262e added that the time limit runs from the moment the ERROR was sent, and that a peer that just sent an ERROR MUST treat a reset like EOF.",
         "alternatives": [
@@ -464,7 +464,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "By 15 September 2026 the backend had a 198-test suite (per the commit messages). The author's gaps.md records that all verification had run against in-memory SQLite (section 9) and a shared local virtualenv (section 11), and that Postgres-specific behaviour and the Docker build had only been reasoned about, not run. A production-readiness pass then built and ran the stack for real.",
         "decision": "Three changes. (1) .github/workflows/docker-build.yml builds the production image on relevant pushes and pull requests, checks that /app/alembic.ini exists in the image, and imports the app inside it. (2) A disposable local rig: Postgres with pgvector and Redis in Docker, the real gunicorn/gevent command in a Linux container, seeded users with pre-minted JWTs, and scripts/locustfile.py wired to the heavy endpoints (the rig is not committed; the seed script and Locust file are). (3) scripts/e2e_smoke_test.py, a 23-check journey covering health, register, login, CORS, bookmark save through real RQ background processing, search, dashboard, recommendations, SSE ticket and auth edge cases. Per a74c00c it was run against hosted Postgres (Supabase) and Redis (Upstash).",
         "alternatives": [
@@ -529,7 +529,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "question": "Where does the single-worker gevent deployment break under concurrent authenticated load, and why?",
         "method": "Disposable local rig in Docker: Postgres+pgvector, Redis, the real 'gunicorn --workers 1 --worker-class gevent' command in a Linux container, 10 users x 40 bookmarks seeded, JWTs minted directly to bypass the login rate limiter, Locust (scripts/locustfile.py) hitting bookmarks, dashboard, text and semantic search, unified-orchestrator recommendations and health. Ran 25 and 75 concurrent users on a laptop Docker VM of about 3.8 GB with shared CPU.",
         "result": "At 75 concurrent users about 38% of authenticated requests returned 401 'Token has been revoked' for tokens that were never revoked (approximate figure from gaps.md and the commit message; no raw Locust output is committed). The author's diagnosis: the Redis pool (max_connections 20, shared by caching, rate limiting and the revocation check) was exhausted and .exists() raised. check_if_token_revoked in run_production.py returned True on any exception, so every failure counted as revoked. Fix in 764e2c6: fail open on Redis errors or a missing connection (the check runs only after signature and expiry validate) and raise the pool to 50. A re-run at 75 users reported 0 failures in 595 requests; because both changes landed together and fail-open cannot return this 401, that does not prove the pool is no longer exhausted. At 25 users the author reports median latency under 100 ms with no failures; at 75 users, 2-5 s, which the author calls consistent with the single gunicorn worker (two workers not re-tested).",
@@ -757,7 +757,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "question": "In an overloaded 5-target scenario, two of six routing policies never drain their queue within the horizon. Does one measure (traffic concentration or 'committed backlog') explain both?",
         "method": "cmd/experiment-015a runs one fixed scenario (5 targets 15-75 ms, Capacity=1, FlashCrowd base 20 req/s to peak 300 req/s at t=2.5 s, 8 s horizon) across six policies and records top-1 share, peak queue depth, committed backlog (requests dispatched to the bottleneck between congestion onset and material diversion), fraction of the run above rho 1.0, and whether the queue drains. A falsification run (F1, commit dacce77) sent Adaptive load far under capacity. The flagship experiment repeated the scenario over three jittered seeds.",
         "result": "No single measure explained both. Round-robin has a small committed backlog (4) but spends 0.711 of the run over capacity and never drains; Stage15.md attributes this to its fixed 1/5 share to the slowest target exceeding that target's capacity (chronic). Adaptive has a large backlog (86 in 015a) and 0.700 of the run over capacity, also without draining (acute over-commitment during the burst). EWMA has the largest backlog (97) but drains at 6850 ms. F1 (a 3-target topology at load far under capacity) showed concentration alone is not enough: Adaptive reached top-1 share 1.000 with no congestion and zero backlog. Over three jittered flagship seeds round-robin was identical (backlog 4, 0.711, no drain) while Adaptive's backlog was 107/127/93; Adaptive drained in seed 16000 but not in 16001 or 16002, so the acute/chronic contrast is cleanest in the single 015a run. Stage15.md lists the limits: one scenario, six policies, no systematic search for a third failure shape.",
@@ -853,7 +853,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "advisory_lock_async was written for AsyncSession callers (reconciliation, anomaly windows) that deliberately commit the session while still holding the lock. Postgres advisory locks taken with pg_advisory_lock belong to a session (connection), not to a transaction.",
         "decision": "advisory_lock_async no longer uses the caller's session connection. It checks out its own psycopg2 connection from get_sync_engine() via asyncio.to_thread, takes and releases the lock there, catches BaseException (so task cancellation still rolls back), and shields the unlock call from cancellation. An earlier attempt that wrapped the session's async engine in a second AsyncEngine was replaced because it broke the test suite's per-test engine isolation.",
         "alternatives": [
@@ -1048,7 +1048,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "question": "Once the baseline gets the same attempt budget and obeys the same compliance rules, does RecoveryOS still recover more revenue, and is the result stable across seeds?",
         "method": "tests/evaluation/multi_seed_runner.py runs five seeds through the live pipeline in an accelerated-cooldown mode (retry cooldown set to 0 so rescheduled re-evaluations are due immediately), with the diagnoser pinned to an invalid Gemini key so the deterministic fallback diagnoser is used and AI fusion stays at its default of off. It then computes a single-attempt baseline, a compliance-blind same-budget baseline (diagnostic only) and the compliance-aware same-budget baseline. Each seed also records safety_integrity checks: duplicate ledger rows and attempts, and that computing baselines did not change decision-table row counts.",
         "result": "Incremental recovery versus the compliance-aware baseline was positive in all five seeds, and RecoveryOS's recovered payments were a strict superset of the baseline's each time (baseline_only = 0). The mean is 73,181.78 rupees, and the README mean and 95% CI (52,918.53 to 93,445.04 rupees) match the artifact. Against the compliance-blind diagnostic comparator RecoveryOS loses in all five seeds. Integrity counters show zero duplicate ledger rows or attempts. Because the runs used the deterministic diagnoser with AI fusion off, the lift is not attributable to the LLM, and unsafe_ai_deltas = 0 is trivially satisfied. Caveats: the baseline stops at its first blocked verdict; the strict-superset result may follow from shared per-attempt draws (an inference, not stated in the repo); the artifact predates the 2026-09-06 policy rule change and was not regenerated.",
@@ -1235,7 +1235,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "In July 2026 code from a side branch (architecture-shift, last commit 2026-05-13) was being folded into integration-review. ML-CONVERGENCE-AUDIT.md (34ebbe5) and ARCHITECTURE-CONVERGENCE.md (665c370), both 2026-07-22, kept the 3,091-line unified_recommendation_orchestrator.py as canonical and rejected backend/ml/engines/, backend/ml/recommendation/ (including a cross-encoder re_ranker: 'High memory/CPU overhead; causes latency spikes on single-worker deployments'), the Supabase match_user_content RPC ('unneeded RPC dependencies') and a data_layer that 'bypasses' the repository and Unit of Work. cf9172d had brought over the Alembic framework and only the HNSW (0003), user-URL unique (0004) and embedding_metadata (0005) migrations.",
         "decision": "On 2026-07-25 the same shapes were committed as new code. 1f4deb2 added a Pipeline plus Strategy layer (ml/recommendation/{domain,pipeline,retrieval,scorer,data_layer,shadow_evaluator}.py, ml/engines/{base,smart}_engine.py) with a pure-function scorer and a two-stage retriever: pgvector cosine ANN top-100 over saved_content.embedding (HNSW index from 0003), then scoring, with NULL-embedding rows appended. 691294b added Postgres functions search_bookmarks_semantic_v1 and search_bookmarks_hybrid_v1 (migration 0006) and a new /api/search/rpc-semantic endpoint behind the search_rpc flag, falling back to the existing SearchService. The legacy orchestrator stayed the serving path. ADR-001 to ADR-005 (a9ec4d1, same day) describe the layers; ADR-001 calls the orchestrator a 3,092-line 'god object'. No document mentions the 2026-07-22 audit.",
         "alternatives": [
@@ -1324,7 +1324,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "question": "How much faster is the DataChunk engine than the Volcano engine on SELECT name, salary FROM employees WHERE age > 50 (10% selectivity), and why is it not the 5-10x the authors expected?",
         "method": "benchmarks/volcano_vs_vectorized.ts: for 10k, 50k and 100k rows, rows are inserted directly into the heap, then the physical plan runs through the Volcano Executor and through VecSeqScan/VecFilter/VecProject, with 3 warm-ups and 5 timed iterations each, each in its own transaction. Architecture.md attributes the small gap to per-row async overhead and to strict-2PL row locking. To test that, a copy of the script (not committed to the repository) was run at 100k rows only, in four variants, three times each: default; TrackedOperator.next() replaced by a pass-through (removes the per-row performance.now() calls the Volcano tree makes); LockManager.acquireRowLock replaced by an empty async function; both changes together. No repository files were modified.",
         "result": "Six runs of the documented script gave about 1.5-2.3x at 10k rows, 1.1-1.4x at 50k and 1.0-1.3x at 100k, so the gap is small and noisy; the documented 1.19x at 100k is inside that range. Stubbing out row locks cut vectorized time at 100k rows from roughly 183-224 ms to 57-71 ms and Volcano from 222-270 ms to 100-116 ms. Volcano is also timed with two performance.now() calls per row per operator (TrackedOperator), about 14-24% of its time; with tracking off the 100k speedup was about 0.95-1.17x. With both locks and tracking removed, the vectorized engine was only about 1.1-1.4x faster. The comparison is not like for like: Volcano materializes a ResultSet, while the vectorized side only counts surviving rows in the selection vector. Runs made while the machine was busy varied widely and are not reported.",
@@ -1423,7 +1423,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "With 3 physical nodes the ring arcs are uneven unless each node is placed many times. The first ring used 150 virtual nodes per node. This was a course project, and the 150, 1000 and 500 stages all fall within under two hours of one day (66845c0 at 03:12 and b116d06 at 04:59 on 2026-06-10, +05:30).",
         "decision": "At 66845c0 the phase-4 distribution doc reports that 150 vnodes gave ownership 39.6% / 28.6% / 31.7% and concludes VIRTUAL_NODES=1000 (Settings default 1000). In b116d06 the docs, scripts and Settings default were changed to 500: 'providing 90% of the load balancing benefits of 1000 virtual nodes, but consuming only 50% of the memory footprint and CPU routing cost'. backend/.env.example (changed in 05af6b4) and the Settings default are 500; the ConsistentHashRing constructor default in consistent_hash_ring.py is still 150 and applies only when no setting is passed.",
         "alternatives": [
@@ -1486,7 +1486,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "question": "Is the 60% share of redis-a in the 100,000-request benchmark a defect in the ring, or a result of the Zipfian workload?",
         "method": "Recreated the workload of scripts/final_benchmark.py offline: 10,000 items (10 named queries such as 'iphone 16', then query_item_10 to query_item_9999), ranks from numpy.random.zipf(a=1.3) clipped to 10,000, 100,000 requests, mapped to nodes through ConsistentHashRing(500) using the cache key 'suggestion:<query>' (the service lower-cases and trims the prefix, which does not change these keys). Five seeds. Counted the owner of every item and of the top ten. This assumes every request is a hit on its owning node, which the live metrics count only for hits. The reproduction script is not in the repository.",
         "result": "The ring balances keys but not traffic. The 10,000 keys split 3,361 (redis-a), 3,477 (redis-b) and 3,162 (redis-c), about 33.6% / 34.8% / 31.6%. The three most popular items ('iphone 16', 'chatgpt', 'samsung galaxy s24') all hash to redis-a; rank 1 alone is 25.2 to 25.7% of requests and rank 2 is 10.2 to 10.5%. Simulated request share of redis-a over five seeds: 59.77% to 59.98%. A later, committed script (benchmarks/exp_claims.py) over 20 seeds gives 59.7% to 60.3%, with the rank-1 query alone at 25.2% to 25.7% of requests, and shows the 10,000 hot keys are named query_item_N and are not in the 150,000-row dataset. The repo reports 60.30 / 20.99 / 18.71 (docs/performance-report.md) and 60.58 / 20.82 / 18.60 (README.md, docs/unexpected-findings.md) for the same finding, and the README calls the workload 'real traffic', although the hot query names are synthetic and defined in final_benchmark.py. The proposed fix (an in-process L1 cache or hot-key replication) is not implemented: nothing like it exists in backend/app.",
@@ -1557,7 +1557,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "question": "Does adding a Redis cache in front of the PostgreSQL prefix query reduce request latency?",
         "method": "Per docs/phase3-performance-comparison.md: 1,000 sequential requests from scripts/cache_benchmark.py, 90% drawn from 5 fixed 'hot' prefixes and 10% from 7 fixed 'cold' prefixes, so only 12 distinct cache keys. The 'no cache' column is not a paired run: it is the phase-1 baseline (docs/phase1-performance-baseline.md), measured earlier with scripts/benchmark.py, which sent 1,000 requests for the single prefix 'iph'. Read from history; not re-run because it needs Postgres and Redis with the 150,000-row dataset.",
         "result": "Recorded: p50 about 7.5 ms without the cache and about 7.1 ms with it; p95 about 10.0 ms and about 12.2 ms; database reads 1000 per 1k requests (one per request, by construction) versus 13; hit rate 98.7%. Each figure is one run, so the latency differences cannot be told from noise, and with only 12 distinct keys about 13 misses per 1,000 is expected of any cache. The doc attributes the flat latency to an unloaded local PostgreSQL holding the data in RAM (asserted, not measured). The 100,000-request run in docs/performance-report.md (a different workload) reports warm-cache p50 420.01 ms, p99 790.03 ms and cold p50 175.00 ms, p99 401.88 ms. README.md line 15 still says 'a sub-millisecond autocomplete experience', which no recorded end-to-end number supports. The projected 'about 5 ms' warm p50 on Kubernetes is not measured.",
@@ -1655,7 +1655,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "question": "Does GraphRepair.repair_cycles still remove cycles when fed the output of the new Kahn-based GraphValidator, as it did with the old DFS validator?",
         "method": "Loaded graph_validator.py and graph_repair.py from 6dee148^ (DFS version) and from the current main branch (Kahn version) and ran the same four hand-made graphs through GraphValidator.validate, GraphRepair.repair_cycles and validate again on the remaining edges: a pure 3-cycle A->B->C->A, the same cycle with the concepts listed in another order, the cycle plus an upstream node (R->A) and a downstream node (C->D), and two disjoint cycles (A,B,C and X,Y). All edges are PREREQUISITE edges with a confidence value. The check script is not part of the repository.",
         "result": "The DFS version left no cycle in all 4 graphs; the Kahn version left a cycle in 2 of 4. For A->B->C->A with a downstream node D, the Kahn validator reports the residual node set [A, B, C, D]. repair_cycles treats a reported cycle as a path (its comment describes a DFS path such as [A, B, C, A]) and builds edges from consecutive entries, so it selects C->D, deletes that valid edge and the cycle remains. With two disjoint cycles the validator reports all five nodes as one cycle and repair removes only X->Y, leaving A, B, C cyclic. The two passing cases contain only the cycle itself, where list order happens to match path order. The orchestrator publishes without re-validating and no test covers cycle repair, so the regression would go unnoticed. The graphs are hand-made; graphs produced by the LLM were not tested.",
@@ -1713,7 +1713,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "question": "DECISIONS.md says the revenge flag algorithm identified all 10 revenge-flagged trades in the seed dataset (100%). Does the worker's rule reproduce those labels?",
         "method": "Read seeds/seed.ts and scripts/validate_metrics.ts: the seed inserts revenge_flag from the dataset label (revengeFlag === \"true\") and does not call computeRevengeFlag; validate_metrics reads that stored column back and compares it with the same dataset label. Then transcribed the predicate of computeRevengeFlag in src/worker/metrics.ts (a trade whose emotionalState is anxious or fearful and whose entry falls within 90 s after the exit of one of the same user's losing trades) into a short Python script and ran it over nevup_seed_dataset.json (388 trades, 10 labelled revenge). The script is not part of the repository.",
         "result": "The 10/10 figure cannot fail: it compares the seeded revenge_flag column with the dataset labels it was loaded from, and the worker's rule is never applied. The same script's main() also prints the '8/10' pathology match and the Avery Chen and Jordan Lee lines as fixed strings (validatePathologyDetection is defined but never called). Applying the worker's SQL rule to the 388 seeded trades gives 0 true positives, 14 false positives, 10 false negatives and 364 true negatives. All 10 labelled trades follow a losing trade and have an anxious or fearful state, but each starts 60 or 120 s after that trade's entry, while it is still open (it exits 300 to 12,600 s later), so the rule's condition of an entry within 90 s after a loss exit never holds. The Python transcription was not run against Postgres.",
@@ -1788,7 +1788,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "question": "What does scripts/week45_evaluate.py report on the sampled real-repo data, and is it evidence that the duplicate suggester meets its precision/recall targets?",
         "method": "Read week45_evaluate.py (precision = TP/(TP+FP) over labelled suggestions; recall = known duplicates that have any suggestion row; PR curve at thresholds 0.50 to 0.95), reports/week45_report_small.json and reports/week45_label_samples_small.csv (20 rows). Recomputed each CSV row's expected final score with the committed formula 0.5*semantic + 0.2*keyword + 0.2*structural + 0.1*label and compared it with the stored final_score. Read app/feedback/logger.py.",
         "result": "The report (generated 2026-03-17) has 20 labelled suggestions: 1 true positive, 0 false positives, 1 related-not-duplicate and 18 cant_tell, all with labeled_by 'bootstrap-auto', an automated step whose script is not in the repository. Precision 100% is 1 of 1. Recall 66.67% counts 2 of 3 known duplicates that have any suggestion row, at any score; the curve shows recall and F1 of 0 at all ten thresholds, so the recommended threshold 0.5 is only the first entry. Separately, 19 of 20 stored final_score values equal label_score: the ON CONFLICT update in logger.py sets final_score = $7, which is label_score (final_score is $8), so re-scoring a pair overwrites it. The one row that matches the formula is the only one with source signal strength below the 0.3 gate, so it was scored once. The true positive stores 1.0 but the formula gives 0.399, below the 0.85 comment threshold. The report cannot support a precision or recall claim.",
@@ -1879,7 +1879,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "Authorization tokens for the upstream SSE endpoint were passed as an ?auth= query parameter in the proxy URL (already the case in the February vite.config.ts proxy). The first Mar 7 proxy commit (3b6deed) introduced 'tickets': a client POSTs {url, token} to /api/sse/ticket and then opens /api/sse?ticket=... . The repository does not say why; the likely motive is keeping tokens out of URLs and logs, which is an inference. The app is deployed on Vercel, where an in-memory Map is not shared between function instances.",
         "decision": "3b6deed added two ticket implementations in the same commit. server.js (Express) keeps tickets in a Map with a 30 s expiry and one-time use. api/sse/_ticket.js (Vercel) encrypts {url, token, exp} with AES-256-GCM so any function instance can decrypt it. 522838d replaced the random fallback secret with VERCEL_GIT_COMMIT_SHA and then a fixed string, with the comment 'to ensure consistency across Lambdas'. 7578190 added an origin check to the ticket endpoint. At 19:13, c343a28 changed obtainSSEProxyTicket() to stop calling /api/sse/ticket and return `/api/sse?url=...&auth=...` again, with the message 'switch to direct origin-locked proxy for better production stability'. Access control moved to an Origin/Referer check, and ticket decoding was kept as 'Legacy support'.",
         "alternatives": [
@@ -1935,7 +1935,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "Issue #9483 asked for a Playwright-style mergeTests to combine fixtures from several extended tests. In Vitest 4.1.0 a test built with test.extend() holds a TestFixtures object: a Map of registrations (each with scope, auto, deps and a `parent` link to the base implementation of the same-named fixture), a WeakMap of per-suite overrides used by test.override, and WeakMaps of file and worker contexts. Lookup for a suite walks up the suite chain to the nearest override. STATUS: PR #9662 was open and unmerged when this record was written, and was later closed automatically on 2026-10-05 by a bot enforcing the project's new policy of accepting pull requests only from maintainers and approved contributors (the bot's comment says it is not a judgement of the work and that a maintainer can reopen it); it was never merged. Maintainer sheremet-va posted seven CHANGES_REQUESTED reviews from 2026-02-15 to 2026-02-22; the contributor's last push is 2026-03-10 and no maintainer response follows.",
         "decision": "Stage 1 (d189936, 2026-02-14; also the design pitched in the issue and still in the PR body): mergeTests(a, b) = a.extend(b's resolved fixtures), about 4 statements. Stage 2 (fa60ae8, 02-16): a loop calling currentTest.extend(next.getFixtures().toUserFixtures()), with a comment that overrides on the current test are dropped. Stage 3 (ddf97bf, 02-18, after the maintainer asked for a merge on TestFixtures): the loop passes the TestFixtures itself, and TestFixtures.extend gains an `instanceof TestFixtures` branch that copies registrations. Stage 4 (60bb43a, 03-09; head 30ddf39): mergeTests builds one Map itself with last-writer-wins, throws FixtureDependencyError for a different scope or auto option, keeps built-in fixture names from the first test, runs validateFixtures on the merged Map and wraps it in new TestFixtures(map); it no longer calls extend(). Types: six fixed overloads (1 to 6 arguments) instead of a variadic signature.",
         "alternatives": [
@@ -2032,7 +2032,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "SUBMISSION.md states the reason for a config file: 'No more hardcoded env vars; policies are versionable artifacts.' The YAML plus Zod design is in the second commit of the repository (f98ec86); no environment-variable configuration for policies exists anywhere in the history, so a 'migration from env vars' is not shown by git. Before c8a3ea8 the no-file path was AgentBrakeConfigSchema.parse({}), which the schema of that moment (agent and policies required) would reject.",
         "decision": "ConfigLoader.load() reads AGENT_BRAKE_CONFIG, then agent-brake.yml/.yaml/.json in the working directory, and validates with AgentBrakeConfigSchema.parse(). c8a3ea8 wraps each attempt in try/catch that logs 'trying next...', and at the end returns a hand-written object literal (agent 'safe-fallback-agent', empty limits and security) that is not passed through the schema. The same commit makes agent, policies, limits and security optional with defaults.",
         "alternatives": [
@@ -2089,7 +2089,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "ROADMAP_V3.md (removed from the repository later the same day in 03de458) describes 'Interactive Sudo Mode': the policy 'pauses the request', returns an approval signal, and 'Human approves -> Request resumes'. The README lists 'Circuit Breaker: auto-cut connection if tools fail repeatedly' and 'Human-in-the-Loop: pause execution for approval via Slack/Webhook'. ada809d added both policies in one commit, together with tests/policies.test.ts (17 tests; the circuit-breaker tests call recordFailure() directly).",
         "decision": "CircuitBreakerPolicy exposes recordFailure/recordSuccess and blocks a tool while its circuit is open. ApprovalPolicy stores a pending key (tool name + JSON arguments), returns action request_approval the first time, block ('Awaiting approval') on repeats, and exposes approve()/deny(). The proxy answers request_approval with an immediate JSON-RPC error -32001 (status 'pending') instead of holding the request. f98705f adds a WebhookNotifier with Slack buttons linking to `${approvalUrl}?action=approve|deny`. Both policies are constructed in src/proxy/index.ts.",
         "alternatives": [
@@ -2142,7 +2142,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "The first API route (fa6484b, 2025-09-11) ran Tesseract.js on the uploaded file and returned the raw text; a comment says 'Naive extraction heuristics' but the code applies none. On 2025-09-23 (3c573ae) the author added Gemini 2.0 Flash to structure the OCR text, with a rule-based extractor (ocrExtract.ts) as the fallback, and also ran Tesseract in the browser on the upload page. The same commit adds a workaround comment for Tesseract worker paths breaking under the Next.js bundler.",
         "decision": "The upload page now posts the file to /api/certificates/ocr-gemini. That route stores the file in Supabase Storage, sends the raw bytes as base64 inline data to gemini-2.0-flash-exp with a JSON-only prompt, and throws if no JSON object can be parsed. The old ocr/route.ts (Tesseract, PDF-to-image conversion, regex merge) is deleted in 980ef09. The page change is in 9f5427a, whose message covers only a delete-confirmation modal; that commit points at a route that is not yet in its tree, and the route is first committed in 980ef09. No commit message gives a reason for the switch. The nearest statement is SIMPLE-CERTIFICATE-GUIDE.md (added in 980ef09): the system was simplified 'to avoid all the complex OCR dependencies that were causing errors' (Jimp, Tesseract.js). That guide describes a different, text-only design that the shipped route does not implement, so the reason is inferred.",
         "alternatives": [
@@ -2211,7 +2211,7 @@ export const records: EngineeringRecord[] = [
         "authors": [
             "Ujjwaljain16"
         ],
-        "featured": true,
+        "featured": false,
         "context": "The role table (user_roles) needed two rules: a user reads their own row, and admins read and write every row. The first committed version of 001_create_user_roles.sql (1591252, 2025-09-12 01:43) checked admin status with a subquery on user_roles inside each policy on user_roles. POLICY-RECURSION-FIX.md (added in 3c573ae) describes the resulting Postgres error, 'infinite recursion detected in policy', and its cause: the policy queries the table that the policy protects. The next commit, 19 minutes later (d15304d), is titled as a fix for RLS policy recursion.",
         "decision": "Final approach in the committed SQL (002_fix_user_roles_policies_v2.sql and 003_fix_recursion_completely.sql, both added in 3c573ae): an is_admin() function declared LANGUAGE plpgsql SECURITY DEFINER, so it reads user_roles without re-entering the policies, used by four admin policies (select, insert, update, delete) plus a 'users read own role' policy. POLICY-RECURSION-FIX.md states the reason: the function bypasses the policies and so breaks the recursion. Before that the table went through four other states: subquery policies (001 as first committed), JWT-claim policies (001 rewritten in d15304d), a second subquery form (002 v1), and RLS switched off (003_disable_rls_temporarily and 007_disable_user_roles_rls). The 007 file states its reasons for switching RLS off: the admin client must read roles without RLS, the policies caused infinite recursion, and role management is handled at the application level.",
         "alternatives": [
@@ -6008,7 +6008,7 @@ export const records: EngineeringRecord[] = [
         "title": "Concurrent flushers lost 67-70% of the counter updates, until the merge moved into one SQL statement",
         "date": "2026-10-15",
         "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); finding F-06 in docs/postmortems.md",
-        "featured": true,
+        "featured": false,
         "question": "Does the batch flush keep every popularity increment when more than one process flushes at once?",
         "method": "benchmarks/exp_lost_update.py: 6 processes, each doing 40 flushes of 3 increments on the same query, so 720 increments are expected; run against the original code and the fixed code. With one process the original loses nothing.",
         "result": "The original stored 234 and 216 of the expected 720 (67.5% and 70.0% lost) in two runs; the fixed code stored 720. The cause is a classic lost update: SELECT the row, add in Python, UPSERT the computed value, which is invisible with one worker. The merge now happens in SQL under the row lock (historical_count = queries.historical_count + EXCLUDED.historical_count), the decay is computed on the database clock, and rows are inserted in sorted order so overlapping batches cannot deadlock, all in one INSERT ... SELECT FROM unnest(...) statement. A flush of 100 queries went from about 500 ms to about 14 ms. A related fault in the same path: one 6,000-character query in a batch made PostgreSQL reject its index entry and the whole batch of five events was dropped silently; the fix validates once centrally, bisects a rejected batch to drop only the bad row, and re-queues the remainder if the database is unreachable (a committed batch is never re-queued, so nothing is double counted). Trade-off: the decay formula now lives in SQL and in a Python reference class that a test pins to it.",
@@ -6079,7 +6079,7 @@ export const records: EngineeringRecord[] = [
         "title": "A frozen PostgreSQL left 14 s of zero successful requests; a deadline, bulkhead and breaker cut it to 0",
         "date": "2026-10-15",
         "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); ADR-006 and finding F-27 in docs/postmortems.md",
-        "featured": true,
+        "featured": false,
         "question": "What does the API do when PostgreSQL stops answering without closing its connections, as a frozen process or a stuck failover would?",
         "method": "docker pause on the PostgreSQL container for 20 s at about 60 requests per second, two repetitions per variant, with a per-second timeline. Then the healthy-path cost, measured in four interleaved repetitions at 400 requests per second of all-miss traffic.",
         "result": "The original had 14 s with zero successful requests, with requests hanging for about 6 s, including requests that could have been answered from the cache. A synchronous driver call cannot be interrupted client-side, and when a server freezes the kernel still ACKs, so no TCP timeout ever fires; every cache miss holds one of the 40 request threads. Reads now go through a 2 s deadline, a bulkhead of at most 15 calls with a 50 ms wait for a slot, and a circuit breaker, so misses fail instantly with 503 and Retry-After while cache hits keep being served: 0 seconds without a success, slowest request 2.0 s, p99 12-18 ms. The error rate is unchanged (about 26-32%, because misses cannot be answered), but the errors are immediate. Cost when healthy: about 0.4 ms median on the miss path. A regression the audit introduced and then measured away: the first guard rejected instantly at 12 slots and let saturation open the breaker, which produced spurious 503s in 3 of 6 runs; raising the limit to the pool size and not letting saturation trip the breaker gave 0 of 4. One Windows laptop (16 logical CPUs, 16 GB), Docker Desktop with PostgreSQL 15 and three Redis 7 nodes, one uvicorn worker, loopback, synthetic keystroke traffic drawn from a 150,000-row dataset; no production traffic exists.",
@@ -6334,7 +6334,7 @@ export const records: EngineeringRecord[] = [
         "title": "The benchmark could not be trusted: closed-loop load, a 12 ms timer bug and a machine that drifted by 2x",
         "date": "2026-10-15",
         "dateSource": "pull request #1 (squash commit b5d2a76), 2026-10-16 IST (2026-10-15 UTC); finding 10 in docs/postmortems.md and docs/benchmarks.md",
-        "featured": true,
+        "featured": false,
         "question": "Are the original benchmark's numbers, and the audit's first replacement numbers, measuring the service or the instrument?",
         "method": "Calibrating the load generator against /health, repeating identical code across hours, and comparing every original-versus-current pair in interleaved order (A, B, A, B), with three repetitions per point, medians with ranges and block-bootstrap confidence intervals on the raw per-request data.",
         "result": "Four problems, each fixed or avoided. (1) The original benchmark was closed-loop: it sent chunks of 100 and waited, so '100,000 concurrent requests' never exceeded 100 in flight and a slow server simply received fewer requests. The new generator is open-loop: it schedules arrivals at a fixed rate and measures latency from the intended send time, so it does not hide queueing (coordinated omission). (2) The first replacement generator lied too: asyncio.sleep(1 ms) took 12-15 ms on Windows (a power-throttled timer), inflating every latency by up to 15 ms, and a psutil call holding the GIL added jitter; spinning before each send, persistent connections and recording dispatch lag fixed it. (3) The machine drifts: identical baseline code measured 3.5-4 ms p50 in one hour and 1.8-2 ms two hours later, with a knee at 300 rps against 650 rps, so every headline comparison is interleaved. (4) A result that confirmed the hypothesis too neatly was wrong: an early 'about 99% data loss' during a database freeze was a measurement bug and the claim was deleted. A first non-interleaved matrix was invalid because of the drift and is kept only as a sanity set.",
