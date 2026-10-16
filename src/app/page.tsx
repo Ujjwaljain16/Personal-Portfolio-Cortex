@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight, FileDown, Github, Linkedin, Mail } from "luci
 import { BootOverlay } from "@/components/landing/BootSequence";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { Now } from "@/components/home/Now";
+import { StartHere } from "@/components/home/StartHere";
 import { ProjectCard } from "@/components/system/ProjectCard";
 import { BLOG_POSTS } from "@/data/blogPosts";
 import { featuredProjects, projects } from "@/data/projects";
@@ -110,6 +111,8 @@ export default function HomePage() {
                             </li>
                         </ul>
                     </section>
+
+                    <StartHere />
 
                     <Now />
 

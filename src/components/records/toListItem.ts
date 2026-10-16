@@ -8,6 +8,7 @@ export function toListItem(r: EngineeringRecord, card: React.ReactNode): RecordL
         project: r.project,
         outcome: (r.kind === "decision" ? r.status : r.verdict) ?? "adopted",
         provenance: r.provenance,
+        featured: r.featured,
         card,
     };
 }

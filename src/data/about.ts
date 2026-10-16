@@ -21,10 +21,7 @@ export interface AboutFact {
     text: string;
 }
 
-export const aboutMe: AboutFact[] = [
-    // Replace every line below with your own curated facts, then delete this comment.
-    // Keep each one short (one or two sentences) and in the same plain, unhyped voice as
-    // the rest of the site (see src/data/projects.ts for the tone to match).
-    { category: "Working style", text: "PLACEHOLDER: replace with something real, e.g. how you like to get feedback, or how you approach an unfamiliar codebase." },
-    { category: "What I care about", text: "PLACEHOLDER: replace with something real, e.g. what kind of problems you find worth solving." },
-];
+// Empty on purpose until there are real, curated facts. Add them as { category, text }, one or two
+// plain sentences each, in the same unhyped voice as the rest of the site. An empty list means
+// /ask simply has no personal-context section.
+export const aboutMe: AboutFact[] = [];

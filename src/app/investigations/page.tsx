@@ -3,6 +3,7 @@ import { RecordsBrowser } from "@/components/records/RecordsBrowser";
 import { RecordCard } from "@/components/records/RecordCard";
 import { toListItem } from "@/components/records/toListItem";
 import { investigations } from "@/data/records";
+import { orderRecords } from "@/lib/recordsOrder";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -30,7 +31,7 @@ export default function InvestigationsPage() {
                     .
                 </p>
             </header>
-            <RecordsBrowser records={investigations.map((r) => toListItem(r, <RecordCard record={r} />))} />
+            <RecordsBrowser records={orderRecords(investigations).map((r) => toListItem(r, <RecordCard record={r} />))} />
         </div>
     );
 }

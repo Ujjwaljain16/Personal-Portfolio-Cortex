@@ -20,7 +20,11 @@ describe("corpus", () => {
         for (const post of BLOG_POSTS) expect(corpus, post.slug).toContain(`[/blogs/${post.slug}]`);
     });
 
-    it("carries the personal-context facts under their own, clearly unverified heading", () => {
+    it("carries the personal-context facts under their own, clearly unverified heading, and omits the section when there are none", () => {
+        if (aboutMe.length === 0) {
+            expect(corpus).not.toContain("HOW I THINK");
+            return;
+        }
         expect(corpus).toContain("HOW I THINK");
         expect(corpus).toContain("not checked against a repository");
         for (const f of aboutMe) expect(corpus, f.category).toContain(f.text);
@@ -138,9 +142,13 @@ describe("selecting what to send for a question", () => {
         for (const post of BLOG_POSTS) expect(text, post.slug).toContain(`[/blogs/${post.slug}]`);
     });
 
-    it("always includes the personal-context facts, whatever the question is about", () => {
+    it("always includes the personal-context facts, whatever the question is about (and none when there are none)", () => {
         for (const q of ["How does MiniDB recover after a crash?", "What is the weather in Delhi?", "Tell me about VaultTabs"]) {
             const { text } = selectCorpus(q);
+            if (aboutMe.length === 0) {
+                expect(text, q).not.toContain("HOW I THINK");
+                continue;
+            }
             expect(text, q).toContain("HOW I THINK");
             for (const f of aboutMe) expect(text, `${q} | ${f.category}`).toContain(f.text);
         }

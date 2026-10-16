@@ -79,7 +79,7 @@ export const projects: Project[] = [
         tagline: "Recovers failed payments: an LLM may recommend, but only a deterministic policy engine may act.",
         status: "prototype",
         origin: "Razorpay Buildathon, Track 03",
-        period: "Aug–Sep 2026",
+        period: "Aug 2026 – Sep 2026",
         problem:
             "Failed payments can often be recovered by retrying at the right time and channel, but a wrong retry costs money. The system separates diagnosis from authority: an AI can suggest what to do, but it cannot move money.",
         approach: [
@@ -280,11 +280,11 @@ export const projects: Project[] = [
     {
         id: "sse-observatory",
         name: "SSE-Observatory",
-        tier: "flagship",
+        tier: "more",
         tagline: "A browser-based debugger for Server-Sent Events: query language, replay, and multi-tab stream sharing.",
         status: "prototype",
         origin: "Personal project",
-        period: "Feb–Mar 2026",
+        period: "Feb 2026 – Mar 2026",
         problem:
             "Debugging an SSE stream usually means curl and scrolling logs. There is no easy way to filter, correlate or replay a live stream.",
         approach: [
@@ -369,7 +369,7 @@ export const projects: Project[] = [
         tagline: "A Go lab that replays routing policies on identical traffic and classifies why one of them collapses under load.",
         status: "prototype",
         origin: "Personal project",
-        period: "Aug–Sep 2026 · 226 commits on 5 days",
+        period: "Aug 2026 – Sep 2026 · 226 commits on 5 days",
         problem:
             "A single latency benchmark cannot show why a load-balancing policy collapses, because traffic, capacity, failures and cache state all change at once. FlashFlow fixes the traffic, topology, failures and seed, lets each policy make its own routing decisions, and rebuilds queue growth from the dispatch and completion events.",
         approach: [
@@ -473,7 +473,7 @@ export const projects: Project[] = [
         tagline: "Duplicate GitHub issue detection over signed webhooks and pgvector search. In progress: two of four planned stages are built.",
         status: "in-progress",
         origin: "Personal project",
-        period: "Mar 2026 · two days so far",
+        period: "Mar 2026 · two days of work so far",
         problem: "Large repositories accumulate duplicate issues. Find likely duplicates when an issue arrives.",
         approach: [
             "Webhooks are HMAC-verified and pushed onto a Redis Stream. Workers process them at-least-once and reclaim stalled messages, with a dead-letter stream for failures.",
@@ -507,7 +507,7 @@ export const projects: Project[] = [
         tagline: "Distributed autocomplete over three Redis nodes, hardened by breaking it: node loss, a frozen database and concurrent writes, each measured before and after.",
         status: "prototype",
         origin: "Course project (the original app), audited and hardened afterwards",
-        period: "Jun 2026 original (15 commits over two days); audit and hardening Oct 2026",
+        period: "Jun 2026 – Oct 2026 · 15 original commits over two days, then an audit",
         problem: "Autocomplete is read-heavy but latency-sensitive: one search generates a query per keystroke, hot prefixes create Zipfian skew, and a single Redis instance becomes a bottleneck.",
         approach: [
             "FastAPI serves suggestions from PostgreSQL behind a Redis cache-aside layer; a 128-bit MD5 consistent-hash ring (500 virtual nodes) spreads prefixes across three Redis nodes. A Next.js frontend calls the API directly.",
@@ -553,7 +553,7 @@ export const projects: Project[] = [
         tagline: "A stdio proxy that intercepts an AI agent's MCP tool calls and enforces policies before they run.",
         status: "shipped",
         origin: "Personal project, one-day build",
-        period: "Feb 2026 · fixes Sep 2026",
+        period: "Feb 2026 – Sep 2026 · fail-closed fixes in Sep",
         problem: "Agents get tools such as file access and shell. Enforce limits on those calls without modifying the agent.",
         approach: [
             "The proxy spawns the MCP server as a child process, parses JSON-RPC on stdin, runs each tool call through a chain of policy classes, then forwards or blocks it.",
@@ -599,7 +599,7 @@ export const projects: Project[] = [
         tagline: "A TypeScript migration CLI and library with dependency-ordered execution, published to npm.",
         status: "shipped",
         origin: "Personal project",
-        period: "Nov–Dec 2025",
+        period: "Nov 2025 – Dec 2025",
         problem: "Migrations often depend on each other, and file-name order doesn't express that.",
         approach: [
             "Migrations declare dependencies with a comment annotation. A depth-first topological sort orders them and detects cycles and missing dependencies.",
@@ -621,7 +621,7 @@ export const projects: Project[] = [
     {
         id: "campussync",
         name: "CampusSync",
-        tier: "more",
+        tier: "flagship",
         tagline: "Multi-tenant certificate verification for universities and recruiters, rebuilt after a security audit.",
         status: "prototype",
         origin: "Personal project",
@@ -677,11 +677,11 @@ export const projects: Project[] = [
     {
         id: "campusslot",
         name: "CampusSlot",
-        tier: "more",
+        tier: "flagship",
         tagline: "A campus room-booking service built to show the delivery side: measured rollouts, a measured rollback, and query costs at scale.",
         status: "prototype",
         origin: "Personal project",
-        period: "Oct 2026 · 92 commits on main",
+        period: "Oct 2026 · 92 commits",
         problem: "A small booking service is easy to make work once. This project shows what happens when it is deployed, changed, broken and grown, with numbers instead of claims.",
         approach: [
             "FastAPI, React and PostgreSQL. The rule that two confirmed bookings never overlap is enforced in request validation, in an application check and by a PostgreSQL exclusion constraint on a time range.",
@@ -725,7 +725,7 @@ export const projects: Project[] = [
         tagline: "Sync open browser tabs across devices. Snapshots are encrypted in the browser, but it is not zero-knowledge.",
         status: "prototype",
         origin: "Personal project",
-        period: "Feb–Mar 2026 · 57 commits",
+        period: "Feb 2026 – Mar 2026 · 57 commits",
         problem: "Tab-sync tools usually upload your URLs to a server in plaintext, and the built-in browser sync is tied to one vendor.",
         approach: [
             "A browser extension (WXT, Chrome Manifest V3) captures open http(s) tabs, skips incognito tabs, and encrypts the list with a random AES-256-GCM master key before uploading.",
@@ -795,7 +795,7 @@ export const projects: Project[] = [
         tagline: "A privacy-first Android UPI expense tracker with a custom Kotlin native module and no backend.",
         status: "shipped",
         origin: "Personal project",
-        period: "Jan–Feb 2026 · 65 commits",
+        period: "Jan 2026 – Feb 2026 · 65 commits",
         problem: "Expense trackers usually read SMS or link bank accounts. Track UPI payments without either, and keep all data on the device.",
         approach: [
             "A Kotlin Expo module queries PackageManager for UPI apps and launches them by package, and shares QR images through a FileProvider.",
@@ -867,7 +867,13 @@ export const alsoBuilt: AlsoBuilt[] = [
     },
 ];
 
-export const featuredProjects = projects.filter((p) => p.tier === "flagship");
+// The featured grid shows the three "start here" projects first (see src/data/startHere.ts), then the rest.
+const FEATURED_ORDER = ["fuze", "campussync", "campusslot", "recoveryos", "flashflow", "minidb"];
+const featuredRank = (id: string) => {
+    const i = FEATURED_ORDER.indexOf(id);
+    return i === -1 ? FEATURED_ORDER.length : i;
+};
+export const featuredProjects = projects.filter((p) => p.tier === "flagship").sort((a, b) => featuredRank(a.id) - featuredRank(b.id));
 export const moreProjects = projects.filter((p) => p.tier === "more");
 
 export function getProject(id: string): Project | undefined {

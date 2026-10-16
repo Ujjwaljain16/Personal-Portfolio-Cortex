@@ -48,6 +48,7 @@ export interface RecordListItem {
     project: string;
     outcome: string;
     provenance: string;
+    featured: boolean;
     card: React.ReactNode;
 }
 
@@ -55,6 +56,7 @@ export function RecordsBrowser({ records }: { records: RecordListItem[] }) {
     const [project, setProject] = useState(ALL);
     const [outcome, setOutcome] = useState(ALL);
     const [provenance, setProvenance] = useState(ALL);
+    const [featuredOnly, setFeaturedOnly] = useState(false);
 
     const options = useMemo(
         () => ({
@@ -70,9 +72,10 @@ export function RecordsBrowser({ records }: { records: RecordListItem[] }) {
                 (r) =>
                     (project === ALL || r.project === project) &&
                     (outcome === ALL || r.outcome === outcome) &&
-                    (provenance === ALL || r.provenance === provenance)
+                    (provenance === ALL || r.provenance === provenance) &&
+                    (!featuredOnly || r.featured)
             ),
-        [records, project, outcome, provenance]
+        [records, project, outcome, provenance, featuredOnly]
     );
 
     return (
@@ -95,6 +98,16 @@ export function RecordsBrowser({ records }: { records: RecordListItem[] }) {
                     ]}
                 />
             </form>
+
+            <label className="inline-flex items-center gap-2 min-h-11 text-[14px] text-(--text-secondary) cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={featuredOnly}
+                    onChange={(e) => setFeaturedOnly(e.target.checked)}
+                    className="w-4 h-4 accent-(--accent-primary)"
+                />
+                Featured only (the strongest records, listed first)
+            </label>
 
             <p role="status" className="text-[13px] text-(--text-muted) font-mono">
                 Showing {visible.length} of {records.length}
