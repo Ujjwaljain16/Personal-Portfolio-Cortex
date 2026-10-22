@@ -51,8 +51,15 @@ output.
 | `GOOGLE_GENERATIVE_AI_API_KEY` | `/api/ask` | Server only |
 | `DEVIN_API_KEY` | `/api/ask` | Server only; optional. Repository notes for code-level questions. Without it, answers come from the checked portfolio alone |
 | `GITHUB_TOKEN` | `/system` | Optional; a token with no permissions, only to raise the rate limit |
+| `NEXT_PUBLIC_SITE_URL` | canonical URL, sitemap, share images | Optional, public by design. An https origin with no path, for example `https://ujjwaljain16.me`. Unset or invalid falls back to the Vercel URL. Read at build time, so redeploy after changing it |
 
-Nothing is prefixed with `NEXT_PUBLIC_`, so no secret can reach the client bundle.
+The only `NEXT_PUBLIC_` variable is the public site URL, so no secret can reach the client bundle.
+
+### Moving to another domain
+
+1. In Vercel, add the domain to the project (Settings, Domains) and set it as the primary domain. Vercel shows the DNS records to create; the registrar's DNS panel is where they go.
+2. Set `NEXT_PUBLIC_SITE_URL` to the new origin in the project's environment and redeploy.
+3. Keep the old `*.vercel.app` address as a redirect to the new domain so existing links keep working.
 
 ## How the content is kept honest
 

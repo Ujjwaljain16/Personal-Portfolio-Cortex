@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { SITE_HOST } from "@/lib/site";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
@@ -107,7 +108,7 @@ export function renderCard(input: CardInput) {
                         ))}
                     </div>
                     <div style={{ display: "flex", fontSize: "22px", color: "#9CA3AF", letterSpacing: "0.06em" }}>
-                        Ujjwal Jain · ujjwaljain.vercel.app
+                        {`Ujjwal Jain · ${SITE_HOST}`}
                     </div>
                 </div>
             </div>

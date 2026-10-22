@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { SITE_HOST } from "@/lib/site";
 
 // Generated at build time (no edge runtime), so the page can stay static.
 export const alt = "Ujjwal Jain: full-stack engineer, backend and GenAI";
@@ -61,7 +62,7 @@ export default async function Image() {
                         letterSpacing: "0.08em",
                     }}
                 >
-                    ujjwaljain.vercel.app
+                    {SITE_HOST}
                 </div>
             </div>
         ),
