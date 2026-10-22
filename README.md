@@ -1,6 +1,6 @@
 # CORTEX
 
-The source of my engineering portfolio: <https://ujjwaljain.vercel.app>
+The source of my engineering portfolio: <https://www.ujjwaljain16.me>
 
 It is built as a small "control plane" interface, but the content is the point. Every project claim, decision and
 measurement on the site was checked against the repository it came from, and where something is unfinished, unmeasured or

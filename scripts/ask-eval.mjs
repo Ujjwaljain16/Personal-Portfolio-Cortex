@@ -2,7 +2,7 @@
 // Runs fixed questions against a running site and checks the answers.
 //
 //   npm run eval:ask                       (against http://localhost:3000)
-//   npm run eval:ask -- https://ujjwaljain.vercel.app
+//   npm run eval:ask -- https://www.ujjwaljain16.me
 //
 // This calls the real model and the real lookup service, so it is a manual or scheduled
 // check, not part of CI. Answers vary in wording, so each case checks for the facts that
