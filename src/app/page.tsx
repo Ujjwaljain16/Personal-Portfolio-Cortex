@@ -179,7 +179,7 @@ export default async function HomePage() {
                                             merged {formatDate(pr.merged)}
                                         </span>
                                     </div>
-                                    <p className="mt-1 text-[14px] leading-relaxed text-(--text-secondary)">{pr.summary}</p>
+                                    {pr.summary && <p className="mt-1 text-[14px] leading-relaxed text-(--text-secondary)">{pr.summary}</p>}
                                 </li>
                             ))}
                         </ul>

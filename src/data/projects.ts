@@ -633,7 +633,7 @@ export const projects: Project[] = [
             "Roles live in one table (user_roles), credentials and the audit log are written only by the backend, and schema changes ship as staged migrations applied by a gated runner and replayed on PostgreSQL 17 in CI.",
         ],
         evidence: [
-            { text: "100 API route files. A test fails the build when a route is neither guarded nor on an explicit public list.", source: "tests/security/route-inventory.test.ts" },
+            { text: "100 API route files. A test fails the build when a route is neither guarded nor on an explicit public list.", source: "my-app/tests/security/route-inventory.test.ts" },
             { text: "80 test files and 1,432 passing tests, run on main on 16 Oct 2026. They use in-memory fakes for the database." },
             {
                 text: "A review of commit 91d0c77 (static reading plus targeted tests; not a penetration test and no outside reviewer) tracked 19 findings, 5 of them P1, in a public closure report. 17 are fixed in code and deployed with regression tests, one is partly fixed, and one needs an owner action outside the code. The P1s: every public credential verification failed, revocation was enforced on one path only, reviewers could approve their own certificates, and an admin of one organization could act on another.",

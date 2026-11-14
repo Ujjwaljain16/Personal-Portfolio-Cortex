@@ -1,0 +1,232 @@
+{
+    "syncedAt": "2026-11-14T18:38:56.727Z",
+    "merged": [
+        {
+            "repo": "kubernetes-sigs/gateway-api",
+            "project": "Kubernetes Gateway API",
+            "stars": "3k",
+            "number": 5401,
+            "title": "conformance: avoid nil Group panic in listener status matchers",
+            "url": "https://github.com/kubernetes-sigs/gateway-api/pull/5401",
+            "merged": "2026-10-22",
+            "summary": "gatewayListenersMatch and listenerSetListenersMatch default an omitted Group on each expected supported kind, but they did it inside the loop over the actual kinds if the actual list is empty the loop never runs, Group stays nil and the \"not found\" log line dereferences it and…"
+        },
+        {
+            "repo": "kubernetes-sigs/gateway-api",
+            "project": "Kubernetes Gateway API",
+            "stars": "3k",
+            "number": 5398,
+            "title": "conformance: fix parentRefToString printing a pointer address",
+            "url": "https://github.com/kubernetes-sigs/gateway-api/pull/5398",
+            "merged": "2026-10-21",
+            "summary": "parentRefToString checks *p.Namespace != \"\" correctly, but then formats p.Namespace, the pointer, so %v prints an address"
+        },
+        {
+            "repo": "metacoglabs/hypergraph",
+            "project": "Metacog Hypergraph",
+            "stars": "29",
+            "number": 92,
+            "title": "Publish the recovered log end as the first checkpoint's lsn",
+            "url": "https://github.com/metacoglabs/hypergraph/pull/92",
+            "merged": "2026-10-14",
+            "summary": "If recovery doesn't replay any commit, the first checkpoint after it put the old lsn back. That left the WAL records of a transaction that never committed inside the replay window."
+        },
+        {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
+            "number": 44248,
+            "title": "Fall back to the lean Dockerfile target when publishing a pre-#44100 release",
+            "url": "https://github.com/apache/superset/pull/44248",
+            "merged": "2026-09-29",
+            "summary": "#44220 reported that the (now-removed) scheduled Docker base-image refresh failed for every published release with:"
+        },
+        {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
+            "number": 43985,
+            "title": "Vary SQL Lab ad-hoc query cache key by effective RLS predicates",
+            "url": "https://github.com/apache/superset/pull/43985",
+            "merged": "2026-09-29",
+            "summary": "Query.get_extra_cache_keys() (superset/models/sql_lab.py) — the method that"
+        },
+        {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
+            "number": 44142,
+            "title": "Delete deprecated permissions left over after upgrades",
+            "url": "https://github.com/apache/superset/pull/44142",
+            "merged": "2026-09-23",
+            "summary": "Deprecated permissions are never cleaned up after an upgrade (#33272). superset init → sync_role_definitions creates missing permissions and runs clean_perms, but clean_perms only ever deletes PermissionView rows whose Permission/ViewMenu foreign keys are NULL — it never removes…"
+        },
+        {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
+            "number": 44237,
+            "title": "Add configurable display format for time filters",
+            "url": "https://github.com/apache/superset/pull/44237",
+            "merged": "2026-09-22",
+            "summary": "Native Time Range filters currently display evaluated ranges using raw ISO-style values (e.g. 2019-01-14), with no way to configure how they're shown."
+        },
+        {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
+            "number": 43974,
+            "title": "Handle self-referential catalog qualifiers",
+            "url": "https://github.com/apache/superset/pull/43974",
+            "merged": "2026-09-16",
+            "summary": "DB engine specs without catalog support (e.g. MssqlEngineSpec, which has supports_catalog = False) do not model a catalog-qualified permission/dataset identity."
+        },
+        {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
+            "number": 38910,
+            "title": "Use FILTER_STATE_CACHE_CONFIG timeout for dynamic filter option queries",
+            "url": "https://github.com/apache/superset/pull/38910",
+            "merged": "2026-07-24",
+            "summary": "Dynamic native filter option queries currently go through /api/v1/chart/data, which causes them to use DATA_CACHE_CONFIG. This leads to stale dropdown values, especially in cases involving frequently changing data or RLS."
+        },
+        {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
+            "number": 37978,
+            "title": "Restore arrow key navigation in modal inputs opened from dropdown",
+            "url": "https://github.com/apache/superset/pull/37978",
+            "merged": "2026-07-11",
+            "summary": "Fixes an issue where keyboard navigation keys (Arrow Left/Right/Up/Down, Home, End) did not work inside input fields in modals opened from the dashboard header dropdown (e.g., “Save as” dashboard modal and “Theme & CSS” modal)."
+        },
+        {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
+            "number": 38229,
+            "title": "Safely render database URIs in startup warnings",
+            "url": "https://github.com/apache/superset/pull/38229",
+            "merged": "2026-06-22",
+            "summary": "This PR improves startup warning output by explicitly rendering database URIs with hidden passwords when metadata database connection checks fail."
+        },
+        {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
+            "number": 37982,
+            "title": "Resolve SECRET_KEY lazily to fix silent re-encrypt-secrets failures",
+            "url": "https://github.com/apache/superset/pull/37982",
+            "merged": "2026-02-20",
+            "summary": "Fixes an issue where superset re-encrypt-secrets could silently fail to rotate encrypted database secrets."
+        },
+        {
+            "repo": "vitest-dev/vitest",
+            "project": "Vitest",
+            "stars": "17k",
+            "number": 9214,
+            "title": "Improve error message when tsc outputs help text",
+            "url": "https://github.com/vitest-dev/vitest/pull/9214",
+            "merged": "2025-12-23",
+            "summary": "Please don't delete this checklist! Before submitting the PR, please make sure you do the following:"
+        },
+        {
+            "repo": "vitest-dev/vitest",
+            "project": "Vitest",
+            "stars": "17k",
+            "number": 9213,
+            "title": "Respect nested test.only within describe.only (fix #9021)",
+            "url": "https://github.com/vitest-dev/vitest/pull/9213",
+            "merged": "2025-12-17",
+            "summary": "When test.only is nested inside describe.only, only the test.only test should run, matching Mocha's behavior. Previously, all tests within the describe.only block would execute."
+        },
+        {
+            "repo": "appwrite/appwrite",
+            "project": "Appwrite",
+            "stars": "58k",
+            "number": 10925,
+            "title": "Resolve MFA recovery code validation in 1.8.0",
+            "url": "https://github.com/appwrite/appwrite/pull/10925",
+            "merged": "2025-12-11",
+            "summary": "Fixes #10740 - Recovery codes not working after update to Appwrite 1.8.0"
+        }
+    ],
+    "open": [
+        {
+            "repo": "metacoglabs/hypergraph",
+            "project": "Metacog Hypergraph",
+            "stars": "29",
+            "number": 106,
+            "title": "Make a retried request id wait for the original commit",
+            "url": "https://github.com/metacoglabs/hypergraph/pull/106",
+            "note": "Opened 2026-10-15, last activity 2026-10-15. Waiting for review."
+        }
+    ],
+    "repos": {
+        "Ujjwaljain16/RecoveryOS": {
+            "pushed": "2026-10-15",
+            "archived": false
+        },
+        "Ujjwaljain16/MiniDB": {
+            "pushed": "2026-10-15",
+            "archived": false
+        },
+        "Ujjwaljain16/Fuze": {
+            "pushed": "2026-10-14",
+            "archived": false
+        },
+        "Ujjwaljain16/SSE-Observatory": {
+            "pushed": "2026-11-14",
+            "archived": false
+        },
+        "Ujjwaljain16/FlashFlow": {
+            "pushed": "2026-09-07",
+            "archived": false
+        },
+        "Ujjwaljain16/BHTTP-1-HTTP-in-Binary": {
+            "pushed": "2026-10-15",
+            "archived": false
+        },
+        "Ujjwaljain16/GitIssue": {
+            "pushed": "2026-10-15",
+            "archived": false
+        },
+        "Ujjwaljain16/TypeAheadX": {
+            "pushed": "2026-10-15",
+            "archived": false
+        },
+        "Ujjwaljain16/AgentBrake": {
+            "pushed": "2026-09-28",
+            "archived": false
+        },
+        "Ujjwaljain16/migratedb": {
+            "pushed": "2025-12-03",
+            "archived": false
+        },
+        "Ujjwaljain16/CampusSync": {
+            "pushed": "2026-10-21",
+            "archived": false
+        },
+        "Ujjwaljain16/campusslot": {
+            "pushed": "2026-11-10",
+            "archived": false
+        },
+        "Ujjwaljain16/VaultTabs": {
+            "pushed": "2026-10-15",
+            "archived": false
+        },
+        "Ujjwaljain16/E-commerce-Backend": {
+            "pushed": "2026-01-05",
+            "archived": false
+        },
+        "Ujjwaljain16/SpentSmart": {
+            "pushed": "2026-10-19",
+            "archived": false
+        },
+        "Ujjwaljain16/LEXIS": {
+            "pushed": "2026-10-15",
+            "archived": false
+        }
+    }
+}

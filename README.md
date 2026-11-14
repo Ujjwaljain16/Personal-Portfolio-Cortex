@@ -39,10 +39,28 @@ npm run dev
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
 | `npm run validate:data` | Checks projects, records, posts and links (needs Node 22.18+) |
+| `npm run sync:github` | Refreshes `src/data/generated/github.json` from the GitHub API (CI does this daily) |
+| `npm run check:links` | Checks every link in the data and prints the last good version of a moved file (CI does this weekly) |
 | `npm run build` | Production build |
 
 CI (`.github/workflows/ci.yml`) runs typecheck, lint, data validation, the build and a scan for credentials in the build
 output.
+
+## Keeping it current without touching it
+
+Two scheduled workflows do the upkeep; nothing here needs a person unless a run fails and emails you.
+
+| Workflow | When | What it does |
+| --- | --- | --- |
+| `sync.yml`, "Sync GitHub data" | daily | Reads my public pull requests and repositories. New merged pull requests appear in "Open source", open ones in "Now", and each project page shows its last commit. If the data changed it runs typecheck, lint, validation, tests and the build, and only then commits to `main`, which deploys. An unchanged week still gets a new timestamp, which keeps the schedule alive |
+| `links.yml`, "Check links" | Mondays | Checks every link in the data (evidence commits and files, pull requests, live deployments) and fails with the dead ones, plus the last commit that still had a moved file |
+
+What is generated and what is not: the pull request list, the "Just merged" and "In review" items, star counts and last-commit
+dates come from GitHub and are never edited by hand (`src/data/generated/`). A new contribution shows its own title and the
+first paragraph of its own description; add an entry to `CURATED` in `src/data/openSource.ts` only if you want to word it better.
+Contributions are listed only for public projects with at least 20 stars, and `DENY_REPOS` in `scripts/lib/github-sync.mjs` is the
+explicit exclusion list, so course and team repositories never appear. Records, project write-ups and the hand-written "Now" items
+are claims a person checked and stay manual; the weekly link check is what notices when their evidence moves.
 
 ## Environment variables
 

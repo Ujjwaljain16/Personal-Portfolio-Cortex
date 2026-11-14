@@ -9,6 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "validate:data": "node --no-warnings scripts/validate-data.mjs",
+    "sync:github": "node --no-warnings scripts/sync-github.mjs",
+    "check:links": "node --no-warnings scripts/check-links.mjs",
     "test": "vitest run",
     "eval:ask": "node scripts/ask-eval.mjs"
   },

@@ -2,11 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { Gallery } from "@/components/projects/Gallery";
 import { Diagram } from "@/components/projects/Diagram";
 import { RelatedRecords } from "@/components/projects/RelatedRecords";
 import { diagrams } from "@/data/diagrams";
+import { lastPushed } from "@/data/openSource";
 import { records } from "@/data/records";
 import { STATUS_LABEL, getProject, projects, sourceUrl, type ProjectStatus } from "@/data/projects";
 import { pageMetadata } from "@/lib/seo";
@@ -73,6 +74,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
                 <p className="text-[13px] font-mono text-(--text-muted)">
                     {project.origin} · {project.period}
+                    {lastPushed(project.repo) && <> · last commit {formatDate(lastPushed(project.repo)!)}</>}
                 </p>
 
                 <ul className="flex flex-wrap gap-2">

@@ -16,7 +16,7 @@ src/
     projects/ deployments/ home/ system/ ask/ landing/
   data/           typed content: projects, records, posts, deployments, open source
   lib/            seo helpers, GitHub client (server only), rate limiter, search index
-scripts/          validate-data.mjs (runs in CI)
+scripts/          validate-data.mjs (CI), sync-github.mjs (daily), check-links.mjs (weekly), lib/github-sync.mjs (pure helpers)
 ```
 
 ## Content is data
@@ -28,6 +28,19 @@ resolvable related-record ids and date formats.
 `records.ts` holds the decisions and investigations. It was generated once from verified research and is now edited by
 hand; each record carries its evidence links, how it was checked, whether its reasoning was `recorded` or `reconstructed`,
 and, for investigations, the numbers with their sources.
+
+## Generated data
+
+Two files are written by a bot, never by hand: `src/data/generated/github.json` (merged and open pull requests to projects I
+do not own, and when each portfolio repository was last pushed to). `scripts/sync-github.mjs` builds it from the GitHub GraphQL
+API; `.github/workflows/sync.yml` runs it daily, runs the CI checks on any change, and commits to `main` when they pass.
+`src/data/openSource.ts` composes the site's lists from it plus a small hand-written `CURATED` table, and `src/data/now.ts`
+derives its "Just merged" and "In review" items and the page's sync date from the same file. Summaries are the pull request's own
+first paragraph, never model-written. The coursework repository is excluded three ways: a star floor, a deny list, and a
+refusal to use any description that contains an email address or roll number.
+
+The file's `syncedAt` moves only when the data does, plus a weekly heartbeat, so most days produce no commit and a quiet
+repository still shows activity. `validate-data` warns if the timestamp is over 21 days old.
 
 ## Rendering and bundle rules
 
@@ -82,4 +95,7 @@ cannot become a clickable link. Secrets are read server side only.
 - Repository notes cover an allowlist of public repositories that the lookup service has indexed. Others are skipped, so questions about them are answered from the checked portfolio alone.
 - `src/data/about.ts` is public and unverified by design (see the comment in the file). It ships with placeholder text;
   `npm run validate:data` warns until it is replaced with real, curated facts.
-- Records were verified when they were written; a later change in a source repository is not detected automatically.
+- Records were verified when they were written. A later change in a source repository is not re-verified, but `check-links`
+  runs weekly and fails when an evidence link stops resolving (a moved file, a deleted commit).
+- Commit counts and similar numbers written into a project's prose are snapshots. The project page's "last commit" date
+  is generated, so a stale snapshot is visible next to it.

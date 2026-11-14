@@ -1,9 +1,15 @@
-import { openPRs } from "@/data/openSource";
+import { githubSyncedAt, lastPushed, mergedPRs, openPRs } from "@/data/openSource";
+import { formatDate } from "@/lib/utils";
 
 /**
  * What is happening right now. Keep it short and true: every item names something
- * a visitor can check, and `updated` is the date this list was last reviewed.
- * Change the date whenever the list is edited.
+ * a visitor can check.
+ *
+ * Two kinds of item:
+ *  - Generated, so they never need editing: open pull requests, recent merges, and the "last commit" date on
+ *    repositories. They come from src/data/generated/github.json (`npm run sync:github`, run daily by CI).
+ *  - Written by hand: the status words about work that has no public signal. `nowUpdated` is the date those were
+ *    last reviewed; change it whenever they are edited.
  */
 
 export interface NowItem {
@@ -15,7 +21,38 @@ export interface NowItem {
     linkLabel?: string;
 }
 
+/** When the hand-written items below were last reviewed. */
 export const nowUpdated = "2026-10-14";
+/** When the generated items (pull requests, merges, last-commit dates) last changed. */
+export const nowSyncedAt = githubSyncedAt.slice(0, 10);
+
+const RECENT_DAYS = 45;
+
+/** Merges from the last RECENT_DAYS before the sync, one item per project, newest project first. */
+function recentMerges(): NowItem[] {
+    const cutoff = new Date(githubSyncedAt).getTime() - RECENT_DAYS * 86_400_000;
+    const byProject = new Map<string, typeof mergedPRs>();
+    for (const pr of mergedPRs) {
+        if (new Date(pr.merged).getTime() < cutoff) continue;
+        byProject.set(pr.project, [...(byProject.get(pr.project) ?? []), pr]);
+    }
+    return [...byProject.entries()].map(([project, prs]) => {
+        const latest = prs[0]; // mergedPRs is newest first
+        const count = prs.length === 1 ? "A" : String(prs.length);
+        return {
+            status: "Just merged",
+            text: `${count} ${project} pull request${prs.length === 1 ? "" : "s"} merged, the latest on ${formatDate(latest.merged)}: #${latest.number}, ${latest.title}.`,
+            href: latest.url,
+            linkLabel: "Pull request",
+        };
+    });
+}
+
+/** " Last commit Oct 15, 2026." for a repository the sync tracks, else nothing. */
+function lastCommit(repo: string): string {
+    const pushed = lastPushed(repo);
+    return pushed ? ` Last commit ${formatDate(pushed)}.` : "";
+}
 
 export const nowItems: NowItem[] = [
     // Open pull requests come from src/data/openSource.ts so the two lists cannot disagree.
@@ -25,15 +62,10 @@ export const nowItems: NowItem[] = [
         href: pr.url,
         linkLabel: "Pull request",
     })),
-    {
-        status: "Just merged",
-        text: "Nine Apache Superset pull requests are merged, the latest two on 29 Sep 2026, and so is a crash-recovery fix in Metacog Hypergraph (14 Oct 2026) for a bug found and reported as #91.",
-        href: "https://github.com/metacoglabs/hypergraph/pull/92",
-        linkLabel: "Pull request",
-    },
+    ...recentMerges(),
     {
         status: "Active development",
-        text: "LEXIS, a retrieval-augmented generation (RAG) system that is still a work in progress. Recent work replaces a placeholder entailment check with a real model and wires in cross-encoder reranking, which is off by default.",
+        text: "LEXIS, a retrieval-augmented generation (RAG) system that is still a work in progress. Recent work replaces a placeholder entailment check with a real model and wires in cross-encoder reranking, which is off by default." + lastCommit("Ujjwaljain16/LEXIS"),
         href: "https://github.com/Ujjwaljain16/LEXIS",
         linkLabel: "Repository",
     },

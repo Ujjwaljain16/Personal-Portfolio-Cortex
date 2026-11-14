@@ -4,7 +4,7 @@ import { records } from "@/data/records";
 import { BLOG_POSTS } from "@/data/blogPosts";
 import { mergedPRs, openPRs } from "@/data/openSource";
 import { deployments } from "@/data/deployments";
-import { nowItems, nowUpdated } from "@/data/now";
+import { nowItems, nowSyncedAt, nowUpdated } from "@/data/now";
 import { profile } from "@/data/profile";
 import { aboutMe } from "@/data/about";
 import { mentionedProjects } from "@/lib/askRouting";
@@ -97,7 +97,7 @@ const openSourceBlock = () =>
     [
         "## OPEN SOURCE [/]",
         "Merged pull requests:",
-        list(mergedPRs.map((p) => `${p.project} #${p.number} (${p.merged}): ${p.title}. ${p.summary}`)),
+        list(mergedPRs.map((p) => `${p.project} #${p.number} (${p.merged}): ${p.title}.${p.summary ? ` ${p.summary}` : ""}`)),
         "Open pull requests right now:",
         openPRs.length ? list(openPRs.map((p) => `${p.project} #${p.number}: ${p.title}. ${p.note}`)) : "- None at the moment.",
     ].join("\n");
@@ -105,7 +105,7 @@ const openSourceBlock = () =>
 const deploymentsBlock = () =>
     ["## WHERE THINGS RUN [/deployments]", list(deployments.map((d) => `${d.repo}: ${d.summary}. ${d.impact}${d.liveUrl ? ` Live: ${d.liveUrl}` : ""}`))].join("\n");
 
-const nowBlock = () => [`## NOW (reviewed ${nowUpdated}) [/]`, list(nowItems.map((n) => `${n.status}: ${n.text}`))].join("\n");
+const nowBlock = () => [`## NOW (pull requests and commit dates synced from GitHub ${nowSyncedAt}; other items reviewed ${nowUpdated}) [/]`, list(nowItems.map((n) => `${n.status}: ${n.text}`))].join("\n");
 
 /** One line per item: enough to know it exists, what it concluded, and where to link. */
 function indexBlock(): string {

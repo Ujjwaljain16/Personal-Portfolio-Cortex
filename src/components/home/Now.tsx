@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { nowItems, nowUpdated, type NowItem } from "@/data/now";
+import { nowItems, nowSyncedAt, nowUpdated, type NowItem } from "@/data/now";
 import { formatDate } from "@/lib/utils";
 
 const isExternal = (href: string) => /^https?:\/\//.test(href);
@@ -35,7 +35,8 @@ export function Now() {
                     Now
                 </h2>
                 <p className="text-[12px] font-mono text-(--text-muted)">
-                    Updated <time dateTime={nowUpdated}>{formatDate(nowUpdated)}</time>
+                    Synced from GitHub <time dateTime={nowSyncedAt}>{formatDate(nowSyncedAt)}</time> · other items reviewed{" "}
+                    <time dateTime={nowUpdated}>{formatDate(nowUpdated)}</time>
                 </p>
             </div>
             <ul className="surface-1 divide-y divide-(--border-default)/60">

@@ -1,0 +1,32 @@
+name: Check links
+
+# Every Monday, checks every link in the site's data (evidence commits and files, pull requests, live deployments).
+# It only reports: a failed run emails the repository owner with the dead links and, for moved files, the last
+# commit that still had them, so the fix is a one-line paste.
+
+on:
+  schedule:
+    - cron: "41 6 * * 1" # Mondays 06:41 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check links
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node --no-warnings scripts/check-links.mjs

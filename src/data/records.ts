@@ -1524,7 +1524,7 @@ export const records: EngineeringRecord[] = [
             {
                 "type": "file",
                 "label": "final_benchmark.py",
-                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/scripts/final_benchmark.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/b5d2a764c7e7e853e65f0a3c90fa9967b4a93ff0/scripts/final_benchmark.py",
                 "note": "generate_queries defines the synthetic workload and top-10 names."
             },
             {
@@ -1611,7 +1611,7 @@ export const records: EngineeringRecord[] = [
             {
                 "type": "file",
                 "label": "performance-report.md",
-                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/docs/performance-report.md",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/b5d2a764c7e7e853e65f0a3c90fa9967b4a93ff0/docs/performance-report.md",
                 "note": "Warm p50 420.01 ms and p99 790.03 ms; cold p50 175 ms."
             },
             {
@@ -3576,7 +3576,7 @@ export const records: EngineeringRecord[] = [
             {
                 "type": "benchmark",
                 "label": "rebalance_experiment.py",
-                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/HEAD/scripts/rebalance_experiment.py",
+                "href": "https://github.com/Ujjwaljain16/TypeAheadX/blob/b5d2a764c7e7e853e65f0a3c90fa9967b4a93ff0/scripts/rebalance_experiment.py",
                 "note": "Re-runnable without Redis or Postgres."
             },
             {

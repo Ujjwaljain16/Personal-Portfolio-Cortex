@@ -18,7 +18,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const strict = process.argv.includes("--strict");
 
 const { projects, alsoBuilt } = await import("../src/data/projects.ts");
-const { mergedPRs, openPRs } = await import("../src/data/openSource.ts");
+const { mergedPRs, openPRs, orphanedCurated, githubSyncedAt } = await import("../src/data/openSource.ts");
 const { deployments } = await import("../src/data/deployments.ts");
 const { BLOG_POSTS } = await import("../src/data/blogPosts.ts");
 const { records } = await import("../src/data/records.ts");
@@ -92,7 +92,18 @@ for (const pr of [...mergedPRs, ...openPRs]) {
         else if (pr.merged > today) err(w, `merged date ${pr.merged} is in the future`);
     }
     if (!nonEmpty(pr.title)) err(w, "missing title");
+    // Summaries are generated from pull request text, so they get the checks a hand-written one would not need.
+    if (/[\w.+-]+@[\w-]+\.[\w.]+/.test(pr.summary ?? "")) err(w, "summary contains an email address");
 }
+const mergedDates = mergedPRs.map((p) => p.merged);
+if (mergedDates.join() !== [...mergedDates].sort().reverse().join()) err("openSource", "merged pull requests are not newest first");
+const mergedUrls = new Set(mergedPRs.map((p) => p.url));
+for (const pr of openPRs) if (mergedUrls.has(pr.url)) err(`openSource[${pr.project}#${pr.number}]`, "is listed as both open and merged");
+for (const url of orphanedCurated) warn("openSource", `hand-written summary for ${url} matches no pull request in the generated data`);
+// The scheduled sync commits at least weekly; three weeks of silence means it has stopped.
+const syncAgeDays = (Date.now() - Date.parse(githubSyncedAt)) / 86_400_000;
+if (!(syncAgeDays >= 0)) err("openSource", `syncedAt "${githubSyncedAt}" is not a past timestamp`);
+else if (syncAgeDays > 21) warn("openSource", `GitHub data was last synced ${Math.floor(syncAgeDays)} days ago; check the "Sync GitHub data" workflow`);
 
 // ─── Deployments ─────────────────────────────────────────────
 unique(deployments, "id", "deployments");
@@ -130,7 +141,7 @@ const VERDICT = new Set(["adopted", "confirmed", "partial", "rejected", "inconcl
 const EVIDENCE = new Set(["commit", "file", "pr", "issue", "doc", "benchmark", "test", "release"]);
 // Public sources only. Private-repo projects cite the published npm package instead.
 const ALLOWED_HOSTS = ["https://github.com/", "https://unpkg.com/@ujjwaljain16/migratedb@", "https://registry.npmjs.org/@ujjwaljain16"];
-const knownProjectNames = new Set([...projects.map((p) => p.name), ...alsoBuilt.map((a) => a.name), "Apache Superset", "Vitest", "Appwrite"]);
+const knownProjectNames = new Set([...projects.map((p) => p.name), ...alsoBuilt.map((a) => a.name), ...mergedPRs.map((p) => p.project)]);
 const knownProjectIds = new Set(projects.map((p) => p.id));
 const PRIVATE_PROJECTS = new Set(["migrateDB"]); // no public source: evidence has no links
 for (const r of records) {
