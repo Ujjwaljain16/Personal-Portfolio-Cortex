@@ -138,6 +138,11 @@ export function lastCommitDate(repo: string): string | undefined {
     return (github.repos as Record<string, { committed: string }>)[repo]?.committed;
 }
 
+/** The branch that date was read from, when it is not the default branch (a project whose released version sits on `main`). */
+export function lastCommitBranch(repo: string): string | undefined {
+    return (github.repos as Record<string, { branch?: string }>)[repo]?.branch;
+}
+
 export function countByProject(): { project: string; count: number }[] {
     const counts = new Map<string, number>();
     for (const pr of mergedPRs) counts.set(pr.project, (counts.get(pr.project) ?? 0) + 1);

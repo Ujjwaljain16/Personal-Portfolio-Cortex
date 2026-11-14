@@ -144,3 +144,30 @@ describe("the generated data as the site uses it", () => {
         expect(nowSyncedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 });
+
+describe("sourceUrl and sourceLabel", () => {
+    it("links the default branch, or a pinned commit when the path ends in @sha", async () => {
+        const { sourceUrl, sourceLabel } = await import("@/data/projects");
+        expect(sourceUrl("o/r", "docs/a.md")).toBe("https://github.com/o/r/blob/HEAD/docs/a.md");
+        expect(sourceUrl("o/r", "docs/a.md@20ab806ee1949ff58acbfad11d8d679a53094ef6")).toBe(
+            "https://github.com/o/r/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/docs/a.md",
+        );
+        expect(sourceLabel("docs/a.md@20ab806")).toBe("a.md");
+        expect(sourceLabel("docs/a.md")).toBe("a.md");
+    });
+
+    it("does not mistake an @ in a file name for a pin", async () => {
+        const { sourceUrl } = await import("@/data/projects");
+        expect(sourceUrl("o/r", "docs/@types/index.d.ts")).toBe("https://github.com/o/r/blob/HEAD/docs/@types/index.d.ts");
+    });
+});
+
+describe("SSE-Observatory v2 content", () => {
+    it("never describes v2 as released or live, and says the hosted demo is v1", async () => {
+        const { getProject } = await import("@/data/projects");
+        const p = getProject("sse-observatory")!;
+        const text = [p.period, ...p.limitations, ...p.evidence.map((e) => e.text)].join(" ");
+        expect(text).toMatch(/not (merged to main or )?released|not on main/i);
+        expect(p.links.some((l) => /v1/.test(l.label))).toBe(true);
+    });
+});

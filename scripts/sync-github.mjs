@@ -19,6 +19,8 @@ const OUT = join(root, "src", "data", "generated", "github.json");
 const checkOnly = process.argv.includes("--check");
 /** Repositories shown on the site that are not in src/data/projects.ts (for example work in progress mentioned under "Now"). */
 const EXTRA_REPOS = ["Ujjwaljain16/LEXIS"];
+/** Repositories whose active work is on a branch other than the default one (the default branch is a released version). */
+const DEV_BRANCH = { "Ujjwaljain16/SSE-Observatory": "v2" };
 
 function token() {
     if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
@@ -70,14 +72,19 @@ async function fetchPullRequests() {
 async function fetchRepoActivity() {
     const { projects } = await import("../src/data/projects.ts");
     const repos = [...new Set([...projects.map((p) => p.repo), ...EXTRA_REPOS])].filter((r) => r.toLowerCase().startsWith(`${OWNER.toLowerCase()}/`));
-    const fields = repos.map((r, i) => `r${i}: repository(owner:"${r.split("/")[0]}", name:"${r.split("/")[1]}"){ isArchived defaultBranchRef{ target{ ... on Commit{ committedDate } } } }`).join("\n");
+    const fields = repos
+        .map((r, i) => {
+            const ref = DEV_BRANCH[r] ? `ref(qualifiedName:"refs/heads/${DEV_BRANCH[r]}")` : "defaultBranchRef";
+            return `r${i}: repository(owner:"${r.split("/")[0]}", name:"${r.split("/")[1]}"){ isArchived ${ref}{ target{ ... on Commit{ committedDate } } } }`;
+        })
+        .join(" ");
     const data = await graphql(`query{ ${fields} }`);
     const out = {};
     repos.forEach((r, i) => {
         const node = data[`r${i}`];
         // The default branch's newest commit, not the last push: bots such as Dependabot push branches constantly.
-        const committed = node?.defaultBranchRef?.target?.committedDate;
-        if (committed) out[r] = { committed: committed.slice(0, 10), archived: node.isArchived };
+        const committed = (node?.defaultBranchRef ?? node?.ref)?.target?.committedDate;
+        if (committed) out[r] = { committed: committed.slice(0, 10), ...(DEV_BRANCH[r] ? { branch: DEV_BRANCH[r] } : {}), archived: node.isArchived };
     });
     return out;
 }

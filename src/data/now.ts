@@ -1,4 +1,4 @@
-import { githubSyncedAt, lastCommitDate, mergedPRs, openPRs } from "@/data/openSource";
+import { githubSyncedAt, lastCommitBranch, lastCommitDate, mergedPRs, openPRs } from "@/data/openSource";
 import { formatDate } from "@/lib/utils";
 
 /**
@@ -48,10 +48,11 @@ function recentMerges(): NowItem[] {
     });
 }
 
-/** " Last commit Oct 15, 2026." for a repository the sync tracks, else nothing. */
+/** " Last commit Oct 15, 2026." (with the branch, when it is not the default one) for a repository the sync tracks, else nothing. */
 function lastCommit(repo: string): string {
-    const pushed = lastCommitDate(repo);
-    return pushed ? ` Last commit ${formatDate(pushed)}.` : "";
+    const date = lastCommitDate(repo);
+    const branch = lastCommitBranch(repo);
+    return date ? ` Last commit ${formatDate(date)}${branch ? ` on the ${branch} branch` : ""}.` : "";
 }
 
 export const nowItems: NowItem[] = [
@@ -63,6 +64,12 @@ export const nowItems: NowItem[] = [
         linkLabel: "Pull request",
     })),
     ...recentMerges(),
+    {
+        status: "Active development",
+        text: "SSE Observatory v2: a diagnostics layer and command-line tool that explain why a Server-Sent Events stream stalled or lost events, with the evidence. It is on a branch in a testing campaign and is not released; the hosted demo is still v1." + lastCommit("Ujjwaljain16/SSE-Observatory"),
+        href: "https://github.com/Ujjwaljain16/SSE-Observatory/tree/v2",
+        linkLabel: "v2 branch",
+    },
     {
         status: "Active development",
         text: "LEXIS, a retrieval-augmented generation (RAG) system that is still a work in progress. Recent work replaces a placeholder entailment check with a real model and wires in cross-encoder reranking, which is off by default." + lastCommit("Ujjwaljain16/LEXIS"),

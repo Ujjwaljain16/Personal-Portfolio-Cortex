@@ -6620,6 +6620,279 @@ export const records: EngineeringRecord[] = [
             }
         ],
         "verification": "Read ADR-005 and listed the test file. I did not run the queries."
+    },
+    {
+        "project": "SSE-Observatory",
+        "projectId": "sse-observatory",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "sse-doctor-overhead-and-the-resorting-bug",
+        "kind": "investigation",
+        "title": "What the Stream Doctor costs the page, and the profiling that cut its worst case from 600 ms to 31 ms",
+        "date": "2026-10-21",
+        "dateSource": "commits 588ea6f and 45a9ca8 (2026-10-21)",
+        "question": "What does the Stream Doctor cost the page at about 500 events per second and under a 20,000-event burst, and is the plan's target of \"under 2% CPU at 500 events/s\" true?",
+        "method": "`npm run bench -- --doctor all --runs 5` against a production build in Chrome, medians of five runs, October 2026, in three arms: recording off (the viewer alone), recording on with the Doctor panel closed (the normal state), and panel open. The first measurement of the build was far worse, so a profile was taken.",
+        "result": "The first build had a timer lateness (p95) of about 600 ms and a worst frame near 900 ms under the burst. The profile showed that re-sorting a 256-sample window every time a rule asked for a quantile took about three of eight seconds of main-thread time; keeping the window sorted as samples arrive removed it. Afterwards, under the 20,000-event burst the p95 timer lateness is 16 / 31 / 36 ms with the Doctor off / closed / open, and 0 / 7 / 10 long frames. At about 500 events/s it is 8 / 8 / 9 ms with no long frames. The 2% CPU target is stated as not demonstrated: the main thread is busy 70 to 98% of the time in every variant, the run-to-run spread is about ten points, and the SharedWorker's own work is not in the figure. The roughly 13 microseconds per record is an analytic basis for the target, not a measurement of it.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "timer lateness p95, 20k-event burst, Doctor off / closed / open",
+                "value": "16 / 31 / 36 ms",
+                "source": "README.md, \"What the Stream Doctor costs\" (production build, Chrome, medians of 5 runs, Oct 2026)"
+            },
+            {
+                "label": "timer lateness p95 before the fix, same burst",
+                "value": "about 600 ms (worst frame near 900 ms)",
+                "source": "Commit 588ea6f message and README.md; not saved as a result file"
+            },
+            {
+                "label": "heap growth, burst, Doctor off / closed / open",
+                "value": "+19 / +52 / +86 MB",
+                "source": "README.md, same table"
+            },
+            {
+                "label": "timer lateness p95, about 500 events/s, Doctor off / closed / open",
+                "value": "8 / 8 / 9 ms, 0 long frames",
+                "source": "README.md, same table"
+            }
+        ],
+        "verdict": "partial",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "588ea6f",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/commit/588ea6f",
+                "note": "Keeps the rolling window sorted as samples arrive instead of re-sorting for every quantile (burst timer lateness p95 600 ms to 31 ms)."
+            },
+            {
+                "type": "commit",
+                "label": "45a9ca8",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/commit/45a9ca8",
+                "note": "Adds the measured cost table to the README and states the 2% target as not demonstrated."
+            },
+            {
+                "type": "doc",
+                "label": "README.md",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/README.md",
+                "note": "The performance section holds the tables, the method and what the benchmark does not show."
+            },
+            {
+                "type": "benchmark",
+                "label": "scripts/bench.mjs",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/scripts/bench.mjs",
+                "note": "The benchmark behind `npm run bench`."
+            }
+        ],
+        "verification": "Read both commits and the README's performance section at the v2 head (20ab806), and checked that the benchmark script exists there. I did not re-run the benchmark. The first measurement exists only as text in the commit message and README, not as a saved result file, and the README does not say which laptop was used."
+    },
+    {
+        "project": "SSE-Observatory",
+        "projectId": "sse-observatory",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "sse-close-the-open-relay",
+        "kind": "decision",
+        "title": "Close the hosted site's open SSE relay and put one guarded proxy behind both servers",
+        "date": "2026-10-19",
+        "dateSource": "commit d8542b5 (2026-10-19); it is on main, so it is part of v1.0.0",
+        "context": "The hosted site relayed SSE through an unprotected proxy (api/sse.js) and had ticket endpoints that could be forged. The commit is a live-site hotfix for findings of a security audit.",
+        "decision": "Remove the legacy relay and the unused ticket endpoints. One shared proxy core serves both the Express server and the Vercel functions: closed by default in production (an allow-list or an explicit open switch), a same-origin check, an SSRF guard that checks every DNS answer and pins the connection to the address it validated, no redirects, http and https only, no credentials in URLs, the upstream must answer 200 text/event-stream, and caps on bytes, duration and concurrency. The mock API is off in production unless enabled.",
+        "alternatives": [
+            {
+                "option": "Leave the legacy relay in place and harden it only at the edges",
+                "whyNot": "The commit describes the relay as unprotected and removes it; the replacement is one guarded core used by both servers instead of two code paths to keep safe."
+            }
+        ],
+        "consequences": "The hosted demo cannot proxy arbitrary hosts unless it is configured to, and its mock replay is off: the mock API answered 404 on the hosted site when checked on 15 Nov 2026. The commit message does not list other options that were considered, so none are claimed here.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "d8542b5",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/commit/d8542b5",
+                "note": "Removes the open relay and adds the shared guarded proxy core, with tests."
+            },
+            {
+                "type": "file",
+                "label": "lib/proxy/guard.js",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/lib/proxy/guard.js",
+                "note": "The SSRF guard and address checks."
+            },
+            {
+                "type": "test",
+                "label": "src/tests/proxyGuard.test.ts",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/src/tests/proxyGuard.test.ts",
+                "note": "Tests for the guard."
+            }
+        ],
+        "verification": "Read the commit message and checked that the guard and its test file exist at the v2 head. I did not run the tests. The statement that the mock API is off in production comes from an HTTP request to the hosted demo on 15 Nov 2026, which returned 404."
+    },
+    {
+        "project": "SSE-Observatory",
+        "projectId": "sse-observatory",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "sse-payload-shapes-not-values",
+        "kind": "decision",
+        "title": "Record the structure of each payload, never its values, so schema drift can be found after the payload is gone",
+        "date": "2026-11-14",
+        "dateSource": "commit 3128b1b (2026-11-14), on the v2 branch",
+        "context": "Detecting that an event's format changed needs the format of events from long ago, but the recording is bounded and its payload text rolls out of it.",
+        "decision": "For every JSON payload of 4 KB or less, the recorder keeps its shape (field paths and kinds such as `$:o|id:n|price:n`, sorted; never a value) in the event's extracted data. Redaction leaves shapes alone. A profile setting `\"shapes\": false`, also a checkbox in the Privacy panel, turns it off. The rule that uses it (R16) takes the first 20 events of a name as a baseline and reports fields gone, new or of another kind only when most recent events share a different shape.",
+        "alternatives": [
+            {
+                "option": "Raise the size limit from 4 KB to 16 KB",
+                "whyNot": "By the commit's micro-benchmark a 16 KB payload would cost about 150 microseconds per event, against about 2 to 19 microseconds up to 2 KB."
+            }
+        ],
+        "consequences": "Parsing and describing a payload adds about 2 microseconds per event for a small one, 8 for 700 bytes and 19 for 2 KB, and the rule adds under 1 microsecond per record. These come from a Node micro-benchmark, not a browser. Field names are recorded unless the switch is off: a field named `password` is a name. Writing this also exposed a bug, fixed in the same commit: the redactor had been reading `password:s` as a secret pair and mangling shapes.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "3128b1b",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/commit/3128b1b",
+                "note": "Adds payload shapes, the R16 schema-drift rule and the fleet strip."
+            },
+            {
+                "type": "file",
+                "label": "src/core/observe/payloadShape.ts",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/src/core/observe/payloadShape.ts",
+                "note": "Builds the shape of a payload."
+            },
+            {
+                "type": "file",
+                "label": "src/core/diagnostics/rules/r16SchemaDrift.ts",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/src/core/diagnostics/rules/r16SchemaDrift.ts",
+                "note": "The rule that compares shapes against a baseline."
+            }
+        ],
+        "verification": "Read the commit message and checked that both files exist at the v2 head (20ab806). The micro-benchmark was not re-run, and its script and the machine it ran on are not recorded. This is on the v2 branch, not on main."
+    },
+    {
+        "project": "SSE-Observatory",
+        "projectId": "sse-observatory",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "sse-evidence-apart-from-deduction",
+        "kind": "decision",
+        "title": "Keep what was measured apart from what is deduced, and never show a check that could not run as healthy",
+        "date": "2026-10-20",
+        "dateSource": "commit 95636a0 (2026-10-20), the first commit of the diagnostics document",
+        "context": "A browser can see that events stopped arriving, but not which layer stopped them. A diagnostic tool that states a guess as a fact, or stays quiet about something it could not check, is worse than none.",
+        "decision": "Every finding lists facts with pointers to the records that show them, separately from a deduction that always reads \"Likely:\" with a confidence and the other explanations that fit the same facts. A rule that needs something the capture lacks (hidden response headers, no declared sequence) is listed as \"not evaluated\", never as healthy. Gaps and duplicates are judged only for a sequence the profile declares. Time-based checks use the capture's own clock, so analysing a capture offline gives what the live panel showed.",
+        "alternatives": [
+            {
+                "option": "Name the layer that caused a problem from one browser capture",
+                "whyNot": "A browser sees that bytes stopped arriving, not which hop stopped them, so findings say \"likely\" and list the alternatives."
+            },
+            {
+                "option": "Detect gaps on ids that merely look sequential",
+                "whyNot": "Ids that look sequential prove nothing; only a declared sequence is judged."
+            },
+            {
+                "option": "Add AI explanations",
+                "whyNot": "Left out until findings are reproducible, evidence-backed and identical across the browser, the command line and tests."
+            }
+        ],
+        "consequences": "Some checks come back \"not evaluated\" and the findings are hedged on purpose. The documentation says plainly that a cross-origin browser sees only a few response headers, so rules that need others cannot run.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "95636a0",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/commit/95636a0",
+                "note": "Adds the diagnostics document: rules, sequence contracts, confidence and limits."
+            },
+            {
+                "type": "doc",
+                "label": "docs/technical/diagnostics.md",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/docs/technical/diagnostics.md",
+                "note": "The three rules, the list of fifteen rules and their limits."
+            },
+            {
+                "type": "doc",
+                "label": "docs/technical/roadmap-later.md",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/docs/technical/roadmap-later.md",
+                "note": "Its \"Not in v2\" table gives the reasons the options above were left out. The row for env-diff is out of date: that command shipped in PR #46."
+            },
+            {
+                "type": "file",
+                "label": "src/core/diagnostics/finding.ts",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/src/core/diagnostics/finding.ts",
+                "note": "The finding type."
+            }
+        ],
+        "verification": "Read the three documents and checked that finding.ts exists at the v2 head (20ab806). I did not check by test that every finding follows the wording rules."
+    },
+    {
+        "project": "SSE-Observatory",
+        "projectId": "sse-observatory",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "sse-validate-never-says-fixed-on-another-profile",
+        "kind": "investigation",
+        "title": "Could `sse-doctor validate` report a bug as fixed when the finding only stopped being raised?",
+        "date": "2026-11-14",
+        "dateSource": "commit b9395c9 (2026-11-14), on the v2 branch",
+        "question": "After a fix, `sse-doctor validate <capture> <url>` reads the fixed stream and says whether the capture's finding is gone. Can it say \"fixed\" when the finding vanished for a reason other than the fix?",
+        "method": "A test of the command found a case. Without the declared sequence, the skipped-events check cannot judge anything, yet its rule still counted as evaluated, so its silence looked like a fix. The same applies when the stream is read under a different profile than the capture.",
+        "result": "Yes, it could. The command now answers \"inconclusive\" (exit code 4), never \"fixed\", when the check that raises the finding could not run, or when the stream was read under a different profile than the capture. Exit codes: 0 fixed as far as this reading shows, 1 not fixed, 2 the capture does not show the finding, 3 the stream never answered, 4 inconclusive. Other findings the reading raises are listed, not judged.",
+        "measured": false,
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "b9395c9",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/commit/b9395c9",
+                "note": "Adds validate (and the flight recorder); its message describes the false \"fixed\" found by a test and the guard."
+            },
+            {
+                "type": "file",
+                "label": "src/cli/commandsValidate.ts",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/src/cli/commandsValidate.ts",
+                "note": "The command."
+            },
+            {
+                "type": "test",
+                "label": "src/cli/__tests__/validate.test.ts",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/src/cli/__tests__/validate.test.ts",
+                "note": "Tests for the verdicts."
+            },
+            {
+                "type": "doc",
+                "label": "docs/guide/cli.md",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/20ab806ee1949ff58acbfad11d8d679a53094ef6/docs/guide/cli.md",
+                "note": "The \"Checking a fix\" section lists the verdicts and the profile guard."
+            }
+        ],
+        "verification": "Read the commit message, the command's file and the CLI guide at the v2 head (20ab806). I did not run the tests or the command. This is on the v2 branch, not on main."
     }
 ];
 

@@ -70,6 +70,9 @@ export interface AlsoBuilt {
 
 const gh = (repo: string) => `https://github.com/${repo}`;
 
+/** SSE-Observatory's v2 branch as of 14 Nov 2026 (merge of PR #49). v2 files are pinned to it: they are not on `main` yet. */
+const SSE_V2 = "20ab806ee1949ff58acbfad11d8d679a53094ef6";
+
 export const projects: Project[] = [
     // ─── Flagship ──────────────────────────────────────────────────────────
     {
@@ -281,54 +284,68 @@ export const projects: Project[] = [
         id: "sse-observatory",
         name: "SSE-Observatory",
         tier: "more",
-        tagline: "A browser-based debugger for Server-Sent Events: query language, replay, and multi-tab stream sharing.",
-        status: "prototype",
+        tagline:
+            "A browser and command-line tool that says why a Server-Sent Events stream is stuck, late or losing events, shows the evidence, and turns the diagnosis into a regression test.",
+        status: "ongoing",
         origin: "Personal project",
-        period: "Feb 2026 – Mar 2026",
+        period: "Feb 2026 – present · v1.0.0 tagged 20 Oct 2026, v2 on a branch, not released",
         problem:
-            "Debugging an SSE stream usually means curl and scrolling logs. There is no easy way to filter, correlate or replay a live stream.",
+            "Browser devtools show SSE frames but not why a stream stalled, arrived in bursts, skipped ids or reconnected badly. A bug seen once is also hard to share, because the capture holds secrets, and hard to keep fixed.",
         approach: [
-            "A SharedWorker multiplexes one SSE connection across browser tabs, with reconnect backoff.",
-            "User-written interceptors run in a sandboxed worker pool with a 100 ms timeout and are terminated if they hang.",
-            "Events are filtered with a recursive-descent query language (AND, OR, parentheses) compiled to closures. A canvas timeline and time-travel playback (seek, step, return to live) support replay.",
-            "An Express proxy handles CORS and auth headers, with an SSRF guard, rate limiting and short-lived one-time tickets.",
+            "The viewer (v1): a fetch-based SSE client that resumes with Last-Event-ID and backs off with jitter, a query language compiled to closures, interceptors run in a worker with a 100 ms timeout, and one upstream connection per stream shared across tabs by a SharedWorker.",
+            "The Stream Doctor (v2): fifteen diagnostic rules over what the client observed. Every finding keeps facts, each with pointers to the records that show it, apart from a \"Likely:\" deduction with its alternatives, and a check that could not run is reported as \"not evaluated\", never as healthy.",
+            "A capture format with redaction, shareable reports, curl export, and scenario files generated from a capture. A failure lab of 23 captures, each with the findings it must and must not raise.",
+            "sse-doctor, a command-line tool with probe, analyze, report, compare, env-diff, validate, repro, test, replay and selftest, and exit codes that CI can act on. validate answers \"did the fix work?\" and says \"inconclusive\" rather than \"fixed\" when it cannot tell.",
+            "A proxy that is closed by default in production: same-origin check, an SSRF guard that checks every DNS answer and pins the connection to the address it validated, no redirects, and caps on bytes, time and concurrency.",
         ],
         evidence: [
             {
-                text: "One shared SSE connection per stream across tabs, with reconnect backoff.",
-                source: "src/workers/sharedSSEWorker.ts",
+                text: "v2 is a long-lived branch. Eleven pull requests (#39 to #49) were merged into it between 21 Oct and 14 Nov 2026. It is not merged to main or released: v1.0.0 (20 Oct 2026) is what main holds.",
             },
             {
-                text: "Interceptors are isolated in workers and killed on timeout.",
-                source: "src/utils/interceptorSandbox.ts",
+                text: "Fifteen rules, a coverage list that says what could not be evaluated, and the rule that facts and deductions are never mixed.",
+                source: `docs/technical/diagnostics.md@${SSE_V2}`,
             },
             {
-                text: "Recursive-descent parser that compiles queries into predicate functions.",
-                source: "src/utils/queryParser.ts",
+                text: "Every command and its exit codes (0 passed, 1 finding, 2 usage, 3 could not run, 4 inconclusive), including how validate decides.",
+                source: `docs/guide/cli.md@${SSE_V2}`,
             },
             {
-                text: "Server-side SSRF guard (private-IP and hostname checks) and rate limiting in the proxy.",
-                source: "server.js",
+                text: "A performance bug in the Doctor was found by profiling and fixed: under a 20,000-event burst the page's timer lateness (p95) fell from about 600 ms to 31 ms. The README also states that its target of under 2% CPU at 500 events/s is not demonstrated.",
+                source: `README.md@${SSE_V2}`,
             },
             {
-                text: "About 103 unit tests plus 18 Playwright end-to-end tests, including reconnect-storm, memory-pressure and worker-death scenarios.",
+                text: "The proxy rewrite that closed the open relay: closed by default, SSRF guard with DNS answers checked and the connection pinned, caps on bytes, time and concurrency.",
+                source: `lib/proxy/guard.js@${SSE_V2}`,
+            },
+            {
+                text: "Tests for the guard's private-address cases, frame integrity, caps and disconnects.",
+                source: `src/tests/proxyGuard.test.ts@${SSE_V2}`,
+            },
+            {
+                text: "CI runs lint, typecheck, tests and the build on Ubuntu and Windows, a dependency audit, a Docker build and start, and Playwright on Chromium with a separate Firefox and WebKit job.",
+                source: `.github/workflows/ci.yml@${SSE_V2}`,
             },
         ],
         limitations: [
-            "Events are held in a capped array (1,000) rather than a true ring buffer.",
-            "Interceptor workers are killed on timeout, but they are not isolated from the network.",
-            "No CI workflow yet.",
+            "v2 is not on main or on the hosted demo. The demo is v1: its main bundle has no Doctor code, and its mock API is switched off in production.",
+            "The Doctor's CPU cost target (under 2% at 500 events/s) is not demonstrated: the main thread is busy 70 to 98% of the time in every measured variant, and the benchmark leaves out the SharedWorker's own work.",
+            "It judges one stream from one browser's point of view: it can say that bytes stopped, not which layer stopped them. Gaps and duplicates are judged only for a sequence the profile declares.",
+            "Not tested: real screen readers, Safari or mobile, a real CDN or reverse proxy, and long soak runs.",
+            "sse-doctor is not published to npm, and the GitHub Action's pull-request comment has only been run against a stand-in, never on real GitHub.",
+            "The newest 1,000 events live in memory and up to 100,000 in IndexedDB. The Doctor's own recording is bounded per stream.",
         ],
-        tech: ["TypeScript", "React", "Vite", "Web Workers", "SharedWorker", "IndexedDB", "Express", "Vitest", "Playwright"],
+        tech: ["TypeScript", "React", "Vite", "Web Workers", "SharedWorker", "IndexedDB", "Express", "Node.js CLI", "Vitest", "fast-check", "Playwright"],
         next: [
-            "Replace the capped array with a real ring buffer.",
-            "Isolate interceptor workers from the network, not only kill them on timeout.",
-            "Add a CI workflow.",
+            "Finish the testing campaign (an open pull request into v2).",
+            "Check every export path for leaked secrets (planned, not done).",
+            "Decide and ship the v2 release to main.",
         ],
         repo: "Ujjwaljain16/SSE-Observatory",
         links: [
-            { label: "Live demo", href: "https://sse-observatory.vercel.app" },
+            { label: "Live demo (v1)", href: "https://sse-observatory.vercel.app" },
             { label: "Source on GitHub", href: gh("Ujjwaljain16/SSE-Observatory") },
+            { label: "v2 branch (in progress)", href: `${gh("Ujjwaljain16/SSE-Observatory")}/tree/v2` },
         ],
         gallery: {
             layout: "wide",
@@ -881,8 +898,24 @@ export function getProject(id: string): Project | undefined {
     return projects.find((p) => p.id === id);
 }
 
+/**
+ * Link to a file in a project's repository. `path` is `dir/file.ext` (the repository's default branch, which can move or be
+ * restructured) or `dir/file.ext@<commit sha>`, which is permanent: use it for files that exist only on a branch that is not
+ * the default, or whose location may change.
+ */
 export function sourceUrl(repo: string, path: string): string {
-    return `https://github.com/${repo}/blob/HEAD/${path}`;
+    const { file, ref } = splitSource(path);
+    return `https://github.com/${repo}/blob/${ref ?? "HEAD"}/${file}`;
+}
+
+function splitSource(path: string): { file: string; ref?: string } {
+    const m = /^(.*)@([0-9a-f]{7,40})$/.exec(path);
+    return m ? { file: m[1], ref: m[2] } : { file: path };
+}
+
+/** What a reader sees for a source: the file name, without any `@sha`. */
+export function sourceLabel(path: string): string {
+    return splitSource(path).file.split("/").pop() ?? path;
 }
 
 export const STATUS_LABEL: Record<ProjectStatus, string> = {

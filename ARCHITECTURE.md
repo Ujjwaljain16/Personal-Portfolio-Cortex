@@ -32,7 +32,7 @@ and, for investigations, the numbers with their sources.
 ## Generated data
 
 Two files are written by a bot, never by hand: `src/data/generated/github.json` (merged and open pull requests to projects I
-do not own, and the date of the newest commit on each portfolio repository's default branch, so bot pushes such as Dependabot do not count). `scripts/sync-github.mjs` builds it from the GitHub GraphQL
+do not own, and the date of the newest commit on each portfolio repository's default branch, so bot pushes such as Dependabot do not count; a project whose released version is on the default branch and whose work is on another, like SSE-Observatory's `v2`, is listed in `DEV_BRANCH` in the sync script and read from that branch, and the page says so). `scripts/sync-github.mjs` builds it from the GitHub GraphQL
 API; `.github/workflows/sync.yml` runs it daily, runs the CI checks on any change, and commits to `main` when they pass.
 `src/data/openSource.ts` composes the site's lists from it plus a small hand-written `CURATED` table, and `src/data/now.ts`
 derives its "Just merged" and "In review" items and the page's sync date from the same file. Summaries are the pull request's own

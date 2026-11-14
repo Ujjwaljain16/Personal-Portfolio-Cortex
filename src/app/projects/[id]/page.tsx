@@ -7,9 +7,9 @@ import { Gallery } from "@/components/projects/Gallery";
 import { Diagram } from "@/components/projects/Diagram";
 import { RelatedRecords } from "@/components/projects/RelatedRecords";
 import { diagrams } from "@/data/diagrams";
-import { lastCommitDate } from "@/data/openSource";
+import { lastCommitBranch, lastCommitDate } from "@/data/openSource";
 import { records } from "@/data/records";
-import { STATUS_LABEL, getProject, projects, sourceUrl, type ProjectStatus } from "@/data/projects";
+import { STATUS_LABEL, getProject, projects, sourceLabel, sourceUrl, type ProjectStatus } from "@/data/projects";
 import { pageMetadata } from "@/lib/seo";
 
 const STATUS_BADGE: Record<ProjectStatus, string> = {
@@ -74,7 +74,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
                 <p className="text-[13px] font-mono text-(--text-muted)">
                     {project.origin} · {project.period}
-                    {lastCommitDate(project.repo) && <> · last commit {formatDate(lastCommitDate(project.repo)!)}</>}
+                    {lastCommitDate(project.repo) && (
+                        <>
+                            {" "}
+                            · last commit {formatDate(lastCommitDate(project.repo)!)}
+                            {lastCommitBranch(project.repo) && <> on the {lastCommitBranch(project.repo)} branch</>}
+                        </>
+                    )}
                 </p>
 
                 <ul className="flex flex-wrap gap-2">
@@ -149,7 +155,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                                         rel="noopener noreferrer"
                                         className="font-mono text-[12px] text-(--accent-primary) hover:underline break-all"
                                     >
-                                        {e.source.split("/").pop()} ↗
+                                        {sourceLabel(e.source)} ↗
                                     </a>
                                 </>
                             )}
