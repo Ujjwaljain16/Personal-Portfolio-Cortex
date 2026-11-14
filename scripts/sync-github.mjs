@@ -70,12 +70,14 @@ async function fetchPullRequests() {
 async function fetchRepoActivity() {
     const { projects } = await import("../src/data/projects.ts");
     const repos = [...new Set([...projects.map((p) => p.repo), ...EXTRA_REPOS])].filter((r) => r.toLowerCase().startsWith(`${OWNER.toLowerCase()}/`));
-    const fields = repos.map((r, i) => `r${i}: repository(owner:"${r.split("/")[0]}", name:"${r.split("/")[1]}"){ pushedAt isArchived }`).join("\n");
+    const fields = repos.map((r, i) => `r${i}: repository(owner:"${r.split("/")[0]}", name:"${r.split("/")[1]}"){ isArchived defaultBranchRef{ target{ ... on Commit{ committedDate } } } }`).join("\n");
     const data = await graphql(`query{ ${fields} }`);
     const out = {};
     repos.forEach((r, i) => {
         const node = data[`r${i}`];
-        if (node?.pushedAt) out[r] = { pushed: node.pushedAt.slice(0, 10), archived: node.isArchived };
+        // The default branch's newest commit, not the last push: bots such as Dependabot push branches constantly.
+        const committed = node?.defaultBranchRef?.target?.committedDate;
+        if (committed) out[r] = { committed: committed.slice(0, 10), archived: node.isArchived };
     });
     return out;
 }

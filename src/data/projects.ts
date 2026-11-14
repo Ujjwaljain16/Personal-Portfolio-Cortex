@@ -679,9 +679,9 @@ export const projects: Project[] = [
         name: "CampusSlot",
         tier: "flagship",
         tagline: "A campus room-booking service built to show the delivery side: measured rollouts, a measured rollback, and query costs at scale.",
-        status: "prototype",
+        status: "ongoing",
         origin: "Personal project",
-        period: "Oct 2026 · 92 commits",
+        period: "Oct 2026 – present · 94 commits",
         problem: "A small booking service is easy to make work once. This project shows what happens when it is deployed, changed, broken and grown, with numbers instead of claims.",
         approach: [
             "FastAPI, React and PostgreSQL. The rule that two confirmed bookings never overlap is enforced in request validation, in an application check and by a PostgreSQL exclusion constraint on a time range.",

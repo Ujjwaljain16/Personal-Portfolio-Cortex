@@ -4,7 +4,7 @@ import github from "./generated/github.json" with { type: "json" };
  * Pull requests to projects I don't own.
  *
  * The list itself is generated: `scripts/sync-github.mjs` reads my pull requests from the GitHub API every day and
- * writes `generated/github.json` (merged, open, and when each repository was last pushed to). Never edit that file.
+ * writes `generated/github.json` (merged, open, and the newest commit date of each repository). Never edit that file.
  *
  * What is written by hand is only `CURATED` below: a better summary (or title) for a pull request, keyed by its URL.
  * Without an entry, a pull request shows its own title and the first paragraph of its own description, so a new
@@ -133,9 +133,9 @@ export const openPRs: OpenPR[] = github.open.map((pr) => ({
 /** Hand-written entries whose pull request is no longer in the generated list (reverted, or the repository changed). */
 export const orphanedCurated: string[] = Object.keys(CURATED).filter((url) => !github.merged.some((pr) => pr.url === url));
 
-/** When each portfolio repository was last pushed to (YYYY-MM-DD), or undefined for a private or unknown one. */
-export function lastPushed(repo: string): string | undefined {
-    return (github.repos as Record<string, { pushed: string }>)[repo]?.pushed;
+/** Date (YYYY-MM-DD) of the newest commit on a portfolio repository's default branch, or undefined for a private or unknown one. */
+export function lastCommitDate(repo: string): string | undefined {
+    return (github.repos as Record<string, { committed: string }>)[repo]?.committed;
 }
 
 export function countByProject(): { project: string; count: number }[] {

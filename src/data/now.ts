@@ -1,4 +1,4 @@
-import { githubSyncedAt, lastPushed, mergedPRs, openPRs } from "@/data/openSource";
+import { githubSyncedAt, lastCommitDate, mergedPRs, openPRs } from "@/data/openSource";
 import { formatDate } from "@/lib/utils";
 
 /**
@@ -50,7 +50,7 @@ function recentMerges(): NowItem[] {
 
 /** " Last commit Oct 15, 2026." for a repository the sync tracks, else nothing. */
 function lastCommit(repo: string): string {
-    const pushed = lastPushed(repo);
+    const pushed = lastCommitDate(repo);
     return pushed ? ` Last commit ${formatDate(pushed)}.` : "";
 }
 
