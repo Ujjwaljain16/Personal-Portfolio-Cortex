@@ -1,5 +1,5 @@
 {
-    "syncedAt": "2026-11-16T13:38:00.825Z",
+    "syncedAt": "2026-11-17T14:23:37.549Z",
     "merged": [
         {
             "repo": "kubernetes-sigs/gateway-api",
@@ -154,6 +154,15 @@
     ],
     "open": [
         {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
+            "number": 46163,
+            "title": "Apply a deletion policy to user references",
+            "url": "https://github.com/apache/superset/pull/46163",
+            "note": "Opened 2026-11-11, last activity 2026-11-17. Waiting for review."
+        },
+        {
             "repo": "metacoglabs/hypergraph",
             "project": "Metacog Hypergraph",
             "stars": "29",
@@ -197,7 +206,7 @@
             "archived": false
         },
         "Ujjwaljain16/AgentBrake": {
-            "committed": "2026-09-28",
+            "committed": "2026-11-17",
             "archived": false
         },
         "Ujjwaljain16/CampusSync": {
