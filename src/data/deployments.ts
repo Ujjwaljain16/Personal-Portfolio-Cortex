@@ -24,9 +24,9 @@ export interface Deployment {
 }
 
 export const CATEGORY_LABELS: Record<DeploymentCategory, string> = {
-    live: "LIVE WEB SYSTEMS",
-    device: "DEVICE RUNTIME",
-    runtime: "PACKAGES & LIBRARIES",
+    live: "Live on the web",
+    device: "On a device",
+    runtime: "Published packages",
 };
 
 export const CATEGORY_ORDER: DeploymentCategory[] = ["live", "device", "runtime"];
@@ -37,7 +37,7 @@ export const deployments: Deployment[] = [
         repo: "Fuze",
         summary: "React frontend on Vercel; Flask backend on a free Hugging Face Space",
         impact:
-            "The frontend is deployed on Vercel. The Flask backend ships as a Docker container (gunicorn with gevent, RQ workers under supervisord) on a free Hugging Face Space, with Supabase for PostgreSQL and Upstash for Redis. The Space was flagged twice for browser automation and the image is now browser-free. Its readiness endpoint reported the database, Redis and schema ready on 14 Oct 2026, and CI gates the deploy. Throughput under load has not been measured.",
+            "The frontend is deployed on Vercel. The Flask backend ships as a Docker container (gunicorn with gevent, RQ workers under supervisord) on a free Hugging Face Space, with Supabase for PostgreSQL and Upstash for Redis.",
         category: "live",
         runtime: "Web App",
         host: "Vercel (frontend) · Hugging Face Spaces (backend)",
@@ -61,6 +61,33 @@ export const deployments: Deployment[] = [
         relatedRecordIds: ["campus-ocr-tesseract-to-gemini-vision"],
     },
     {
+        id: "deploy-007",
+        repo: "SSE-Observatory",
+        summary: "Hosted demo of the SSE debugger on Vercel",
+        impact:
+            "A hosted demo on Vercel serves v2.0.0, the release merged to main on 15 Nov 2026. The command-line part is published separately to npm as sse-doctor.",
+        category: "live",
+        runtime: "Web App",
+        host: "Vercel",
+        liveUrl: "https://sse-observatory.vercel.app",
+        status: "active",
+        tags: ["devtools", "sse"],
+        relatedRecordIds: ["sse-close-the-open-relay"],
+    },
+    {
+        id: "deploy-009",
+        repo: "VaultTabs",
+        summary: "The VaultTabs web app (a PWA) for end-to-end encrypted tab sync, on Vercel",
+        impact:
+            "The Next.js web app is live on Vercel and installs as a PWA. It unwraps the encryption key in the browser to show the tab snapshots the extension uploads, so the server stores ciphertext and the account password never leaves the device; metadata is visible to the server. Version 1.0 was released on 16 Nov 2026.",
+        category: "live",
+        runtime: "Web App (PWA)",
+        host: "Vercel",
+        liveUrl: "https://vaulttabs.vercel.app",
+        status: "active",
+        tags: ["security", "pwa"],
+    },
+    {
         id: "deploy-003",
         repo: "SpentSmart",
         summary: "Offline-first Android expense tracker, distributed as APKs on GitHub Releases",
@@ -77,16 +104,30 @@ export const deployments: Deployment[] = [
     {
         id: "deploy-004",
         repo: "AgentBrake",
-        summary: "MCP policy proxy, published to npm and Docker Hub",
+        summary: "MCP policy proxy, published to npm (2.0.1)",
         impact:
-            "Published as agentbrake (v1.0.0, February 2026) on npm and as a Docker Hub image. It wraps an MCP server over stdio and applies allow/block policies and regex argument filtering. The published v1.0.0 predates the Sep 2026 fixes (fail-closed parsing and config, a working circuit breaker), which are on the main branch but not yet released. Human approval is not implemented.",
+            "Published to npm as agentbrake: 2.0.0 and 2.0.1 on 17 Nov 2026, built and published by CI with a provenance attestation. It wraps an MCP server over stdio and checks every tool call against typed path and URL rules and secret-flow tracking.",
         category: "runtime",
         runtime: "CLI + Library",
-        host: "npm · Docker Hub",
+        host: "npm · Docker Hub (1.0.0 only)",
         liveUrl: "https://www.npmjs.com/package/agentbrake",
         status: "published",
         tags: ["ai-safety", "package"],
         relatedRecordIds: ["ab-circuit-breaker-and-approval-not-driveable"],
+    },
+    {
+        id: "deploy-008",
+        repo: "SSE-Observatory",
+        summary: "sse-doctor, the command-line diagnosis tool, published to npm (2.0.1)",
+        impact:
+            "Published to npm as sse-doctor: 2.0.0 on 15 Nov 2026 and 2.0.1 on 16 Nov 2026, both built from commits now on main. It finds out why an SSE stream is stuck, late or losing events and turns the diagnosis into a repeatable test. The releases were published by hand and carry no provenance attestation.",
+        category: "runtime",
+        runtime: "CLI",
+        host: "npm",
+        liveUrl: "https://www.npmjs.com/package/sse-doctor",
+        status: "published",
+        tags: ["devtools", "package"],
+        relatedRecordIds: ["sse-doctor-overhead-and-the-resorting-bug"],
     },
     {
         id: "deploy-005",
@@ -101,17 +142,5 @@ export const deployments: Deployment[] = [
         status: "published",
         tags: ["database", "package"],
         relatedRecordIds: ["migratedb-dfs-depends-ordering", "migratedb-stale-lock-after-kill"],
-    },
-    {
-        id: "deploy-006",
-        repo: "HttpServer",
-        summary: "HTTP/1.1 server on raw sockets in Python's standard library",
-        impact:
-            "Runs locally; there is no hosted instance. A bounded thread pool returns 503 when saturated, each client IP is rate limited, and a Prometheus /metrics endpoint is exposed.",
-        category: "runtime",
-        runtime: "Library",
-        host: "Runs locally (Python stdlib)",
-        status: "library",
-        tags: ["networking", "stdlib"],
     },
 ];

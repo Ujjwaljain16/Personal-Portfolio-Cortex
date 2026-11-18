@@ -1,131 +1,121 @@
 import Link from "next/link";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-    deployments,
-    CATEGORY_ORDER,
-    CATEGORY_LABELS,
-    type Deployment,
-    type DeploymentStatus,
-} from "@/data/deployments";
-import { getRecord } from "@/data/records";
+import { deployments, CATEGORY_ORDER, CATEGORY_LABELS, type Deployment, type DeploymentStatus } from "@/data/deployments";
+import { projects } from "@/data/projects";
+import { RecordDeepLink } from "@/components/records/RecordDeepLink";
 
-const STATUS: Record<DeploymentStatus, { label: string; className: string }> = {
-    active: { label: "ACTIVE", className: "text-(--success)" },
-    device: { label: "DEVICE", className: "text-(--accent-secondary)" },
-    partial: { label: "FRONTEND ONLY", className: "text-(--warning)" },
-    published: { label: "PUBLISHED", className: "text-(--accent-primary)" },
-    library: { label: "LIBRARY", className: "text-(--text-secondary)" },
+/** Colour lives only in the dot; the label stays neutral, as on the project and record pages. */
+const STATUS: Record<DeploymentStatus, { label: string; dot: string }> = {
+    active: { label: "LIVE", dot: "bg-(--accent-teal)" },
+    device: { label: "ON DEVICE", dot: "bg-(--accent-primary)" },
+    partial: { label: "FRONTEND ONLY", dot: "bg-(--warning)" },
+    published: { label: "PUBLISHED", dot: "bg-(--accent-primary)" },
+    library: { label: "RUNS LOCALLY", dot: "bg-(--text-muted)" },
 };
 
-// Shared column template: desktop reads as a table, small screens stack as cards.
-const ROW_GRID = "md:grid md:grid-cols-[9rem_minmax(0,1fr)_10rem_7rem] md:gap-4 md:items-center";
-
 function liveLabel(url: string): string {
-    if (url.includes("/releases/download/")) return "Download release";
-    if (url.includes("npmjs.com")) return "View package on npm";
-    return "Open live site";
+    if (url.includes("/releases")) return "Download a release";
+    if (url.includes("npmjs.com")) return "Package on npm";
+    return "Open the live site";
 }
 
 /**
- * Deployment surfaces. Each row is a native <details>: keyboard and touch
- * accessible, no JS. Only verifiable facts are shown (no commit hashes or
- * latency figures).
+ * Deployment surfaces, grouped by where they run. Each row is a native <details> (keyboard and touch accessible, no
+ * JavaScript). Only facts that could be checked are shown: no commit hashes, latency or uptime figures.
  */
 export function DeploymentTable() {
+    const groups = CATEGORY_ORDER.map((category) => ({ category, entries: deployments.filter((d) => d.category === category) })).filter(
+        (g) => g.entries.length > 0,
+    );
+
     return (
-        <div className="space-y-8">
-            {CATEGORY_ORDER.map((category) => {
-                const entries = deployments.filter((d) => d.category === category);
-                if (entries.length === 0) return null;
-
-                return (
-                    <section key={category} aria-labelledby={`dep-${category}`}>
-                        <h2 id={`dep-${category}`} className="text-label mb-3">
-                            {CATEGORY_LABELS[category]} <span className="text-(--text-muted)">({entries.length})</span>
+        <div className="space-y-14">
+            {groups.map(({ category, entries }, i) => (
+                <section
+                    key={category}
+                    aria-labelledby={`dep-${category}`}
+                    // The first group sits under the facts strip, which already draws the line above it.
+                    className={i === 0 ? "" : "border-t border-(--border-default) pt-10"}
+                >
+                    <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <h2 id={`dep-${category}`} className="flex items-baseline gap-3 text-[21px] md:text-[23px] font-semibold tracking-[-0.02em] text-foreground">
+                            <span className="font-mono text-[12px] font-normal tracking-normal text-(--text-muted)">{String(i + 1).padStart(2, "0")}</span>
+                            {CATEGORY_LABELS[category]}
                         </h2>
-
-                        <div
-                            aria-hidden="true"
-                            className={cn("hidden px-4 pb-2 text-label", ROW_GRID, "md:pl-[calc(1rem+1.1em)]")}
-                        >
-                            <div>REPO</div>
-                            <div>WHAT</div>
-                            <div>SURFACE</div>
-                            <div>STATUS</div>
-                        </div>
-
-                        <ul className="space-y-2">
-                            {entries.map((deployment) => (
-                                <li key={deployment.id}>
-                                    <DeploymentRow deployment={deployment} />
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-                );
-            })}
+                        <span className="font-mono text-[12px] text-(--text-muted)">
+                            {entries.length} {entries.length === 1 ? "system" : "systems"}
+                        </span>
+                    </div>
+                    <ul className="record-list is-grouped">
+                        {entries.map((d) => (
+                            <li key={d.id}>
+                                <DeploymentRow deployment={d} />
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            ))}
         </div>
     );
 }
 
 function DeploymentRow({ deployment }: { deployment: Deployment }) {
     const status = STATUS[deployment.status];
-    const related = (deployment.relatedRecordIds ?? []).map(getRecord).filter((r) => r !== undefined);
+    const project = projects.find((p) => p.name.toLowerCase() === deployment.repo.toLowerCase());
 
     return (
-        <article id={deployment.id} className="scroll-mt-4">
-            <details className="disclosure surface-1">
-                <summary className="p-4">
-                    <div className={cn("flex flex-col gap-1", ROW_GRID)}>
-                        <div className="text-[14px] font-medium text-foreground">{deployment.repo}</div>
-                        <div className="text-[14px] text-(--text-secondary) min-w-0">{deployment.summary}</div>
-                        <div className="text-[12px] font-mono uppercase tracking-wider text-(--text-muted)">
-                            {deployment.runtime}
-                        </div>
-                        <div className={cn("text-[12px] font-mono font-bold tracking-wider", status.className)}>
+        <article id={deployment.id} className="scroll-mt-6">
+            {/* /deployments#deploy-004 opens and scrolls to that row, as records do. */}
+            <RecordDeepLink id={deployment.id} />
+            <details className="record-details group/record">
+                <summary className="record-summary">
+                    <div className="min-w-0 space-y-1.5">
+                        <p className="font-mono text-[11.5px] text-(--text-muted)">
+                            {deployment.runtime} · {deployment.host}
+                        </p>
+                        <h3 className="text-[17px] font-semibold leading-snug tracking-[-0.01em] text-foreground">{deployment.repo}</h3>
+                        <p className="text-[14.5px] leading-relaxed text-(--text-secondary)">{deployment.summary}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3 pt-0.5 sm:flex-col sm:items-end sm:gap-2">
+                        <span className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.12em] text-(--text-secondary)">
+                            <span className={cn("h-1.5 w-1.5 rounded-full", status.dot)} aria-hidden="true" />
                             {status.label}
-                        </div>
+                        </span>
+                        <ChevronDown className="h-4 w-4 text-(--text-muted) transition-transform group-open/record:rotate-180" aria-hidden="true" />
                     </div>
                 </summary>
 
-                <div className="px-4 pb-4 pt-4 border-t border-(--border-default) space-y-4 text-[14px] leading-relaxed text-(--text-secondary)">
-                    <p>{deployment.impact}</p>
-
-                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
-                        <div className="flex gap-2">
-                            <dt className="font-mono text-(--text-muted)">Host:</dt>
-                            <dd>{deployment.host}</dd>
-                        </div>
-                        <div className="flex gap-2">
-                            <dt className="font-mono text-(--text-muted)">Tags:</dt>
-                            <dd>{deployment.tags.join(" · ")}</dd>
-                        </div>
-                    </dl>
-
-                    <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-mono">
-                        {deployment.liveUrl && (
-                            <li>
-                                <a
-                                    href={deployment.liveUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-(--accent-primary) hover:underline"
-                                >
-                                    {liveLabel(deployment.liveUrl)} ↗
-                                </a>
-                            </li>
+                <div className="record-body">
+                    <div className="record-field">
+                        <h4>How it runs</h4>
+                        <p className="min-w-0">{deployment.impact}</p>
+                    </div>
+                    <div className="record-field">
+                        <h4>Host</h4>
+                        <p className="min-w-0">{deployment.host}</p>
+                    </div>
+                    <div className="record-footer">
+                        {project ? (
+                            <Link href={`/projects/${project.id}`} className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
+                                About {project.name}
+                                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                            </Link>
+                        ) : (
+                            <span>{deployment.repo}</span>
                         )}
-                        {related.map((r) => (
-                            <li key={r.id}>
-                                <Link
-                                    href={`/${r.kind === "decision" ? "decisions" : "investigations"}#${r.id}`}
-                                    className="text-(--accent-primary) hover:underline"
-                                >
-                                    {r.title}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
+                        {deployment.liveUrl && (
+                            <a
+                                href={deployment.liveUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-(--accent-primary) hover:underline"
+                            >
+                                {liveLabel(deployment.liveUrl)}
+                                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                            </a>
+                        )}
+                    </div>
                 </div>
             </details>
         </article>
