@@ -1,4 +1,4 @@
-import { githubSyncedAt, lastCommitBranch, lastCommitDate, mergedPRs, openPRs } from "@/data/openSource";
+import { githubSyncedAt, lastCommitBranch, lastCommitDate, openPRs } from "@/data/openSource";
 import { formatDate } from "@/lib/utils";
 
 /**
@@ -6,7 +6,7 @@ import { formatDate } from "@/lib/utils";
  * a visitor can check.
  *
  * Two kinds of item:
- *  - Generated, so they never need editing: open pull requests, recent merges, and the "last commit" date on
+ *  - Generated, so they never need editing: open pull requests and the "last commit" date on
  *    repositories. They come from src/data/generated/github.json (`npm run sync:github`, run daily by CI).
  *  - Written by hand: the status words about work that has no public signal. `nowUpdated` is the date those were
  *    last reviewed; change it whenever they are edited.
@@ -22,31 +22,9 @@ export interface NowItem {
 }
 
 /** When the hand-written items below were last reviewed. */
-export const nowUpdated = "2026-10-14";
+export const nowUpdated = "2026-11-17";
 /** When the generated items (pull requests, merges, last-commit dates) last changed. */
 export const nowSyncedAt = githubSyncedAt.slice(0, 10);
-
-const RECENT_DAYS = 45;
-
-/** Merges from the last RECENT_DAYS before the sync, one item per project, newest project first. */
-function recentMerges(): NowItem[] {
-    const cutoff = new Date(githubSyncedAt).getTime() - RECENT_DAYS * 86_400_000;
-    const byProject = new Map<string, typeof mergedPRs>();
-    for (const pr of mergedPRs) {
-        if (new Date(pr.merged).getTime() < cutoff) continue;
-        byProject.set(pr.project, [...(byProject.get(pr.project) ?? []), pr]);
-    }
-    return [...byProject.entries()].map(([project, prs]) => {
-        const latest = prs[0]; // mergedPRs is newest first
-        const count = prs.length === 1 ? "A" : String(prs.length);
-        return {
-            status: "Just merged",
-            text: `${count} ${project} pull request${prs.length === 1 ? "" : "s"} merged, the latest on ${formatDate(latest.merged)}: #${latest.number}, ${latest.title}.`,
-            href: latest.url,
-            linkLabel: "Pull request",
-        };
-    });
-}
 
 /** " Last commit Oct 15, 2026." (with the branch, when it is not the default one) for a repository the sync tracks, else nothing. */
 function lastCommit(repo: string): string {
@@ -56,6 +34,10 @@ function lastCommit(repo: string): string {
 }
 
 export const nowItems: NowItem[] = [
+    {
+        status: "Current focus",
+        text: "Learning system design and data structures and algorithms.",
+    },
     // Open pull requests come from src/data/openSource.ts so the two lists cannot disagree.
     ...openPRs.map((pr) => ({
         status: "In review",
@@ -63,33 +45,22 @@ export const nowItems: NowItem[] = [
         href: pr.url,
         linkLabel: "Pull request",
     })),
-    ...recentMerges(),
     {
-        status: "Active development",
-        text: "SSE Observatory v2: a diagnostics layer and command-line tool that explain why a Server-Sent Events stream stalled or lost events, with the evidence. It is on a branch in a testing campaign and is not released; the hosted demo is still v1." + lastCommit("Ujjwaljain16/SSE-Observatory"),
-        href: "https://github.com/Ujjwaljain16/SSE-Observatory/tree/v2",
-        linkLabel: "v2 branch",
-    },
-    {
-        status: "Active development",
-        text: "LEXIS, a retrieval-augmented generation (RAG) system that is still a work in progress. Recent work replaces a placeholder entailment check with a real model and wires in cross-encoder reranking, which is off by default." + lastCommit("Ujjwaljain16/LEXIS"),
-        href: "https://github.com/Ujjwaljain16/LEXIS",
+        status: "Just released",
+        text: "AgentBrake 2.0 is on npm (17 Nov 2026, now 2.0.1), published by CI with a provenance attestation: typed path and URL rules and secret-flow tracking, so the proxy can notice data read in one tool call leaving in a later one. The first npm release (1.0.0, February) fails open on unparseable input; 2.0 does not.",
+        href: "https://github.com/Ujjwaljain16/AgentBrake",
         linkLabel: "Repository",
     },
     {
-        status: "Active development",
-        text: "OSS Hunter, an engine that scores a repository's issues for complexity with an LLM and ranks them by graph-propagated importance. Early stage, and the repository is private for now.",
+        status: "Just released",
+        text: "SSE Observatory v2.0.0, released 15 Nov 2026: a diagnostics layer and command-line tool that explain why a Server-Sent Events stream stalled or lost events, with the evidence. The hosted demo runs it." + lastCommit("Ujjwaljain16/SSE-Observatory"),
+        href: "https://github.com/Ujjwaljain16/SSE-Observatory/releases/tag/v2.0.0",
+        linkLabel: "Release",
     },
     {
-        status: "Just published",
+        status: "Active development",
         text: "FlashFlow, a Go lab that replays routing policies on identical traffic to show why one collapses under load.",
         href: "/projects/flashflow",
         linkLabel: "Project page",
-    },
-    {
-        status: "Just fixed",
-        text: "A security and honesty pass over CampusSync, VaultTabs, RecoveryOS and AgentBrake, including AgentBrake's fail-open bugs.",
-        href: "/decisions#ab-fail-closed-framing-and-config",
-        linkLabel: "The AgentBrake record",
     },
 ];

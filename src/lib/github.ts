@@ -103,7 +103,10 @@ interface GhEvent {
         ref?: string | null;
         ref_type?: string;
         action?: string;
-        pull_request?: { title: string; html_url: string; merged?: boolean };
+        number?: number;
+        // The public events feed now often sends a slim pull request (id, number and API url only): no title, no
+        // html_url, no merged flag, and the action itself is "merged".
+        pull_request?: { number?: number; title?: string | null; html_url?: string | null; merged?: boolean | null };
         issue?: { title: string; html_url: string };
         release?: { tag_name: string; html_url: string };
     };
@@ -116,6 +119,31 @@ export interface ActivityItem {
     repo: string;
     text: string;
     url: string;
+    /** How many identical events (same repository, same text, same UTC day) this row stands for. */
+    count?: number;
+}
+
+/**
+ * Newest first, with identical events on the same day folded into one row and counted ("pushed to main" three times
+ * becomes one row with count 3). GitHub's feed is not strictly ordered, and a busy day otherwise fills the list with
+ * repeats of one line.
+ */
+export function collapseActivity(items: ActivityItem[]): ActivityItem[] {
+    const sorted = [...items].sort((a, b) => b.date.localeCompare(a.date));
+    const rows: ActivityItem[] = [];
+    const byKey = new Map<string, ActivityItem>();
+    for (const item of sorted) {
+        const key = JSON.stringify([item.repo, item.text, item.date.slice(0, 10)]);
+        const row = byKey.get(key);
+        if (row) {
+            row.count = (row.count ?? 1) + 1;
+            continue;
+        }
+        const fresh = { ...item, count: 1 };
+        byKey.set(key, fresh);
+        rows.push(fresh);
+    }
+    return rows;
 }
 
 function toActivity(e: GhEvent): ActivityItem | null {
@@ -132,8 +160,12 @@ function toActivity(e: GhEvent): ActivityItem | null {
         }
         case "PullRequestEvent": {
             if (!p.pull_request) return null;
-            const action = p.action === "closed" && p.pull_request.merged ? "merged" : p.action ?? "updated";
-            return { ...base, text: `PR ${action}: ${p.pull_request.title}`, url: p.pull_request.html_url };
+            const pr = p.pull_request;
+            const number = pr.number ?? p.number;
+            const action = p.action === "closed" && pr.merged ? "merged" : p.action ?? "updated";
+            const url = pr.html_url ?? (number ? `${repoUrl}/pull/${number}` : repoUrl);
+            if (pr.title) return { ...base, text: `PR ${action}: ${pr.title}`, url };
+            return { ...base, text: number ? `PR #${number} ${action}` : `PR ${action}`, url };
         }
         case "IssuesEvent":
             if (!p.issue) return null;
@@ -152,8 +184,5 @@ function toActivity(e: GhEvent): ActivityItem | null {
 export async function getRecentActivity(limit = 8): Promise<ActivityItem[] | null> {
     const events = await gh<GhEvent[]>(`/users/${USER}/events/public?per_page=50`);
     if (!events) return null;
-    return events
-        .map(toActivity)
-        .filter((a): a is ActivityItem => a !== null)
-        .slice(0, limit);
+    return collapseActivity(events.map(toActivity).filter((a): a is ActivityItem => a !== null)).slice(0, limit);
 }
