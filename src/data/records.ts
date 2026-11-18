@@ -327,7 +327,6 @@ export const records: EngineeringRecord[] = [
         "id": "bhttp-error-then-bounded-drain",
         "kind": "decision",
         "project": "BHTTP-1",
-        "projectId": "bhttp-1",
         "title": "After sending ERROR, half-close and drain input for at most 1 s and 64 KiB",
         "date": "2026-09-22",
         "dateSource": "commit 362fc0a (server with drain); c68262e (spec wording)",
@@ -1775,97 +1774,6 @@ export const records: EngineeringRecord[] = [
         "verification": "Read seed.ts, validate_metrics.ts, metrics.ts, worker/index.ts (reconciliation also skips revenge flags); ran the Python check (output: trades 388 labelled 10 TP 0 FP 14 FN 10 TN 364)."
     },
     {
-        "id": "gitissue-week45-eval-audit",
-        "kind": "investigation",
-        "project": "GitIssue",
-        "projectId": "gitissue",
-        "title": "Week 4.5 eval: 1 auto-labelled true positive and a corrupted final_score column",
-        "date": "2026-03-18",
-        "dateSource": "commit 8eda41b (scripts/week45_evaluate.py and reports/week45_report_small.json); bug introduced in 34031e1 (2026-03-17)",
-        "provenance": "reconstructed",
-        "rationaleSource": "inferred",
-        "origin": "personal (single author)",
-        "authors": [
-            "Ujjwaljain16"
-        ],
-        "featured": false,
-        "question": "What does scripts/week45_evaluate.py report on the sampled real-repo data, and is it evidence that the duplicate suggester meets its precision/recall targets?",
-        "method": "Read week45_evaluate.py (precision = TP/(TP+FP) over labelled suggestions; recall = known duplicates that have any suggestion row; PR curve at thresholds 0.50 to 0.95), reports/week45_report_small.json and reports/week45_label_samples_small.csv (20 rows). Recomputed each CSV row's expected final score with the committed formula 0.5*semantic + 0.2*keyword + 0.2*structural + 0.1*label and compared it with the stored final_score. Read app/feedback/logger.py.",
-        "result": "The report (generated 2026-03-17) has 20 labelled suggestions: 1 true positive, 0 false positives, 1 related-not-duplicate and 18 cant_tell, all with labeled_by 'bootstrap-auto', an automated step whose script is not in the repository. Precision 100% is 1 of 1. Recall 66.67% counts 2 of 3 known duplicates that have any suggestion row, at any score; the curve shows recall and F1 of 0 at all ten thresholds, so the recommended threshold 0.5 is only the first entry. Separately, 19 of 20 stored final_score values equal label_score: the ON CONFLICT update in logger.py sets final_score = $7, which is label_score (final_score is $8), so re-scoring a pair overwrites it. The one row that matches the formula is the only one with source signal strength below the 0.3 gate, so it was scored once. The true positive stores 1.0 but the formula gives 0.399, below the 0.85 comment threshold. The report cannot support a precision or recall claim.",
-        "measured": true,
-        "numbers": [
-            {
-                "label": "Labelled suggestions (TP / FP / related / cant_tell)",
-                "value": "20 (1 / 0 / 1 / 18)",
-                "source": "reports/week45_report_small.json"
-            },
-            {
-                "label": "Labels produced by 'bootstrap-auto'",
-                "value": "20 of 20",
-                "source": "reports/week45_label_samples_small.csv (labeled_by column)"
-            },
-            {
-                "label": "Precision / recall reported",
-                "value": "100.0% (1/1) / 66.67% (2/3 known duplicates)",
-                "source": "reports/week45_report_small.json"
-            },
-            {
-                "label": "PR curve recall and F1 at thresholds 0.50 to 0.95",
-                "value": "0.0 / 0.0 at all 10 thresholds",
-                "source": "reports/week45_report_small.json"
-            },
-            {
-                "label": "Rows where final_score == label_score",
-                "value": "19 of 20",
-                "source": "Python comparison over the CSV"
-            },
-            {
-                "label": "Rows where final_score == 0.5*sem+0.2*kw+0.2*st+0.1*label",
-                "value": "1 of 20 (id 940, the only row with source signal strength 0.0)",
-                "source": "Same comparison"
-            },
-            {
-                "label": "TP row 2966: stored vs formula final score",
-                "value": "1.0 stored; 0.3992 by formula",
-                "source": "Same comparison"
-            }
-        ],
-        "verdict": "rejected",
-        "evidence": [
-            {
-                "type": "commit",
-                "label": "8eda41b",
-                "href": "https://github.com/Ujjwaljain16/GitIssue/commit/8eda41b",
-                "note": "Adds the evaluation scripts and the 'small' report and label sample."
-            },
-            {
-                "type": "commit",
-                "label": "34031e1",
-                "href": "https://github.com/Ujjwaljain16/GitIssue/commit/34031e1",
-                "note": "Introduces `final_score = $7` in the ON CONFLICT clause of log_suggestion (git blame of line 91 at 8eda41b); the line is still present on main."
-            },
-            {
-                "type": "file",
-                "label": "logger.py@8eda41b",
-                "href": "https://github.com/Ujjwaljain16/GitIssue/blob/8eda41b/app/feedback/logger.py",
-                "note": "INSERT parameter order: $7 label_score, $8 final_score; UPDATE uses $7 for final_score."
-            },
-            {
-                "type": "file",
-                "label": "week45_label_samples_small.csv@8eda41b",
-                "href": "https://github.com/Ujjwaljain16/GitIssue/blob/8eda41b/reports/week45_label_samples_small.csv",
-                "note": "labeled_by = bootstrap-auto on every row."
-            },
-            {
-                "type": "file",
-                "label": "week4.5md@8eda41b",
-                "href": "https://github.com/Ujjwaljain16/GitIssue/blob/8eda41b/week4.5md",
-                "note": "The plan lists 'Precision (manually verified)' as a goal; the sampled labels in the report were all produced by 'bootstrap-auto'."
-            }
-        ],
-        "verification": "Read the script, JSON report and CSV; ran a python comparison of stored final_score, label_score and the formula for all 20 rows (19 equal label_score, 1 equals the formula). The evaluation itself could not be re-run: it needs Postgres with the collected tables. Attribution: The planning documents (week1.md, v1.md, week2.md, week4.5md) are pasted AI-assistant replies; the code and evaluation scripts are committed by Ujjwaljain16 with no Co-Authored-By trailer."
-    },
-    {
         "id": "sse-ticket-design-pivot",
         "kind": "decision",
         "project": "SSE-Observatory",
@@ -2500,7 +2408,6 @@ export const records: EngineeringRecord[] = [
         "id": "bhttp-truncation-must-not-look-complete",
         "kind": "decision",
         "project": "BHTTP-1",
-        "projectId": "bhttp-1",
         "title": "A file that shrinks mid-transfer ends in ERROR(3), never a clean END_STREAM",
         "date": "2026-09-22",
         "dateSource": "commit 6218eda (fault-injection test); 362fc0a (server)",
@@ -3718,59 +3625,6 @@ export const records: EngineeringRecord[] = [
             }
         ],
         "verification": "Parsed results.json with python (values above); extracted the text of both HTML reports from git; diffed the k6 script across 9c441bb and 9d73342. Not re-run (no k6, Docker daemon down)."
-    },
-    {
-        "id": "gitissue-streams-reclaim-dlq",
-        "kind": "decision",
-        "project": "GitIssue",
-        "projectId": "gitissue",
-        "title": "Redis Streams with XAUTOCLAIM redelivery, a dead-letter stream and a stale-update guard",
-        "date": "2026-03-17",
-        "dateSource": "commit 9b1a20b (queue, worker and db modules); tests in 751352a",
-        "provenance": "reconstructed",
-        "rationaleSource": "inferred",
-        "origin": "personal (a multi-week plan; single author)",
-        "authors": [
-            "Ujjwaljain16"
-        ],
-        "featured": false,
-        "context": "GitHub webhooks are retried, arrive out of order, and a worker can die mid-event. The planning documents (week1.md, v1.md) set the requirements: a secure, lossless, idempotent ingestion pipeline with at-least-once delivery, no duplicated or corrupted rows, and newer updates winning over older ones.",
-        "decision": "The webhook (HMAC SHA-256, constant-time compare, empty secret rejects everything) does XADD to a stream. The worker uses a consumer group, ACKs only after process_event succeeds (in 9b1a20b the upsert; by 8eda41b also graph mapping), and each loop iteration first calls XAUTOCLAIM for entries idle over 30 s (WORKER_RECLAIM_IDLE_MS). On failure it does not ACK; when XPENDING's times_delivered reaches 5 it XADDs the message to github_events_dlq with a reason and then ACKs. The issue upsert has WHERE issues.updated_at <= EXCLUDED.updated_at, so an older redelivery cannot overwrite newer state.",
-        "alternatives": [
-            {
-                "option": "'Do not ACK -> retry' with a plain XREADGROUP '>' loop (the sketch in week1.md)",
-                "whyNot": "Inferred, not stated in the repo: reading with '>' only returns entries never delivered to the group, so an un-ACKed entry is not redelivered to a live consumer. The implementation adds XAUTOCLAIM and a delivery-count cutoff; TESTING_WEEK1.md (same commit as week1.md) already expects reclaim and dead-lettering."
-            }
-        ],
-        "consequences": "Poison messages stop after 5 deliveries and are kept for inspection. In the current code the embedding job and the comment bot run as asyncio.create_task inside process_event, so a failure there is logged but not retried. When reclaimed messages exist the loop skips read_group for that iteration. Every worker test stubs reclaim_stale_messages to return nothing, so XAUTOCLAIM redelivery is never exercised, and the dead-letter test stubs the delivery count; no test runs against a real stream. The updated_at guard has Postgres integration tests that skip when no database is reachable. The 50 worker, webhook-signature and scoring tests pass.",
-        "status": "adopted",
-        "evidence": [
-            {
-                "type": "commit",
-                "label": "9b1a20b",
-                "href": "https://github.com/Ujjwaljain16/GitIssue/commit/9b1a20b",
-                "note": "Adds redis_stream.py (xautoclaim, pending_delivery_count, push_dead_letter) and worker.py loop; store.py has the updated_at guard."
-            },
-            {
-                "type": "commit",
-                "label": "f252e57",
-                "href": "https://github.com/Ujjwaljain16/GitIssue/commit/f252e57",
-                "note": "week1.md / v1.md plan for the queue and TESTING_WEEK1.md expectations."
-            },
-            {
-                "type": "file",
-                "label": "worker.py@8eda41b",
-                "href": "https://github.com/Ujjwaljain16/GitIssue/blob/8eda41b/app/worker/worker.py",
-                "note": "Reclaim before read, ACK after success, DLQ at worker_retry_max_attempts."
-            },
-            {
-                "type": "test",
-                "label": "test_worker_processing.py@8eda41b",
-                "href": "https://github.com/Ujjwaljain16/GitIssue/blob/8eda41b/tests/test_worker_processing.py",
-                "note": "test_run_worker_does_not_ack_on_failure and test_run_worker_dead_letters_after_retry_threshold (mocked Redis)."
-            }
-        ],
-        "verification": "Read redis_stream.py, worker.py, webhook.py, store.py, config.py; ran `python -m pytest tests/test_worker_processing.py tests/test_webhook_signature.py tests/test_scoring_hybrid.py tests/test_scoring_signal.py` -> 50 passed in 27.95 s. Not run against Redis. Attribution: The design documents (week1.md, v1.md, week2.md, week4.5md) are pasted AI-assistant replies, so the design was planned with an AI assistant. The code commits are by Ujjwaljain16 with no Co-Authored-By trailer."
     },
     {
         "id": "sse-sharedworker-multiplexing",
@@ -6689,7 +6543,7 @@ export const records: EngineeringRecord[] = [
                 "note": "The benchmark behind `npm run bench`."
             }
         ],
-        "verification": "Read both commits and the README's performance section at the v2 head (20ab806), and checked that the benchmark script exists there. I did not re-run the benchmark. The first measurement exists only as text in the commit message and README, not as a saved result file, and the README does not say which laptop was used."
+        "verification": "Read both commits and the README's performance section at the v2 head (20ab806), and checked that the benchmark script exists there. I did not re-run the benchmark. The first measurement exists only as text in the commit message and README, not as a saved result file, and the README does not say which laptop was used. A re-run on 15 Nov 2026 did not reproduce the table exactly; see the record on the re-run."
     },
     {
         "project": "SSE-Observatory",
@@ -6752,7 +6606,7 @@ export const records: EngineeringRecord[] = [
         "kind": "decision",
         "title": "Record the structure of each payload, never its values, so schema drift can be found after the payload is gone",
         "date": "2026-11-14",
-        "dateSource": "commit 3128b1b (2026-11-14), on the v2 branch",
+        "dateSource": "commit 3128b1b (2026-11-14); released in v2.0.0",
         "context": "Detecting that an event's format changed needs the format of events from long ago, but the recording is bounded and its payload text rolls out of it.",
         "decision": "For every JSON payload of 4 KB or less, the recorder keeps its shape (field paths and kinds such as `$:o|id:n|price:n`, sorted; never a value) in the event's extracted data. Redaction leaves shapes alone. A profile setting `\"shapes\": false`, also a checkbox in the Privacy panel, turns it off. The rule that uses it (R16) takes the first 20 events of a name as a baseline and reports fields gone, new or of another kind only when most recent events share a different shape.",
         "alternatives": [
@@ -6783,7 +6637,7 @@ export const records: EngineeringRecord[] = [
                 "note": "The rule that compares shapes against a baseline."
             }
         ],
-        "verification": "Read the commit message and checked that both files exist at the v2 head (20ab806). The micro-benchmark was not re-run, and its script and the machine it ran on are not recorded. This is on the v2 branch, not on main."
+        "verification": "Read the commit message and checked that both files exist at the v2 head (20ab806). The micro-benchmark was not re-run, and its script and the machine it ran on are not recorded. It is part of v2.0.0: the v2 branch and main are identical at the release commit 7519e48 (checked on GitHub, 15 Nov 2026)."
     },
     {
         "project": "SSE-Observatory",
@@ -6860,7 +6714,7 @@ export const records: EngineeringRecord[] = [
         "kind": "investigation",
         "title": "Could `sse-doctor validate` report a bug as fixed when the finding only stopped being raised?",
         "date": "2026-11-14",
-        "dateSource": "commit b9395c9 (2026-11-14), on the v2 branch",
+        "dateSource": "commit b9395c9 (2026-11-14); released in v2.0.0",
         "question": "After a fix, `sse-doctor validate <capture> <url>` reads the fixed stream and says whether the capture's finding is gone. Can it say \"fixed\" when the finding vanished for a reason other than the fix?",
         "method": "A test of the command found a case. Without the declared sequence, the skipped-events check cannot judge anything, yet its rule still counted as evaluated, so its silence looked like a fix. The same applies when the stream is read under a different profile than the capture.",
         "result": "Yes, it could. The command now answers \"inconclusive\" (exit code 4), never \"fixed\", when the check that raises the finding could not run, or when the stream was read under a different profile than the capture. Exit codes: 0 fixed as far as this reading shows, 1 not fixed, 2 the capture does not show the finding, 3 the stream never answered, 4 inconclusive. Other findings the reading raises are listed, not judged.",
@@ -6892,7 +6746,847 @@ export const records: EngineeringRecord[] = [
                 "note": "The \"Checking a fix\" section lists the verdicts and the profile guard."
             }
         ],
-        "verification": "Read the commit message, the command's file and the CLI guide at the v2 head (20ab806). I did not run the tests or the command. This is on the v2 branch, not on main."
+        "verification": "Read the commit message, the command's file and the CLI guide at the v2 head (20ab806). I did not run the tests or the command. It is part of v2.0.0: the v2 branch and main are identical at the release commit 7519e48 (checked on GitHub, 15 Nov 2026)."
+    },
+    {
+        "project": "AgentBrake",
+        "projectId": "agentbrake",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "agentbrake-blocked-calls-used-up-quota",
+        "kind": "investigation",
+        "title": "A call that one policy blocked still used up rate-limit quota, budget and approval tokens",
+        "date": "2026-11-17",
+        "dateSource": "commit 28071e1 (2026-11-17); developed in the working tree and checked there on 15 Nov 2026",
+        "question": "In AgentBrake's policy chain, does a call that a later policy blocks still change the state of the earlier ones?",
+        "method": "Read the policy chain at the last public commit (373adcd). RateLimitPolicy recorded a timestamp, BudgetPolicy added spend and ApprovalPolicy consumed its approval token, all inside validate(), so any policy after them could still block the call. Then wrote tests that send denied and allowed calls through the real proxy and count what was used.",
+        "result": "A blocked call did use up quota that an allowed call should have had. The fix is two phases: every policy validates first, and quota, budget and approval state are committed only when the call is actually forwarded. In the test, 3 denied calls followed by 2 allowed ones leave exactly 2 rate-limit slots used. The same review found four related defects, each with a test: every violation log line contained the whole call history, so lines grew with the session; the history was unbounded; the maximum-runtime clock started when the policy was built, not when the session started; and approval keys depended on the order of the arguments. A fifth, the rate limit's \"exponential backoff\" always reporting 1000 ms, was fixed too.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "rate-limit slots used after 3 denied calls then 2 allowed calls",
+                "value": "2",
+                "source": "tests/hardening.test.ts, \"two-phase commit\" (commit 28071e1)"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "373adcd",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/commit/373adcddb4f1a02a3cc24160603fba000a5e6363",
+                "note": "The last public commit: the policies change state inside validate() here."
+            },
+            {
+                "type": "file",
+                "label": "RateLimitPolicy.ts@373adcd",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/373adcddb4f1a02a3cc24160603fba000a5e6363/src/policy/policies/RateLimitPolicy.ts",
+                "note": "Pushes the timestamp inside validate(), before later policies have run."
+            },
+            {
+                "type": "file",
+                "label": "BudgetPolicy.ts@373adcd",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/373adcddb4f1a02a3cc24160603fba000a5e6363/src/policy/policies/BudgetPolicy.ts",
+                "note": "Adds the spend inside validate()."
+            },
+            {
+                "type": "test",
+                "label": "tests/hardening.test.ts",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/28071e182080c4123f664fc1420fbb2124a650dc/tests/hardening.test.ts",
+                "note": "The two-phase-commit tests."
+            }
+        ],
+        "verification": "Read at commit 28071e1. On 15 Nov 2026, before it was committed, I ran `npx jest` in the working tree myself: 202 tests, 201 passed, 1 skipped. CI's Linux run on the commit passed all 202."
+    },
+    {
+        "project": "AgentBrake",
+        "projectId": "agentbrake",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "agentbrake-typed-path-and-url-rules",
+        "kind": "decision",
+        "title": "Check paths and URLs as paths and URLs instead of writing better regular expressions",
+        "date": "2026-11-17",
+        "dateSource": "commit 28071e1 (2026-11-17); developed in the working tree and checked there on 15 Nov 2026",
+        "context": "The public README already admitted that argument rules are string matches: it says that `/tmp/../etc/passwd` satisfies the rule `^/tmp/`, and that encodings, symlinks and shell quoting get past them. Metadata endpoints written as a decimal number, in hex or as an IPv4-mapped IPv6 address are another way past a deny rule.",
+        "decision": "Add typed rules. Paths are compared by directory boundary after resolving `..`, `~`, file: URLs and Windows forms; realpath is an option. URLs are parsed with the WHATWG parser, with host allow and deny lists, and loopback, private, link-local and metadata targets are blocked in any numeric spelling. A DNS check is optional and fails closed when the lookup fails.",
+        "alternatives": [
+            {
+                "option": "Write stricter regular expressions",
+                "whyNot": "They are still string matching, and the ways to spell an address or a path are endless."
+            },
+            {
+                "option": "Always resolve paths with realpath",
+                "whyNot": "It needs the files to exist, races with the disk, and resolves on the proxy's machine rather than the server's view. It stays as an option, resolve_symlinks."
+            }
+        ],
+        "consequences": "In the Gauntlet, scenarios A01 and A03 to A08 are blocked by the new rule and leak past the regex baseline. Regex rules remain and remain bypassable. Symlinks and hard links are not followed unless resolve_symlinks is on, and that is still racy; redirects and DNS rebinding after the URL check are not covered.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "373adcd",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/commit/373adcddb4f1a02a3cc24160603fba000a5e6363",
+                "note": "The last public commit, before the typed rules."
+            },
+            {
+                "type": "doc",
+                "label": "README.md@373adcd",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/373adcddb4f1a02a3cc24160603fba000a5e6363/README.md",
+                "note": "Admits that `/tmp/../etc/passwd` satisfies `^/tmp/` and that regex rules are bypassable."
+            },
+            {
+                "type": "file",
+                "label": "src/policy/semantic/paths.ts",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/28071e182080c4123f664fc1420fbb2124a650dc/src/policy/semantic/paths.ts",
+                "note": "Path comparison."
+            },
+            {
+                "type": "test",
+                "label": "tests/semantic.test.ts",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/28071e182080c4123f664fc1420fbb2124a650dc/tests/semantic.test.ts",
+                "note": "Includes a test that the regex rule is bypassed and the path rule is not."
+            }
+        ],
+        "verification": "Read at commit 28071e1. On 15 Nov 2026, before it was committed, I ran `npx jest` in the working tree myself: 202 tests, 201 passed, 1 skipped. CI's Linux run on the commit passed all 202. I also read the old README line at 373adcd."
+    },
+    {
+        "project": "AgentBrake",
+        "projectId": "agentbrake",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "agentbrake-winnowing-fingerprints-for-leaks",
+        "kind": "decision",
+        "title": "Detect data leaving in a later call by fingerprinting what earlier calls returned",
+        "date": "2026-11-17",
+        "dateSource": "commit 28071e1 (2026-11-17); developed in the working tree and checked there on 15 Nov 2026",
+        "context": "Allow-lists and regex rules look at one call at a time. They cannot see that data read in one call is being sent out in a later one, especially when it has been encoded, reversed, reformatted or split.",
+        "decision": "Results from configured sources are fingerprinted by winnowing (k=16, window 5, 53-bit rolling hashes), so any shared normalised run of 20 or more characters is guaranteed to share a fingerprint. Known credential formats are detected and protected. Outgoing arguments are checked plain and after base64, hex and percent decoding (two levels deep, with an output budget) and reversal. A capped store evicts the oldest sources first.",
+        "alternatives": [
+            {
+                "option": "Search for the stored text as an exact substring",
+                "whyNot": "It keeps the raw secrets in memory and costs time in proportion to the store size times the payload size."
+            },
+            {
+                "option": "Regex-based data-loss detection only",
+                "whyNot": "It misses data that has no known format."
+            },
+            {
+                "option": "Embeddings or semantic matching",
+                "whyNot": "It needs a model, is not deterministic, and adds latency."
+            }
+        ],
+        "consequences": "Data under 20 normalised characters is missed (scenario M03), except detected credential formats, which are matched exactly. Shared boilerplate of 16 or more characters can cause false positives. The guarantee is checked by a property test over 300 seeds, and there were 0 collisions of the 53-bit hash in 200 pairs of unrelated 2,000-character texts. The cost of checking a payload against 42,203 stored fingerprints was measured in process: about 0.18 ms for 1 KiB, 2.9 ms for 10 KiB, 16.4 ms for 100 KiB and 152 ms for 1 MiB, one run, which leaves out stdio and server time.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "373adcd",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/commit/373adcddb4f1a02a3cc24160603fba000a5e6363",
+                "note": "The last public commit, before the flow tracking."
+            },
+            {
+                "type": "file",
+                "label": "src/flow/fingerprint.ts",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/28071e182080c4123f664fc1420fbb2124a650dc/src/flow/fingerprint.ts",
+                "note": "The winnowing fingerprints."
+            },
+            {
+                "type": "test",
+                "label": "tests/flow.test.ts",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/28071e182080c4123f664fc1420fbb2124a650dc/tests/flow.test.ts",
+                "note": "The 300-seed property test of the guarantee."
+            },
+            {
+                "type": "doc",
+                "label": "docs/PLAN-v4.md",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/28071e182080c4123f664fc1420fbb2124a650dc/docs/PLAN-v4.md",
+                "note": "Where the options and their reasons were written down."
+            }
+        ],
+        "verification": "Read at commit 28071e1. On 15 Nov 2026, before it was committed, I ran `npx jest` in the working tree myself: 202 tests, 201 passed, 1 skipped. CI's Linux run on the commit passed all 202. I did not re-run the in-process timing."
+    },
+    {
+        "project": "AgentBrake",
+        "projectId": "agentbrake",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "agentbrake-the-gauntlet-and-its-kept-misses",
+        "kind": "investigation",
+        "title": "A deterministic attack scoreboard, with the attacks it cannot stop left in",
+        "date": "2026-11-17",
+        "dateSource": "commit 28071e1 (2026-11-17); developed in the working tree and checked there on 15 Nov 2026",
+        "question": "How many scripted attacks does AgentBrake v4 stop compared with no policy and with an allow-list plus regex rules, and does it refuse benign work?",
+        "method": "`npm run gauntlet` runs 21 scripted attacks and 10 benign tasks through the real proxy against an in-memory mock MCP server, three ways: no policy, a baseline allow-list with regex rules, and the v4 config. There is no model and no network. Each block was checked against the policy that made it: A01 to A08 by the argument rules and E01 to E10 by the flow policy.",
+        "result": "Attacks blocked: 0 of 21 with no policy, 2 of 21 with the allow-list plus regex baseline, 18 of 21 with v4. Benign tasks refused: 0 of 10 in all three. The three misses are kept in the suite as expected misses (M01, a shell command that uploads a file the proxy never sees; M02, a paraphrase with no untrusted content in the session; M03, an 8-character drip-feed), and CI is set to fail if any outcome changes in either direction, rather than dropping them to report 18 of 18. This shows what the mechanisms cover. It is not a detection rate: the same author wrote the attacks and the defence, the benign set is small, and the mock server cooperates.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "attacks blocked: no policy / allow-list plus regex / v4",
+                "value": "0 / 2 / 18 of 21",
+                "source": "bench/results/gauntlet.md (generated by `npm run gauntlet`, commit 28071e1)"
+            },
+            {
+                "label": "benign tasks refused, all three configs",
+                "value": "0 of 10",
+                "source": "bench/results/gauntlet.md"
+            }
+        ],
+        "verdict": "partial",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "373adcd",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/commit/373adcddb4f1a02a3cc24160603fba000a5e6363",
+                "note": "The last public commit, before the benchmark existed."
+            },
+            {
+                "type": "benchmark",
+                "label": "bench/results/gauntlet.md",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/28071e182080c4123f664fc1420fbb2124a650dc/bench/results/gauntlet.md",
+                "note": "The scoreboard and the per-scenario table."
+            },
+            {
+                "type": "file",
+                "label": "bench/scenarios.ts",
+                "href": "https://github.com/Ujjwaljain16/AgentBrake/blob/28071e182080c4123f664fc1420fbb2124a650dc/bench/scenarios.ts",
+                "note": "The scripted attacks and the expected misses."
+            }
+        ],
+        "verification": "Read at commit 28071e1. On 15 Nov 2026, before it was committed, I ran `npx jest` in the working tree myself: 202 tests, 201 passed, 1 skipped. CI's Linux run on the commit passed all 202. I read the generated results table but did not re-run the Gauntlet, and I did not check by re-running that two runs give identical output."
+    },
+    {
+        "project": "SSE-Observatory",
+        "projectId": "sse-observatory",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "sse-testing-campaign-and-what-it-found",
+        "kind": "investigation",
+        "title": "What a testing campaign built on independent oracles found that the existing tests had not",
+        "date": "2026-11-14",
+        "dateSource": "the campaign's commits (2026-11-14); the report was assessed at the v2.0.0 release on 15 Nov 2026",
+        "question": "The project already had unit, property and end-to-end tests. Does a campaign that checks the code against independent sources of truth, and the built command line as a real process, find defects those tests missed?",
+        "method": "The document describes the method: independent oracles (the WHATWG parsing algorithm written out literally, the fixture server's own log, a strict XML parser, the specification's own examples), the built command line run as a real process, tables that pin every threshold at its edge, and a sweep of every export path for planted secrets searched in five encodings. Each defect gets a failing test before its fix.",
+        "result": "It found them: the document's defect table lists 21 defects, each with the commit that fixed it. Examples: the proxy's frame tracker said \"not at an event boundary\" after an empty first chunk; a stream cut inside a half-received character ended with no unterminated-frame warning; a throwing observer escaped as an uncaught exception from a timer, which ends a Node process; reports let raw control characters from a server into the file; and the SSE parser moved its resume cursor when an `id:` line was read instead of when the event was dispatched, so a stream cut inside an event made the client resume after an event it never completed, and the server skipped it with no error. The secret sweep found 4 defects, one of them a real leak: a secret key such as `password` or `token` inside an object or list under a harmless name was kept in every shared capture and report, because the scan matched the whole inner object as one value. The document also keeps a list of what is still open and what was not covered. The release report in it: 2,402 tests passed and 30 skipped (they run only in the nightly and release-candidate workflows), 84.4% statement and 72.8% branch coverage in CI on Node 20, 176 of 176 browser tests on an idle machine.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "defects in the campaign's table",
+                "value": "21",
+                "source": "docs/technical/testing-campaign.md at the v2.0.0 release commit, \"Defects found and fixed\""
+            },
+            {
+                "label": "tests passed / skipped in the release report",
+                "value": "2,402 / 30",
+                "source": "docs/technical/testing-campaign.md, \"Release readiness\""
+            },
+            {
+                "label": "statement / branch coverage in CI (Node 20)",
+                "value": "84.4% / 72.8%",
+                "source": "docs/technical/testing-campaign.md, \"Release readiness\""
+            },
+            {
+                "label": "defects found by the secret-export sweep",
+                "value": "4",
+                "source": "docs/technical/testing-campaign.md, slice E1"
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #68",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/pull/68",
+                "note": "Merges v2, including the campaign's fixes, to main as v2.0.0."
+            },
+            {
+                "type": "commit",
+                "label": "f8ac4014",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/commit/f8ac4014",
+                "note": "Campaign B3: fixes the frame tracker defect (an empty first chunk)."
+            },
+            {
+                "type": "commit",
+                "label": "e00cf989",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/commit/e00cf989",
+                "note": "Campaign A1, A5, B5: the server's own log, the four-way comparison, and the fix for a throwing observer."
+            },
+            {
+                "type": "commit",
+                "label": "e2e0cfdb",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/commit/e2e0cfdb",
+                "note": "Campaign D3 and E3: scenario round trip, and hostile text through every report."
+            },
+            {
+                "type": "doc",
+                "label": "docs/technical/testing-campaign.md",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/7519e4852fe8ccc90c75daeb2625ce5436fdf324/docs/technical/testing-campaign.md",
+                "note": "The method, the defect table with commits, what is open and what was not covered."
+            }
+        ],
+        "verification": "Read the campaign document at the v2.0.0 release commit and checked on GitHub that the cited commits exist and that main, the tag and the release are as the document and the project's own report say. I did not re-run the tests or the sweep, and the counts above are the document's, measured in CI and on the author's machine."
+    },
+    {
+        "project": "SSE-Observatory",
+        "projectId": "sse-observatory",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "sse-doctor-cost-rerun-did-not-reproduce",
+        "kind": "investigation",
+        "title": "Re-measuring the Doctor's cost: the README's \"13 microseconds per record\" and October table did not reproduce",
+        "date": "2026-11-14",
+        "dateSource": "rows H1, H4 and H0/H6 of the campaign document, measured 2026-11-15 on the author's machine",
+        "question": "Do the README's Doctor-cost figures (about 13 microseconds per record, and the October browser table) hold when measured again, and is the \"under 2% CPU at 500 events/s\" target now demonstrated?",
+        "method": "Three measurements, with their caveats in the document. A Node micro-benchmark of the cost per record (`npm run perf:record-cost`: Node 22.19, i5-13450HX, Windows 11, machine otherwise idle, 200,000 records, 3 warm-ups, median of 15 runs, twice). The existing browser benchmark re-run (`node scripts/bench.mjs --doctor all --runs 5` against the production build, Chrome 157, medians of 5). A 10-minute soak at 200 events per second (`npm run test:soak`).",
+        "result": "The per-record figure was not reproduced: the warm cost the Doctor adds is about 4.9 microseconds per record (engine 0.52, worker-to-page copy 0.41, sync with 50,000 records held 3.96), against 13.3 microseconds, the budget for 2% of one core at 1,500 records a second. The README's 13 was a first-run figure. This is a Node micro-benchmark on a steady, rule-light synthetic stream, so rule-heavy streams cost more. The October browser table was not reproduced exactly either. Under the 20,000-event burst the timer lateness p95 was 13 / 20 / 18 ms with the Doctor off / closed / open, milder than October. At about 500 events/s with the panel open the main thread was 91% busy against 74% with the Doctor off, and the p95 timer lateness doubled (4 / 4 / 9 ms). The document calls this a difference to look at, not a measured regression, since the machine and Chrome version differ and runs vary by about ten points. The 10-minute soak passed (connected throughout, no crash, no upward heap trend distinguishable from uncollected garbage), but the gate that needs a forced garbage collection before each sample was not evaluated. The README's tables were left unchanged and the \"under 2% CPU\" target is still not demonstrated end to end.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "Doctor-added cost per record, warm, Node micro-benchmark",
+                "value": "4.9 µs (budget 13.3 µs)",
+                "source": "docs/technical/testing-campaign.md, row H1 (median of 15 runs, twice, 2026-11-15)"
+            },
+            {
+                "label": "burst timer lateness p95, Doctor off / closed / open",
+                "value": "13 / 20 / 18 ms",
+                "source": "docs/technical/testing-campaign.md, row H4 (Chrome 157, medians of 5)"
+            },
+            {
+                "label": "about 500 events/s, p95 timer lateness off / closed / open",
+                "value": "4 / 4 / 9 ms",
+                "source": "docs/technical/testing-campaign.md, row H4"
+            },
+            {
+                "label": "about 500 events/s, main thread busy off / closed / open",
+                "value": "74 / 64 / 91 %",
+                "source": "docs/technical/testing-campaign.md, row H4"
+            }
+        ],
+        "verdict": "partial",
+        "evidence": [
+            {
+                "type": "pr",
+                "label": "Pull request #68",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/pull/68",
+                "note": "The release that includes these results and leaves the README tables unchanged."
+            },
+            {
+                "type": "doc",
+                "label": "docs/technical/testing-campaign.md",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/7519e4852fe8ccc90c75daeb2625ce5436fdf324/docs/technical/testing-campaign.md",
+                "note": "Rows H1, H4 and H0/H6, with caveats."
+            },
+            {
+                "type": "doc",
+                "label": "README.md",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/7519e4852fe8ccc90c75daeb2625ce5436fdf324/README.md",
+                "note": "The October tables and the statement that the 2% target is not demonstrated."
+            },
+            {
+                "type": "benchmark",
+                "label": "scripts/bench.mjs",
+                "href": "https://github.com/Ujjwaljain16/SSE-Observatory/blob/7519e4852fe8ccc90c75daeb2625ce5436fdf324/scripts/bench.mjs",
+                "note": "The browser benchmark that was re-run."
+            }
+        ],
+        "verification": "Read the three rows of the campaign document at the v2.0.0 release commit and the README at the same commit. The raw benchmark output is in a local file that is not in the repository, so the figures cannot be checked from here, and I did not re-run any of the measurements."
+    },
+    {
+        "project": "VaultTabs",
+        "projectId": "vaulttabs",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "vaulttabs-the-zero-knowledge-claim",
+        "kind": "investigation",
+        "title": "VaultTabs' first README said zero-knowledge, but the account password was sent to the server",
+        "date": "2026-09-28",
+        "dateSource": "commit 598f75c (2026-09-28)",
+        "question": "The first README and the app copy called VaultTabs zero-knowledge. Was that true?",
+        "method": "A review of the authentication flow and the rest of the code, recorded in the commit message of the fix.",
+        "result": "It was not zero-knowledge. The account password was sent to the server at sign-up and login, and the same password protected the master key, so a server operator who captured passwords could decrypt every snapshot. The same review fixed an authorisation hole (restore requests could be read or completed by any logged-in user), JWTs that never expired, CORS that was open outside production, and docker-compose healthchecks that were malformed so the backend never started, and it deleted committed development private keys from the tree (they remain in git history). The README and app copy were changed to state the real model. The design itself was fixed later, in the 1.0 release.",
+        "measured": false,
+        "verdict": "rejected",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "598f75c",
+                "href": "https://github.com/Ujjwaljain16/VaultTabs/commit/598f75c",
+                "note": "Corrects the zero-knowledge claims and fixes the authorisation, JWT, CORS and docker defects."
+            },
+            {
+                "type": "commit",
+                "label": "5102547",
+                "href": "https://github.com/Ujjwaljain16/VaultTabs/commit/5102547",
+                "note": "The 1.0 release, where the password stops leaving the device."
+            },
+            {
+                "type": "doc",
+                "label": "docs/security-model.md",
+                "href": "https://github.com/Ujjwaljain16/VaultTabs/blob/3c90ce21d7b89deaa76d3a842c176646b26c2ca0/docs/security-model.md",
+                "note": "The current security model, which makes no zero-knowledge claim and lists what is not protected."
+            }
+        ],
+        "verification": "Read both commit messages and the security model at v1.0.5. I did not run the code or the old version, so the original flaw is as the commit message describes it."
+    },
+    {
+        "project": "VaultTabs",
+        "projectId": "vaulttabs",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "vaulttabs-split-the-password-so-it-never-leaves-the-device",
+        "kind": "decision",
+        "title": "Derive separate authentication and wrapping keys so the password never leaves the device",
+        "date": "2026-11-16",
+        "dateSource": "commit 5102547 (2026-11-16), the 1.0 release",
+        "context": "In the first design the password was sent to the server at sign-up and login, and the same password protected the master key that decrypts every snapshot.",
+        "decision": "The password is stretched with PBKDF2-HMAC-SHA256 (600,000 iterations or more) and then split with HKDF into two independent keys. An authentication key is sent to the server, which stores only an scrypt hash of it, and a wrapping key for the master key never leaves the device. Clients refuse a server that tries to lower the iteration count, and accounts created before 1.0 are upgraded on their next login.",
+        "alternatives": [
+            {
+                "option": "Keep sending the password to the server, as the first design did",
+                "whyNot": "A server operator who captured passwords could decrypt every snapshot, because the same password protected the master key."
+            }
+        ],
+        "consequences": "The two HKDF outputs are independent, so the server learns nothing about the wrapping key from the authentication key, and a stolen database costs an attacker one PBKDF2 run per password guess, so password strength still matters (the minimum is 10 characters). A gap remains for accounts created before 1.0: an actively malicious server could claim an upgraded account is still on the legacy login and receive the password at the next login. The repository calls this a real gap for the extension and plans to remove legacy support in a future major version. Metadata is still visible to the server.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "5102547",
+                "href": "https://github.com/Ujjwaljain16/VaultTabs/commit/5102547",
+                "note": "The 1.0 release: the key split, revocable sessions and the other security changes."
+            },
+            {
+                "type": "file",
+                "label": "shared/src/crypto.ts",
+                "href": "https://github.com/Ujjwaljain16/VaultTabs/blob/3c90ce21d7b89deaa76d3a842c176646b26c2ca0/shared/src/crypto.ts",
+                "note": "The key hierarchy and its parameters."
+            },
+            {
+                "type": "doc",
+                "label": "docs/security-model.md",
+                "href": "https://github.com/Ujjwaljain16/VaultTabs/blob/3c90ce21d7b89deaa76d3a842c176646b26c2ca0/docs/security-model.md",
+                "note": "The key hierarchy, the actors and the known limitations, including the legacy downgrade."
+            }
+        ],
+        "verification": "Read the commit message, the security model and the crypto module's parameters at v1.0.5. I did not run the code or review the cryptography, and no independent audit has been performed."
+    },
+    {
+        "project": "VaultTabs",
+        "projectId": "vaulttabs",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "id": "vaulttabs-end-to-end-suite-found-a-revoked-token-bug",
+        "kind": "investigation",
+        "title": "Does a signed-out session stop receiving tabs on an already-open stream?",
+        "date": "2026-11-16",
+        "dateSource": "commit 00ad71e (2026-11-16)",
+        "question": "When a session is revoked, does it stop receiving sent tabs on a restore stream that was already open?",
+        "method": "A 66-scenario Playwright suite drives the real extension in two Chromium profiles and the real web dashboard against a real backend and PostgreSQL: accounts, sync, send-tab, opening on the other device, device identity, sessions, legacy upgrade and robustness. It runs in CI.",
+        "result": "A revoked token kept receiving tabs over an open restore stream, which is a security bug; the stream now re-checks the token version on every event and every ping. The suite found two more bugs: logging in again with the pre-filled default name renamed the user's device, and an open popup could miss the \"session ended\" screen because the state was cleared non-atomically. All three were fixed in the same commit. On the v1.0.5 commit CI passes all 66 scenarios, with 58 unit and integration tests.",
+        "measured": true,
+        "numbers": [
+            {
+                "label": "end-to-end scenarios passing in CI at v1.0.5",
+                "value": "66",
+                "source": "CI run 43886506672, job \"End-to-end (Playwright)\", 16 Nov 2026"
+            },
+            {
+                "label": "unit and integration tests passing in CI at v1.0.5",
+                "value": "58 (7 files)",
+                "source": "CI run 43886506672, job \"Test\""
+            }
+        ],
+        "verdict": "confirmed",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "00ad71e",
+                "href": "https://github.com/Ujjwaljain16/VaultTabs/commit/00ad71e",
+                "note": "Adds the end-to-end suite and fixes the three bugs it found."
+            },
+            {
+                "type": "test",
+                "label": "CI run 43886506672",
+                "href": "https://github.com/Ujjwaljain16/VaultTabs/actions/runs/43886506672",
+                "note": "CI on the v1.0.5 commit: the 66 scenarios and the 58 other tests pass."
+            },
+            {
+                "type": "file",
+                "label": ".github/workflows/ci.yml",
+                "href": "https://github.com/Ujjwaljain16/VaultTabs/blob/3c90ce21d7b89deaa76d3a842c176646b26c2ca0/.github/workflows/ci.yml",
+                "note": "The workflow that runs the suite."
+            }
+        ],
+        "verification": "Read the commit message and the CI run's job results and test summaries on GitHub (the run's log lines show 66 passed and 58 passed). I did not run the suite."
+    },
+    {
+        "project": "Warrant",
+        "projectId": "warrant",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "kind": "decision",
+        "id": "warrant-gate-verdict-capability",
+        "title": "Make success reachable only through a host-minted gate verdict, with no running-to-succeeded edge",
+        "date": "2026-10-16",
+        "dateSource": "upper bound: the repository's first GitHub Actions run (16 Oct 2026) already contains it; the commit dates are author-chosen",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "context": "Upstream (Citadel) declared a verifier policy on graph nodes that nothing consulted, so a worker's claim of success was effectively the verdict.",
+        "decision": "A task can settle as succeeded only through a GateVerdict minted by evaluateGate and registered in a module-private WeakSet, and the state machine has no transition from running to succeeded.",
+        "alternatives": [
+            {
+                "option": "A boolean 'verified' flag on the task record",
+                "whyNot": "Any code path, or a worker's own envelope, could set it; nothing would prove the check ran."
+            },
+            {
+                "option": "Trust the worker's claim and audit afterwards",
+                "whyNot": "Wrong results would already be reported as success before the audit ran."
+            }
+        ],
+        "consequences": "A forged, cloned or spread-copied verdict object is rejected, so success cannot be claimed without the host's check having run. The cost is more ceremony on every settle.",
+        "status": "adopted",
+        "verification": "Read src/core/gate.js (the module-private WeakSet and isGateVerdict) and src/core/states.js (running may go to verifying, pending, failed, unknown or cancelled only) at f50f416, and docs/DECISIONS.md D3.",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "de6909c",
+                "href": "https://github.com/Ujjwaljain16/Warrant/commit/de6909c882c57cd8442066f9597d25d096c44028",
+                "note": "Implements the engine that settles tasks only through gate verdicts."
+            },
+            {
+                "type": "file",
+                "label": "src/core/gate.js",
+                "href": "https://github.com/Ujjwaljain16/Warrant/blob/f50f4165fdd48c22b02ea61585850ffdffbaa0bf/src/core/gate.js",
+                "note": "Verdicts are minted here and registered in a private WeakSet."
+            },
+            {
+                "type": "doc",
+                "label": "docs/DECISIONS.md (D3)",
+                "href": "https://github.com/Ujjwaljain16/Warrant/blob/f50f4165fdd48c22b02ea61585850ffdffbaa0bf/docs/DECISIONS.md",
+                "note": "States the decision, the upstream defect behind it and its trade-off."
+            }
+        ]
+    },
+    {
+        "project": "Warrant",
+        "projectId": "warrant",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "kind": "decision",
+        "id": "warrant-split-container-gate",
+        "title": "Run the agent's code and the hidden tests in separate containers after a review bypassed the gate",
+        "date": "2026-10-16",
+        "dateSource": "the held-out run's tool-written records use the split-container gate and are dated 16 Oct 2026, so the fix landed no later than that",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "context": "An independent security review found that the agent's code ran in the same Node process as the hidden tests, so a solution that called process.exit(0), patched assert or forged test output could pass without implementing anything.",
+        "decision": "The hidden tests run unmodified in a verdict container; require('./solution') there is a proxy to the module in a separate, network-isolated solution container that holds no tests, and the verdict, printed with a nonce, must match the pinned test names in gate-manifest.json.",
+        "alternatives": [
+            {
+                "option": "Block process.exit and freeze assert inside the shared process",
+                "whyNot": "A blocklist inside the same process loses to the next trick: prototype tampering, fake test output, or reading the test files."
+            },
+            {
+                "option": "Keep one container and only parse the test output more strictly",
+                "whyNot": "Code that shares a process and file system with the tests can still read their expected values or write the output."
+            }
+        ],
+        "consequences": "Of a 24-attack corpus run on a solution that implements nothing, 6 passed the old gate and none passes the split gate. Each call across the containers costs about 0.5 ms, and memorised answers and kernel or Docker escapes remain possible.",
+        "status": "adopted",
+        "verification": "Read docs/AGENT_CLAIMS_PROTOCOL.md section 2.5 at f50f416 for the 6 of 24 figure and what remains possible, test/gate-corpus.js for the 24 attacks, and test/gate-adversarial.test.js, which checks every attack ends as the corpus table says on the new gate.",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "875787a",
+                "href": "https://github.com/Ujjwaljain16/Warrant/commit/875787af8b43807fabb8d203f3bd85d960b8ff7d",
+                "note": "The two-container gate, the pinned manifest and the adversarial corpus."
+            },
+            {
+                "type": "test",
+                "label": "test/gate-adversarial.test.js",
+                "href": "https://github.com/Ujjwaljain16/Warrant/blob/f50f4165fdd48c22b02ea61585850ffdffbaa0bf/test/gate-adversarial.test.js",
+                "note": "Runs the 24 attacks against the new gate and checks the solution container sees no hidden test."
+            },
+            {
+                "type": "doc",
+                "label": "docs/AGENT_CLAIMS_PROTOCOL.md (2.5)",
+                "href": "https://github.com/Ujjwaljain16/Warrant/blob/f50f4165fdd48c22b02ea61585850ffdffbaa0bf/docs/AGENT_CLAIMS_PROTOCOL.md",
+                "note": "The mechanism, the 6 of 24 result on the old gate, and what remains possible."
+            }
+        ]
+    },
+    {
+        "project": "Warrant",
+        "projectId": "warrant",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "kind": "decision",
+        "id": "warrant-decline-judge-amendment",
+        "title": "Decline to re-run the LLM judge with a larger output limit after seeing its replies cut off",
+        "date": "2026-10-16",
+        "dateSource": "the judge run's tool-written records end on 16 Oct 2026; the decision was made when they were read",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "context": "142 of the 402 LLM-judge replies hit the protocol's 4,096-token output limit and were recorded as undecided, so the judge could not be ranked against the hidden-test gate.",
+        "decision": "Keep the pre-registered settings, report the judge arm as inconclusive with the undecided counts, and not run an amended judge pass.",
+        "alternatives": [
+            {
+                "option": "Amend the protocol and re-judge the 142 cut-off replies with a larger limit",
+                "whyNot": "Changing the protocol after seeing the results looks like tuning; it would have been cheap but would undermine the pre-registration."
+            }
+        ],
+        "consequences": "The study makes no claim about LLM judges versus the gate: that comparison is reported as inconclusive, and the headline rests only on trusting the claim, the agent's own tests and the gate.",
+        "status": "adopted",
+        "verification": "Read docs/AGENT_RESULTS.md finding 5 at f50f416, which gives the 142 of 402 figure and records that an amended re-run was considered and not done.",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "dcf82f5",
+                "href": "https://github.com/Ujjwaljain16/Warrant/commit/dcf82f5e8d3dc59e674053d1301cbbf367ee4dad",
+                "note": "First written record of the judge being inconclusive and the amendment being declined."
+            },
+            {
+                "type": "doc",
+                "label": "docs/AGENT_RESULTS.md (finding 5)",
+                "href": "https://github.com/Ujjwaljain16/Warrant/blob/f50f4165fdd48c22b02ea61585850ffdffbaa0bf/docs/AGENT_RESULTS.md",
+                "note": "The cut-off count, the judge's decided results and why no re-run was done."
+            }
+        ]
+    },
+    {
+        "project": "Warrant",
+        "projectId": "warrant",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "kind": "investigation",
+        "id": "warrant-gpt-identical-repeats",
+        "title": "Were GPT-5.4-mini's three repeats per task independent samples?",
+        "date": "2026-10-16",
+        "dateSource": "computed from the router-arm run data, whose tool-written session records date the run to 16 Oct 2026",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "question": "GPT-5.4-mini showed 100% run-to-run consistency at temperature 1.0 while Haiku varied; were its repeats real samples, and was its high failure rate a harness artefact?",
+        "method": "Compared the three repeats of each task per model by the output files each produced and the number of steps it took; ran node --check on every output file; recomputed the false-claim rate without the unparseable outputs.",
+        "result": "GPT-5.4-mini's three repeats were identical on all 30 tasks, in their files and their step counts, so its effective sample is 30, not 90. Nine of its files did not parse because of backslash escaping in the JSON action format; leaving out the six of those behind a done claim gives a false-claim rate of 86.7% instead of 88.2%, so escaping does not explain it.",
+        "numbers": [
+            {
+                "label": "GPT-5.4-mini tasks whose 3 repeats match in files and step count",
+                "value": "30 of 30",
+                "source": "results/agent-claims/final/run-data"
+            },
+            {
+                "label": "Haiku tasks whose 3 repeats match in files and step count",
+                "value": "0 of 30 (same final files in 3)",
+                "source": "results/agent-claims/final/run-data"
+            },
+            {
+                "label": "GPT-5.4-mini false-claim rate, all done claims",
+                "value": "88.2% (45 of 51)",
+                "source": "docs/AGENT_RESULTS.md"
+            },
+            {
+                "label": "Leaving out the six unparseable files behind a done claim",
+                "value": "86.7% (39 of 45)",
+                "source": "docs/AGENT_RESULTS.md"
+            }
+        ],
+        "measured": true,
+        "verdict": "confirmed",
+        "verification": "Recomputed from results/agent-claims/final/run-data at f50f416 on 17 Nov 2026: hashed each repeat's output files and counted its transcript steps. GPT-5.4-mini matched in both on 30 of 30 tasks, Haiku on none (its final files matched in 3). The rates are as stated in docs/AGENT_RESULTS.md.",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "c9da4f8",
+                "href": "https://github.com/Ujjwaljain16/Warrant/commit/c9da4f8397552b99253a06f35d24ccf87c426ce2",
+                "note": "The recorded outputs the repeats were compared from."
+            },
+            {
+                "type": "doc",
+                "label": "docs/AGENT_RESULTS.md",
+                "href": "https://github.com/Ujjwaljain16/Warrant/blob/f50f4165fdd48c22b02ea61585850ffdffbaa0bf/docs/AGENT_RESULTS.md",
+                "note": "Reports the identical repeats, the escaping failures and the 86.7% figure."
+            }
+        ]
+    },
+    {
+        "project": "Warrant",
+        "projectId": "warrant",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "kind": "investigation",
+        "id": "warrant-timing-flaky-audit-test",
+        "title": "Why did a CI replay of recorded agent code disagree with the original run on one episode?",
+        "date": "2026-11-16",
+        "dateSource": "the GitHub Actions run that found it (43824678787) ran on 16 Nov 2026",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "question": "The keyless CI job replays every recorded router-arm episode through the Docker gate; one of 162 came back different, with no detail. Was the gate or the replay broken?",
+        "method": "Compared every replayed outcome in the CI log with the committed run, read the audit tests of the mismatched task for timing assumptions, and checked which other recorded runs depend on the same test.",
+        "result": "One audit test in retry-async waits a fixed 20 ms for two calls that cross the containers, so the same code can pass or fail by timing alone. Three router-arm Haiku runs of that task pass the audit on it, so the gate's misses could be 3 to 6 of the wrong claims rather than 3.",
+        "numbers": [
+            {
+                "label": "Replayed episodes compared with the committed run",
+                "value": "162",
+                "source": "GitHub Actions run 43824678787 (replay check)"
+            },
+            {
+                "label": "Mismatches (retry-async repeat 2, audit pass to fail)",
+                "value": "1",
+                "source": "GitHub Actions run 43824678787; bench/agent-claims/known-flaky.json"
+            },
+            {
+                "label": "Mismatches in the next replay, after the fix",
+                "value": "0 of 162",
+                "source": "GitHub Actions run 43868357648 (replay check)"
+            },
+            {
+                "label": "Router-arm gate false accepts, possible range",
+                "value": "3 to 6",
+                "source": "docs/AGENT_RESULTS.md"
+            }
+        ],
+        "measured": true,
+        "verdict": "confirmed",
+        "verification": "Read the replay check in the logs of CI runs 43824678787 (162 compared, 1 mismatch) and 43868357648 (162 compared, 0 mismatches), bench/agent-claims/known-flaky.json, and the 3-to-6 reasoning in docs/AGENT_RESULTS.md at f50f416.",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "8758887",
+                "href": "https://github.com/Ujjwaljain16/Warrant/commit/8758887e8fb6497e3ea197ca672b8f43ee988308",
+                "note": "Makes the replay check name every mismatch and records the flaky check with its reason."
+            },
+            {
+                "type": "commit",
+                "label": "54ef0e7",
+                "href": "https://github.com/Ujjwaljain16/Warrant/commit/54ef0e72078978f15becaf9c33b42a95583e6e6c",
+                "note": "Adds the 3-to-6 range next to the headline gate figure."
+            },
+            {
+                "type": "file",
+                "label": "bench/agent-claims/known-flaky.json",
+                "href": "https://github.com/Ujjwaljain16/Warrant/blob/f50f4165fdd48c22b02ea61585850ffdffbaa0bf/bench/agent-claims/known-flaky.json",
+                "note": "The listed flaky check, its reason and the CI run that showed it."
+            }
+        ]
+    },
+    {
+        "project": "Warrant",
+        "projectId": "warrant",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "kind": "investigation",
+        "id": "warrant-claude-arm-identity",
+        "title": "Does a model with known identity make the same wrong done-claims as the router's model of the same name?",
+        "date": "2026-11-16",
+        "dateSource": "the tool-written scored_at in results/agent-claims/claude-arm/meta.json (16 Nov 2026)",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "question": "The study's complete arms came through a third-party router whose model identity cannot be verified; would real Claude Haiku 5.5 behave like the router's claude-haiku-5.5 on the same tasks?",
+        "method": "Ran 30 Claude Haiku 5.5 subagents through Claude Code, one per held-out task, each in a workspace outside the repository with only the prompt and visible tests, and gated every result with the same split-container Docker gate and audit suite; checked the same gate fails the untouched starting code of all 30 tasks.",
+        "result": "Real Claude Haiku 5.5 made no wrong done-claims on the 30 tasks, where the router's model of the same name was wrong on 32 of 85. The harness differs too (Claude Code's tools against the study's JSON loop), so router serving and harness cannot be separated.",
+        "numbers": [
+            {
+                "label": "Claude arm: wrong claims of done",
+                "value": "0 of 30 (Wilson 95% upper bound 11.4%)",
+                "source": "docs/AGENT_CLAIMS_CLAUDE_ARM.md"
+            },
+            {
+                "label": "Router arm claude-haiku-5.5: wrong claims of done",
+                "value": "32 of 85 (37.6%)",
+                "source": "docs/AGENT_CLAIMS_CLAUDE_ARM.md"
+            },
+            {
+                "label": "Starting code that passes the gate",
+                "value": "0 of 30",
+                "source": "docs/AGENT_CLAIMS_CLAUDE_ARM.md"
+            }
+        ],
+        "measured": true,
+        "verdict": "inconclusive",
+        "verification": "Read docs/AGENT_CLAIMS_CLAUDE_ARM.md and results/agent-claims/claude-arm/REPORT.md at f50f416 (0 of 30 with its Wilson bound, against 32 of 85) and the scored_at date in the arm's meta.json.",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "36fe95d",
+                "href": "https://github.com/Ujjwaljain16/Warrant/commit/36fe95de2d522e55ff3c4fddedb370724bfa15c3",
+                "note": "The arm's protocol page, runner, results and generated report."
+            },
+            {
+                "type": "doc",
+                "label": "docs/AGENT_CLAIMS_CLAUDE_ARM.md",
+                "href": "https://github.com/Ujjwaljain16/Warrant/blob/f50f4165fdd48c22b02ea61585850ffdffbaa0bf/docs/AGENT_CLAIMS_CLAUDE_ARM.md",
+                "note": "The design fixed before the run, the results, checks on the measurement and stated deviations."
+            },
+            {
+                "type": "benchmark",
+                "label": "results/agent-claims/claude-arm/REPORT.md",
+                "href": "https://github.com/Ujjwaljain16/Warrant/blob/f50f4165fdd48c22b02ea61585850ffdffbaa0bf/results/agent-claims/claude-arm/REPORT.md",
+                "note": "Generated from the recorded runs; CI regenerates it and fails on any difference."
+            }
+        ]
     }
 ];
 

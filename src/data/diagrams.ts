@@ -25,6 +25,16 @@ export const diagrams: Record<string, Diagram> = {
             { title: "Audit trail and dashboard", detail: "Control tower, per-payment replanning and an audit explorer." },
         ],
     },
+    warrant: {
+        caption: "A worker's report is an input, never a verdict. Only the host-side gate can mark a task succeeded, and every step is written to a log that can be re-audited without the engine.",
+        steps: [
+            { title: "Spec", detail: "A DAG of tasks, each with requirements the author wrote." },
+            { title: "Worker", detail: "A subprocess, a model or a coding agent. Its result envelope is untrusted." },
+            { title: "Host-side gate", detail: "Checks the output against the requirements; hidden tests run in Docker for agents." },
+            { title: "Hash-chained log", detail: "Every state change, crash-recoverable; resume continues from it." },
+            { title: "Verify and sign", detail: "verify-log re-audits the chain; an Ed25519 signature catches a re-hashed forgery." },
+        ],
+    },
     minidb: {
         caption: "Storage at the bottom, a query path in the middle, and transactions wrapped around both.",
         steps: [
@@ -77,12 +87,13 @@ export const diagrams: Record<string, Diagram> = {
         ],
     },
     vaulttabs: {
-        caption: "Snapshots are encrypted in the browser, but the account password reaches the server, so this is not zero-knowledge.",
+        caption: "Snapshots are encrypted in the browser and the password never leaves the device. The server holds ciphertext, wrapped keys and metadata.",
         steps: [
             { title: "Extension", detail: "Captures open http(s) tabs and skips incognito tabs." },
-            { title: "Encrypt in the browser", detail: "Random AES-256-GCM master key, fresh IV per snapshot." },
-            { title: "Fastify and PostgreSQL", detail: "Store ciphertext and the wrapped keys." },
-            { title: "PWA or another extension", detail: "Unwraps the master key with a key derived from the password (PBKDF2) and decrypts locally." },
+            { title: "Derive keys", detail: "PBKDF2 (600,000 iterations or more), then HKDF splits an authentication key, which is sent, from a wrapping key, which never is." },
+            { title: "Encrypt in the browser", detail: "Random AES-256-GCM master key; each snapshot is bound to the user, device and time." },
+            { title: "Fastify and PostgreSQL", detail: "Store ciphertext, wrapped keys, an scrypt hash of the authentication key, and metadata." },
+            { title: "PWA or another extension", detail: "Derives the same keys from the password, unwraps the master key and decrypts locally." },
         ],
     },
     campussync: {
