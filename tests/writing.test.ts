@@ -60,7 +60,8 @@ describe("getWritingItems", () => {
         const native = BLOG_POSTS[0];
         const items = await itemsWith([medium({ title: native.title.toUpperCase().replace(/\./g, "!") })]);
         expect(items.filter((i) => i.title.toLowerCase() === native.title.toLowerCase())).toHaveLength(1);
-        expect(items.find((i) => i.title.toLowerCase() === native.title.toLowerCase())?.external).toBe(false);
+        // The entry kept is the site's own (which links to Medium itself when the post has moved there).
+        expect(items.find((i) => i.title.toLowerCase() === native.title.toLowerCase())?.href).toBe(native.migratedTo ?? `/blogs/${native.slug}`);
     });
 
     it("sorts newest first across both sources", async () => {

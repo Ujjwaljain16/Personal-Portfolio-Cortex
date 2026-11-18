@@ -160,8 +160,10 @@ describe("search index", () => {
     });
 
     it("does not carry full record or post text into the client", () => {
+        // Per entry rather than in total, so adding records does not trip it: an entry is a title, a project name and a
+        // few keywords (about 300 characters), where a record's full text runs to several thousand.
         const size = JSON.stringify(index).length;
-        expect(size).toBeLessThan(40_000);
+        expect(size / index.length).toBeLessThan(400);
     });
 });
 

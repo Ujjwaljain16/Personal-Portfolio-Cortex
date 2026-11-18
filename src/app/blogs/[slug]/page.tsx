@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { BLOG_POSTS } from "@/data/blogPosts";
 import { Markdown } from "@/components/Markdown";
 import { articleJsonLd, jsonLd, pageMetadata } from "@/lib/seo";
 
+/** A post that used to have its own page here. Visiting it redirects to the list instead of 404ing. */
+const REMOVED_POSTS: Record<string, string> = {
+    "agent-brake-architecture": "/blogs", // removed from the site (Nov 2026); AgentBrake's project page covers the same ground
+};
+
 export function generateStaticParams() {
-    return BLOG_POSTS.map((p) => ({ slug: p.slug }));
+    return [...BLOG_POSTS.map((p) => ({ slug: p.slug })), ...Object.keys(REMOVED_POSTS).map((slug) => ({ slug }))];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -29,52 +34,52 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
     const post = BLOG_POSTS.find((p) => p.slug === slug);
-    if (!post) notFound();
+    if (!post) {
+        if (REMOVED_POSTS[slug]) permanentRedirect(REMOVED_POSTS[slug]);
+        notFound();
+    }
     // This post's home moved to Medium; the archived `content` below is never rendered.
     if (post.migratedTo) permanentRedirect(post.migratedTo);
 
     return (
-        <div className="max-w-3xl pb-10">
+        <div className="pb-16">
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(articleJsonLd(post)) }} />
-            <header className="mb-8">
-                <Link
-                    href="/blogs"
-                    className="inline-flex items-center gap-2 min-h-11 text-[13px] font-mono text-(--text-secondary) hover:text-(--accent-primary) transition-colors group"
-                >
-                    <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" aria-hidden="true" />
-                    All posts
-                </Link>
+            {/* A reading column, as on the project pages: about 70 characters a line. */}
+            <div className="max-w-[44rem]">
+                <header className="space-y-6 pb-10 mb-10 border-b border-(--border-default)">
+                    <Link
+                        href="/blogs"
+                        className="inline-flex items-center gap-2 min-h-11 text-[13px] font-mono text-(--text-muted) hover:text-foreground transition-colors group"
+                    >
+                        <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" aria-hidden="true" />
+                        All writing
+                    </Link>
+                    <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-(--text-muted)">{post.tags.slice(0, 3).join(" · ")}</p>
+                    <h1 className="text-[2.1rem] leading-[1.1] md:text-[2.75rem] font-semibold tracking-[-0.03em] text-foreground">{post.title}</h1>
+                    {post.excerpt && <p className="text-[18px] md:text-[19px] leading-[1.55] text-(--text-secondary)">{post.excerpt}</p>}
+                    <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[12px] text-(--text-muted)">
+                        <time dateTime={post.published}>{post.date}</time>
+                        <span aria-hidden="true">·</span>
+                        <span>{post.readTime}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>Ujjwal Jain</span>
+                    </p>
+                </header>
 
-                <ul className="flex flex-wrap gap-2 mt-4 mb-4" aria-label="Tags">
-                    {post.tags.map((tag) => (
-                        <li
-                            key={tag}
-                            className="text-[11px] px-2 py-1 rounded bg-(--bg-surface-2) text-(--text-secondary) border border-(--border-default) font-mono"
-                        >
-                            {tag}
-                        </li>
-                    ))}
-                </ul>
+                <article>
+                    <Markdown>{post.content}</Markdown>
+                </article>
 
-                <h1 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight mb-4 leading-tight">
-                    {post.title}
-                </h1>
-
-                <div className="flex items-center gap-6 text-[13px] text-(--text-muted) font-mono pb-6 border-b border-(--border-default)">
-                    <span className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
-                        {post.date}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" aria-hidden="true" />
-                        {post.readTime}
-                    </span>
-                </div>
-            </header>
-
-            <article>
-                <Markdown>{post.content}</Markdown>
-            </article>
+                <footer className="mt-16 border-t border-(--border-default) pt-6">
+                    <Link
+                        href="/blogs"
+                        className="inline-flex items-center gap-2 min-h-11 text-[13px] font-mono text-(--text-muted) hover:text-foreground transition-colors"
+                    >
+                        <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+                        All writing
+                    </Link>
+                </footer>
+            </div>
         </div>
     );
 }
