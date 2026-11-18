@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MiniDB">
+  <!-- MiniDB mark: a small B+ tree. A root node with two keys branches to two leaf pages; the teal arrow is the
+       sibling pointer between leaves, the part that makes it a B+ tree. Made for the portfolio site. -->
+  <rect width="64" height="64" rx="14" fill="#0E1A2B"/>
+  <rect x="20" y="11" width="24" height="11" rx="3.5" fill="#63A5FF"/>
+  <line x1="32" y1="13.5" x2="32" y2="19.5" stroke="#0E1A2B" stroke-width="2" stroke-linecap="round"/>
+  <path d="M25 22 L16.5 36 M39 22 L47.5 36" fill="none" stroke="#63A5FF" stroke-width="2.6" stroke-linecap="round"/>
+  <rect x="7" y="36" width="19" height="13" rx="3.5" fill="#D6E6FF"/>
+  <rect x="38" y="36" width="19" height="13" rx="3.5" fill="#D6E6FF"/>
+  <path d="M27.5 42.5 H35" fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M32.5 39.5 L36 42.5 L32.5 45.5" fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
