@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BrainCircuit } from "lucide-react";
+import { CortexMark } from "@/components/brand/CortexMark";
 import { NAV_ITEMS } from "@/components/layout/nav";
 import { PaletteButton } from "@/components/layout/CommandPalette";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -10,7 +10,7 @@ export function HomeHeader() {
         <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-4 border-b border-(--border-default)">
             <Link href="/" className="flex items-center gap-2 min-h-11">
                 <span className="w-8 h-8 rounded-lg bg-(--accent-primary) flex items-center justify-center" aria-hidden="true">
-                    <BrainCircuit className="w-5 h-5 text-white" />
+                    <CortexMark className="w-5 h-5 text-(--background)" />
                 </span>
                 <span className="text-sm font-semibold tracking-wider text-foreground">CORTEX</span>
             </Link>

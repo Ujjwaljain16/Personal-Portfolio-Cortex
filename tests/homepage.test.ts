@@ -1,31 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { startHere } from "@/data/startHere";
-import { featuredProjects, getProject, projects } from "@/data/projects";
-import { getRecord, records } from "@/data/records";
+import { AREAS, getProject, projects } from "@/data/projects";
+import { PROJECT_LOGOS } from "@/data/projectLogos";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { records } from "@/data/records";
 import { aboutMe } from "@/data/about";
 import { orderRecords } from "@/lib/recordsOrder";
-
-describe("start here", () => {
-    it("names real projects and real records, and links each record back to its project", () => {
-        expect(startHere.length).toBe(3);
-        for (const item of startHere) {
-            const project = getProject(item.projectId);
-            expect(project, item.projectId).toBeDefined();
-            expect(item.claim.length, item.projectId).toBeGreaterThan(40);
-            expect(item.links.length, item.projectId).toBeGreaterThan(0);
-            for (const l of item.links) {
-                const r = getRecord(l.recordId);
-                expect(r, l.recordId).toBeDefined();
-                expect(r?.projectId, l.recordId).toBe(item.projectId);
-            }
-        }
-    });
-
-    it("features each of its projects, in the grid before any other project", () => {
-        const ids = featuredProjects.map((p) => p.id);
-        expect(ids.slice(0, startHere.length)).toEqual(startHere.map((s) => s.projectId));
-    });
-});
 
 describe("project periods", () => {
     it("use one format: month and year, an optional range, an optional detail after a middle dot", () => {
@@ -33,6 +13,31 @@ describe("project periods", () => {
         const DATE = `${MONTH} \\d{4}`;
         const re = new RegExp(`^${DATE}( – (${DATE}|present))?( · .+)?$`);
         for (const p of projects) expect(p.period, p.id).toMatch(re);
+    });
+});
+
+describe("project areas", () => {
+    it("gives every project one or two known areas, without repeats", () => {
+        const known = new Set(AREAS.map((a) => a.id));
+        for (const p of projects) {
+            expect(p.areas.length, p.id).toBeGreaterThanOrEqual(1);
+            expect(p.areas.length, p.id).toBeLessThanOrEqual(2);
+            expect(new Set(p.areas).size, p.id).toBe(p.areas.length);
+            for (const a of p.areas) expect(known.has(a), `${p.id}: ${a}`).toBe(true);
+        }
+    });
+
+    it("lists only areas some project uses", () => {
+        for (const a of AREAS) expect(projects.some((p) => p.areas.includes(a.id)), a.id).toBe(true);
+    });
+});
+
+describe("project logos", () => {
+    it("belong to real projects and exist under public/", () => {
+        for (const [id, logo] of Object.entries(PROJECT_LOGOS)) {
+            expect(getProject(id), id).toBeDefined();
+            expect(existsSync(join(process.cwd(), "public", logo.src)), logo.src).toBe(true);
+        }
     });
 });
 
@@ -56,12 +61,11 @@ describe("about me", () => {
 });
 
 describe("featured records", () => {
-    it("stay few enough to mean something, and include everything the home page points at", () => {
+    it("stay few enough to mean something", () => {
         for (const kind of ["investigation", "decision"] as const) {
             const featured = records.filter((r) => r.kind === kind && r.featured);
             expect(featured.length, kind).toBeGreaterThanOrEqual(6);
             expect(featured.length, kind).toBeLessThanOrEqual(12);
         }
-        for (const item of startHere) for (const l of item.links) expect(getRecord(l.recordId)?.featured, l.recordId).toBe(true);
     });
 });

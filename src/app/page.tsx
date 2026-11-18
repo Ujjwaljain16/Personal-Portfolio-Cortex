@@ -1,38 +1,27 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, FileDown, Github, Linkedin, Mail } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronDown, FileDown, Github, Linkedin, Mail } from "lucide-react";
 import { BootOverlay } from "@/components/landing/BootSequence";
 import { HomeHeader } from "@/components/home/HomeHeader";
-import { Now } from "@/components/home/Now";
-import { StartHere } from "@/components/home/StartHere";
-import { ProjectCard } from "@/components/system/ProjectCard";
+import { SectionHeading } from "@/components/home/SectionHeading";
+import { highlights } from "@/data/highlights";
+import { ProjectConstellation, type ConstellationNode } from "@/components/home/ProjectConstellation";
+import { ProjectFeature } from "@/components/home/ProjectFeature";
 import { getWritingItems } from "@/lib/writing";
-import { featuredProjects, projects } from "@/data/projects";
-import { countByProject, mergedPRs, openPRs } from "@/data/openSource";
+import { STATUS_LABEL, featuredProjects, getProject, projects } from "@/data/projects";
+import { countByProject, mergedPRs, openPRs, type MergedPR } from "@/data/openSource";
 import { formatDate } from "@/lib/utils";
+import { ossLogo } from "@/data/ossLogos";
 import { jsonLd, personJsonLd } from "@/lib/seo";
 import { educationLine } from "@/data/profile";
 
-// Two failures I documented in the projects themselves. Each links to the source.
-const LESSONS = [
-    {
-        title: "A circuit breaker that could never trip",
-        body: "In AgentBrake I wrote a circuit-breaker policy with open, half-open and reset logic, and unit-tested it. Then I found that nothing in the proxy ever reports a failure to it, because the child's output is piped straight through. I fixed it months later by parsing the server's responses. The lesson: wire the signal before writing the policy.",
-        href: "/decisions#ab-circuit-breaker-and-approval-not-driveable",
-        cta: "Read the full record",
-    },
-    {
-        title: "A 10× target that reached 1.2–2.2×",
-        body: "In MiniDB I expected the vectorized executor to beat the Volcano-style one by about ten times. It reached roughly 1.2 to 2.2×, and the benchmark doc explains the overhead instead of hiding the miss. The lesson: measure first, and publish the number you got.",
-        href: "/investigations#minidb-volcano-vs-vectorized-benchmark",
-        cta: "Read the full record",
-    },
-];
-
 const EXPLORE = [
+    { href: "/projects", label: "Projects", desc: "Every project, with its evidence, source links and what isn't done." },
+    { href: "/system", label: "System", desc: "Signals from my public GitHub account." },
     { href: "/decisions", label: "Decisions", desc: "Engineering decisions with the alternative I rejected and what happened." },
     { href: "/investigations", label: "Investigations", desc: "Benchmarks and root-cause analyses, with the numbers and their sources." },
     { href: "/deployments", label: "Deployments", desc: "Where each system actually runs." },
-    { href: "/system", label: "System", desc: "Signals from my public GitHub account." },
+    { href: "/blogs", label: "Blogs", desc: "Posts on what I built and what I learned, here and on Medium." },
     { href: "/ask", label: "Ask", desc: "Ask questions about my projects." },
 ];
 
@@ -40,98 +29,141 @@ const EXPLORE = [
 // refreshes on the same schedule.
 export const revalidate = 3600;
 
+/** Merged pull requests grouped by project, in the order each project's newest merge appears. */
+function groupByProject(prs: MergedPR[]): { project: string; stars: string; prs: MergedPR[] }[] {
+    const groups = new Map<string, { project: string; stars: string; prs: MergedPR[] }>();
+    for (const pr of prs) {
+        const g = groups.get(pr.project) ?? { project: pr.project, stars: pr.stars, prs: [] };
+        g.prs.push(pr);
+        groups.set(pr.project, g);
+    }
+    return [...groups.values()];
+}
+
+/** Merged pull requests shown per project before the rest fold away; the newest come first. */
+const PRS_SHOWN = 2;
+
+function PrList({ prs }: { prs: MergedPR[] }) {
+    return (
+        <ul className="divide-y divide-(--border-default)/60">
+            {prs.map((pr) => (
+                <li key={pr.url} className="px-5 py-3">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                        <a
+                            href={pr.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[15px] font-medium text-foreground hover:text-(--accent-primary)"
+                        >
+                            #{pr.number}: {pr.title}
+                        </a>
+                        <span className="font-mono text-[12px] text-(--text-muted)">merged {formatDate(pr.merged)}</span>
+                    </div>
+                    {pr.summary && <p className="mt-1 text-[14px] leading-relaxed text-(--text-secondary)">{pr.summary}</p>}
+                </li>
+            ))}
+        </ul>
+    );
+}
+
 export default async function HomePage() {
     const posts = (await getWritingItems()).slice(0, 2);
     const prCounts = countByProject();
+    const constellation: ConstellationNode[] = [
+        ...featuredProjects.map((p) => ({ p, major: true })),
+        ...["agentbrake", "recoveryos", "vaulttabs"].map((id) => ({ p: getProject(id), major: false })),
+    ].flatMap(({ p, major }) =>
+        p
+            ? [{ id: p.id, name: p.name, tagline: p.tagline, status: STATUS_LABEL[p.status], value: p.headline?.value, label: p.headline?.label, major }]
+            : [],
+    );
 
     return (
         <>
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(personJsonLd()) }} />
             <BootOverlay />
 
-            <div className="max-w-5xl mx-auto px-5 md:px-10 pb-24">
+            <div className="max-w-6xl mx-auto px-5 md:px-10 pb-24">
                 <HomeHeader />
 
                 <main id="main" className="space-y-20 pt-12 md:pt-20">
                     {/* Hero */}
-                    <section aria-labelledby="hero-heading" className="space-y-6">
-                        <p className="text-[12px] font-mono uppercase tracking-[0.2em] text-(--accent-primary)">
-                            Full-stack &middot; Backend &middot; GenAI
-                        </p>
-                        <h1 id="hero-heading" className="text-4xl md:text-6xl font-semibold tracking-tight text-foreground">
-                            Ujjwal Jain
-                        </h1>
-                        <p className="max-w-2xl text-[17px] md:text-[19px] leading-relaxed text-(--text-secondary)">
-                            I build products end to end: backends and data pipelines, LLM features with guardrails
-                            around them, and the web or extension interfaces people use. I go deep where it matters,
-                            down to a database engine or a wire protocol. Each project below links to its code and says
-                            what it doesn&apos;t do yet.
-                        </p>
-                        <p className="text-[13px] font-mono text-(--text-muted)">
-                            {educationLine}
-                        </p>
-                        <ul className="flex flex-wrap gap-3 pt-2">
-                            <li>
-                                <a
-                                    href="#projects"
-                                    className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg bg-(--accent-primary) text-(--bg-primary) text-[14px] font-medium hover:opacity-90"
-                                >
-                                    See projects
-                                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href="/resume.pdf"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg border border-(--border-hover) bg-(--bg-surface-2) text-[14px] text-foreground hover:border-(--accent-primary)"
-                                >
-                                    <FileDown className="w-4 h-4" aria-hidden="true" />
-                                    Resume
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href="https://github.com/Ujjwaljain16"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg border border-(--border-hover) bg-(--bg-surface-2) text-[14px] text-foreground hover:border-(--accent-primary)"
-                                >
-                                    <Github className="w-4 h-4" aria-hidden="true" />
-                                    GitHub
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href="mailto:jainujjwal1609@gmail.com"
-                                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg border border-(--border-hover) bg-(--bg-surface-2) text-[14px] text-foreground hover:border-(--accent-primary)"
-                                >
-                                    <Mail className="w-4 h-4" aria-hidden="true" />
-                                    Email
-                                </a>
-                            </li>
+                    <section aria-labelledby="hero-heading" className="hero relative isolate">
+                        <div className="hero-backdrop" aria-hidden="true" />
+                        <div className="grid items-center gap-12 lg:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                            <div className="space-y-8">
+                                <p className="hero-kicker">
+                                    <span className="hero-pulse" aria-hidden="true" />
+                                    Computer Science &middot; Backend &middot; Systems &middot; Applied AI
+                                </p>
+                                <div className="space-y-5">
+                                    <h1 id="hero-heading" className="hero-name text-[2.75rem] leading-[1.02] sm:text-6xl font-semibold tracking-[-0.035em]">
+                                        Ujjwal Jain
+                                    </h1>
+                                    <p className="max-w-[34rem] text-[19px] md:text-[22px] leading-[1.45] tracking-[-0.01em] text-foreground">
+                                        I like understanding how things work beneath the surface, and building them myself.
+                                    </p>
+                                    <p className="max-w-[34rem] text-[15px] md:text-[16px] leading-relaxed text-(--text-secondary)">
+                                        From database internals and distributed systems to backend infrastructure and applied AI, I
+                                        explore ideas by turning them into working software, testing their limits, and learning from
+                                        what breaks.
+                                    </p>
+                                    <p className="max-w-[34rem] text-[15px] md:text-[16px] leading-relaxed text-(--text-secondary)">
+                                        This is a collection of things I&apos;ve built, problems I&apos;ve explored, and lessons
+                                        I&apos;ve picked up along the way.
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <a
+                                        href="#projects"
+                                        className="hero-cta inline-flex items-center gap-2 min-h-11 px-5 rounded-full text-[14px] font-medium"
+                                    >
+                                        Selected work
+                                        <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                                    </a>
+                                    <a
+                                        href="/resume.pdf"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 min-h-11 px-5 rounded-full border border-(--border-hover) text-[14px] text-foreground hover:border-(--text-muted) transition-colors"
+                                    >
+                                        <FileDown className="w-4 h-4" aria-hidden="true" />
+                                        Resume
+                                    </a>
+                                </div>
+                                <p className="text-[12.5px] font-mono text-(--text-muted)">{educationLine}</p>
+                            </div>
+
+                            <ProjectConstellation nodes={constellation} />
+                        </div>
+
+                        {/* Three numbers, each linking to the record that holds its source. */}
+                        <ul className="metrics-strip mt-16 md:mt-20 grid md:grid-cols-3">
+                            {highlights.map((h) => (
+                                <li key={h.label}>
+                                    <Link href={h.href} className="metric-cell group">
+                                        <span className="block font-mono text-[11px] uppercase tracking-[0.16em] text-(--text-muted)">{h.project}</span>
+                                        <span className="metric-value mt-3 block whitespace-nowrap text-[26px] md:text-[30px] leading-none">{h.value}</span>
+                                        <span className="mt-3 block max-w-[19rem] text-[13.5px] leading-relaxed text-(--text-secondary)">{h.label}</span>
+                                        <span className="mt-4 inline-flex items-center gap-1 font-mono text-[12px] text-(--text-muted) group-hover:text-(--accent-primary) transition-colors">
+                                            Source
+                                            <ArrowUpRight className="w-3 h-3" aria-hidden="true" />
+                                        </span>
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
                     </section>
 
-                    <StartHere />
-
-                    <Now />
-
                     {/* Featured projects */}
-                    <section id="projects" aria-labelledby="projects-heading" className="scroll-mt-6 space-y-6">
-                        <div>
-                            <h2 id="projects-heading" className="text-2xl font-semibold text-foreground">
-                                Featured projects
-                            </h2>
-                            <p className="mt-2 text-[15px] text-(--text-secondary) max-w-2xl">
-                                The {featuredProjects.length} projects with the most verifiable engineering. Each page shows the evidence, links to the
-                                source files, and says what isn&apos;t done.
-                            </p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:[&>*:last-child:nth-child(odd)]:col-span-2">
-                            {featuredProjects.map((p) => (
-                                <ProjectCard key={p.id} project={p} variant="feature" />
+                    <section id="projects" aria-labelledby="projects-heading" className="reveal scroll-mt-6 space-y-6">
+                        <SectionHeading id="projects-heading" kicker="01 / Selected work" title="Six systems, measured">
+                            Case studies, each with the problem, what I built and the number it reached. Every page links to the source and
+                            says what isn&apos;t done.
+                        </SectionHeading>
+                        <div className="grid gap-6">
+                            {featuredProjects.map((p, i) => (
+                                <ProjectFeature key={p.id} project={p} index={i} />
                             ))}
                         </div>
                         <Link
@@ -144,98 +176,77 @@ export default async function HomePage() {
                     </section>
 
                     {/* Open source */}
-                    <section id="open-source" aria-labelledby="oss-heading" className="scroll-mt-6 space-y-6">
-                        <div>
-                            <h2 id="oss-heading" className="text-2xl font-semibold text-foreground">
-                                Open source
-                            </h2>
-                            <p className="mt-2 text-[15px] text-(--text-secondary) max-w-2xl">
-                                {mergedPRs.length} merged pull requests to projects I don&apos;t own:{" "}
-                                {prCounts.map((c, i) => (
-                                    <span key={c.project}>
-                                        {i > 0 && (i === prCounts.length - 1 ? " and " : ", ")}
-                                        {c.count} in {c.project}
-                                    </span>
-                                ))}
-                                . Mostly bug fixes with tests, and each was reviewed and merged by a maintainer.
-                            </p>
-                        </div>
-                        <ul className="surface-1 divide-y divide-(--border-default)/60">
-                            {mergedPRs.map((pr) => (
-                                <li key={pr.url} className="p-4">
-                                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                        <span className="font-mono text-[12px] text-(--text-muted)">
-                                            {pr.project} · {pr.stars}★
-                                        </span>
-                                        <a
-                                            href={pr.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-[15px] font-medium text-foreground hover:text-(--accent-primary)"
-                                        >
-                                            #{pr.number}: {pr.title} ↗
-                                        </a>
-                                        <span className="font-mono text-[12px] text-(--text-muted)">
-                                            merged {formatDate(pr.merged)}
-                                        </span>
-                                    </div>
-                                    {pr.summary && <p className="mt-1 text-[14px] leading-relaxed text-(--text-secondary)">{pr.summary}</p>}
-                                </li>
+                    <section id="open-source" aria-labelledby="oss-heading" className="reveal scroll-mt-6 space-y-6">
+                        <SectionHeading id="oss-heading" kicker="02 / Open source" title="Merged upstream">
+                            {mergedPRs.length} merged pull requests to projects I don&apos;t own:{" "}
+                            {prCounts.map((c, i) => (
+                                <span key={c.project}>
+                                    {i > 0 && (i === prCounts.length - 1 ? " and " : ", ")}
+                                    {c.count} in {c.project}
+                                </span>
                             ))}
-                        </ul>
-                        {openPRs.length > 0 && (
-                        <div className="space-y-2 text-[14px] text-(--text-secondary)">
-                            <p className="font-mono text-(--text-muted)">Open now</p>
-                            <ul className="space-y-2">
-                                {openPRs.map((pr) => (
-                                    <li key={pr.url}>
-                                        <a
-                                            href={pr.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-(--accent-primary) hover:underline"
-                                        >
-                                            {pr.project} #{pr.number}, {pr.title} ↗
-                                        </a>
-                                        . {pr.note}
-                                    </li>
-                                ))}
-                            </ul>
+                            . Mostly bug fixes with tests, and each was reviewed and merged by a maintainer.
+                        </SectionHeading>
+                        <div className="grid gap-4">
+                            {groupByProject(mergedPRs).map((g) => {
+                                const logo = ossLogo(g.prs[0].url);
+                                return (
+                                    <article key={g.project} className="surface-1 overflow-hidden">
+                                        <header className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-(--border-default) bg-(--bg-surface-2)">
+                                            <h3 className="flex items-center gap-3 text-[16px] font-semibold text-foreground">
+                                                {logo && <Image src={logo} alt="" width={28} height={28} className="oss-logo" />}
+                                                {g.project}
+                                            </h3>
+                                            <p className="font-mono text-[12px] text-(--text-muted)">
+                                                <span className="metric-value text-[14px]">{g.prs.length}</span> merged · {g.stars}★
+                                            </p>
+                                        </header>
+                                        <PrList prs={g.prs.slice(0, PRS_SHOWN)} />
+                                        {g.prs.length > PRS_SHOWN && (
+                                            <details className="oss-more">
+                                                <summary>
+                                                    <span className="oss-more-closed">Show {g.prs.length - PRS_SHOWN} more</span>
+                                                    <span className="oss-more-open">Show fewer</span>
+                                                    <ChevronDown className="oss-more-icon w-3.5 h-3.5" aria-hidden="true" />
+                                                </summary>
+                                                <PrList prs={g.prs.slice(PRS_SHOWN)} />
+                                            </details>
+                                        )}
+                                    </article>
+                                );
+                            })}
                         </div>
+                        {openPRs.length > 0 && (
+                            <div className="space-y-2 text-[14px] text-(--text-secondary)">
+                                <p className="font-mono text-(--text-muted)">Open now</p>
+                                <ul className="space-y-2">
+                                    {openPRs.map((pr) => {
+                                        const logo = ossLogo(pr.url);
+                                        return (
+                                            <li key={pr.url} className="flex items-start gap-2.5">
+                                                {logo && <Image src={logo} alt="" width={18} height={18} className="oss-logo mt-0.5" />}
+                                                <span>
+                                                    <a
+                                                        href={pr.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-(--accent-primary) hover:underline"
+                                                    >
+                                                        {pr.project} #{pr.number}, {pr.title}
+                                                    </a>
+                                                    . {pr.note}
+                                                </span>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
                         )}
                     </section>
 
-                    {/* Lessons */}
-                    <section aria-labelledby="lessons-heading" className="space-y-6">
-                        <div>
-                            <h2 id="lessons-heading" className="text-2xl font-semibold text-foreground">
-                                What didn&apos;t go to plan
-                            </h2>
-                            <p className="mt-2 text-[15px] text-(--text-secondary) max-w-2xl">
-                                I keep the misses in the record rather than tidying them away. Two examples; the decisions and investigations pages have the rest.
-                            </p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {LESSONS.map((l) => (
-                                <article key={l.title} className="surface-1 p-5 flex flex-col gap-3">
-                                    <h3 className="text-[16px] font-semibold text-foreground">{l.title}</h3>
-                                    <p className="text-[14px] leading-relaxed text-(--text-secondary)">{l.body}</p>
-                                    <Link
-                                        href={l.href}
-                                        className="mt-auto inline-flex min-h-11 items-center font-mono text-[13px] text-(--accent-primary) hover:underline"
-                                    >
-                                        {l.cta}
-                                    </Link>
-                                </article>
-                            ))}
-                        </div>
-                    </section>
-
                     {/* Writing */}
-                    <section id="writing" aria-labelledby="writing-heading" className="scroll-mt-6 space-y-6">
-                        <h2 id="writing-heading" className="text-2xl font-semibold text-foreground">
-                            Writing
-                        </h2>
+                    <section id="writing" aria-labelledby="writing-heading" className="reveal scroll-mt-6 space-y-6">
+                        <SectionHeading id="writing-heading" kicker="03 / Writing" title="Writing" />
                         <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {posts.map((post) => (
                                 <li key={post.href}>
@@ -282,12 +293,13 @@ export default async function HomePage() {
                     </section>
 
                     {/* Explore */}
-                    <section aria-labelledby="explore-heading" className="space-y-6">
-                        <div>
-                            <h2 id="explore-heading" className="text-2xl font-semibold text-foreground">
+                    <section aria-labelledby="explore-heading" className="reveal space-y-6">
+                        <div className="space-y-2">
+                            <p className="section-kicker">04 / Explore</p>
+                            <h2 id="explore-heading" className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
                                 Explore CORTEX
                             </h2>
-                            <p className="mt-2 text-[15px] text-(--text-secondary) max-w-2xl">
+                            <p className="text-[15px] leading-relaxed text-(--text-secondary) max-w-2xl">
                                 The rest of the site is a small control-plane for my engineering notes. Press{" "}
                                 <kbd className="font-mono text-[12px] px-1.5 py-0.5 rounded bg-(--bg-surface-2) border border-(--border-default)">
                                     Ctrl/⌘ K
@@ -296,13 +308,14 @@ export default async function HomePage() {
                             </p>
                         </div>
                         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {EXPLORE.map((e) => (
-                                <li key={e.href}>
+                            {EXPLORE.map((e, i) => (
+                                // Seven cards: the last one fills its row instead of sitting alone in a corner.
+                                <li key={e.href} className={i === EXPLORE.length - 1 ? "sm:col-span-2 lg:col-span-3" : undefined}>
                                     <Link
                                         href={e.href}
                                         className="block h-full surface-1 p-4 hover:border-(--border-hover) transition-colors"
                                     >
-                                        <span className="font-mono text-[14px] text-(--accent-primary)">/{e.label.toLowerCase()}</span>
+                                        <span className="font-mono text-[14px] text-(--accent-primary)">{e.href}</span>
                                         <span className="mt-1 block text-[14px] text-(--text-secondary)">{e.desc}</span>
                                     </Link>
                                 </li>
