@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { renderCard, OG_SIZE } from "@/lib/ogCard";
-import { STATUS_LABEL, getProject, projects } from "@/data/projects";
+import { AREA_LABEL, STATUS_LABEL, getProject, projects, splitPeriod } from "@/data/projects";
 
 export const alt = "Project by Ujjwal Jain";
 export const size = OG_SIZE;
@@ -18,6 +18,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
         eyebrow: "PROJECT",
         title: project.name,
         subtitle: project.tagline,
-        chips: [STATUS_LABEL[project.status], project.period.split(" · ")[0]],
+        metric: project.headline,
+        chips: [STATUS_LABEL[project.status], splitPeriod(project.period).dates, ...project.areas.map((a) => AREA_LABEL[a])],
     });
 }

@@ -6,28 +6,31 @@
 
 :root {
   /* Core Backgrounds */
-  --bg-primary: #0B0F14;
-  --bg-surface-1: #11161D;
-  --bg-surface-2: #151B23;
-  --bg-surface-3: #1A222C;
+  --bg-primary: #090D12;
+  --bg-surface-1: #111923;
+  --bg-surface-2: #16202B;
+  --bg-surface-3: #1C2733;
 
   /* Accents */
-  --accent-primary: #4F8CFF;
+  --accent-primary: #63A5FF;
   --accent-secondary: #8BE9FD;
   --accent: var(--accent-primary);
+  /* Second accent: measured numbers and "verified" signals. */
+  --accent-teal: #2DD4BF;
+  --glow-teal-rgb: 45, 212, 191;
   --danger: #FF6B6B;
   --success: #50FA7B;
   --warning: #FFB86C;
 
   /* Borders */
-  --border-default: #1E2630;
-  --border-hover: #2A3440;
+  --border-default: #222D39;
+  --border-hover: #2E3B49;
   --border-active: #3A4450;
   --border-strong: #3A4450;
 
   /* Text */
-  --text-primary: #E5E7EB;
-  --text-secondary: #9CA3AF;
+  --text-primary: #E8EDF4;
+  --text-secondary: #A3ADBB;
   /* >= 5.3:1 on every dark surface (was #6B7280 at 3.3:1). */
   --text-muted: #8B95A5;
   /* Disabled/decorative only; not for readable text. */
@@ -51,7 +54,7 @@
   --transition-smooth: 300ms cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Glow colors */
-  --glow-primary-rgb: 79, 140, 255;
+  --glow-primary-rgb: 99, 165, 255;
   --glow-success-rgb: 80, 250, 123;
   --glow-accent-rgb: 139, 233, 253;
 
@@ -69,6 +72,8 @@ html.light {
   /* Darkened so accent text reaches >= 4.6:1 on every light surface. */
   --accent-primary: #3462BF;
   --accent-secondary: #1E6F77;
+  --accent-teal: #0F766E;
+  --glow-teal-rgb: 15, 118, 110;
   --danger: #B43838;
   --success: #187637;
   --warning: #8C5A07;
@@ -93,6 +98,14 @@ html.light {
   --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-jetbrains-mono);
+}
+
+/* next/font puts its font variables on <body>, so the tokens built from them are declared there too. At :root they
+   would refer to variables that do not exist yet, resolve to nothing, and every var(--font-mono) would fall back to
+   the sans default. */
+body {
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
 /* ============================================
@@ -149,12 +162,6 @@ body::before {
 .text-body {
   font-size: 14px;
   font-weight: 400;
-}
-
-.text-metric {
-  font-family: var(--font-mono);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
 }
 
 .text-mono {
@@ -220,7 +227,7 @@ body::before {
 }
 
 .sidebar {
-  background: var(--bg-surface-1);
+  background: var(--bg-primary);
   border-right: 1px solid var(--border-default);
   height: 100%;
   overflow-y: auto;
@@ -293,30 +300,45 @@ body::before {
 }
 
 /* ============================================
-   NAVIGATION STYLES
+   NAVIGATION STYLES (sidebar and mobile menu)
    ============================================ */
 
+/* Sidebar and mobile menu links: mono paths, muted until hovered; the current page gets a quiet surface and a thin
+   accent rule (see the active ::before below), not a coloured fill. */
 .nav-item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  margin: 0 var(--space-1);
-  border-radius: 8px;
-  color: var(--text-secondary);
+  gap: 0.75rem;
+  min-height: 2.5rem;
+  padding: 0 0.85rem;
+  margin: 0 0.75rem;
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
   font-size: 13px;
-  font-weight: 500;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast);
   text-decoration: none;
 }
 
+.nav-item svg {
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
 .nav-item:hover {
-  background: var(--bg-surface-2);
   color: var(--text-primary);
 }
 
+.nav-item:hover svg {
+  color: var(--text-secondary);
+}
+
 .nav-item.active {
-  background: var(--bg-surface-2);
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
+}
+
+.nav-item.active svg {
   color: var(--accent-primary);
 }
 
@@ -434,26 +456,6 @@ textarea:focus-visible {
 }
 
 /* ============================================
-   MICRO-INTERACTIONS — Project Card Glow
-   ============================================ */
-
-.project-card {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border-default);
-  transition:
-    border-color var(--transition-smooth),
-    box-shadow var(--transition-smooth),
-    transform var(--transition-fast);
-}
-
-.project-card:hover,
-.project-card:focus-within {
-  border-color: rgba(var(--glow-primary-rgb), 0.3);
-  box-shadow: 0 0 20px rgba(var(--glow-primary-rgb), 0.06);
-}
-
-/* ============================================
    MICRO-INTERACTIONS — Tech Tag Hover Elevation
    ============================================ */
 
@@ -519,7 +521,6 @@ textarea:focus-visible {
   width: 2px;
   border-radius: 1px;
   background: var(--accent-primary);
-  box-shadow: 0 0 8px rgba(var(--glow-primary-rgb), 0.4);
 }
 
 /* ============================================
@@ -546,10 +547,6 @@ textarea:focus-visible {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-
-  .project-card:hover {
-    box-shadow: none;
   }
 
   .tech-tag:hover {
@@ -648,4 +645,764 @@ html[data-boot="skip"] .boot-overlay {
 
 main:focus {
   outline: none;
+}
+
+
+/* ============================================
+   VISUAL LAYER (home page): hero backdrop, proof metrics, section labels, timeline, reveal
+   ============================================ */
+
+/* Full-bleed: spans the viewport whatever the container width, and fades out on every side so it has no edges. */
+.hero-backdrop {
+  position: absolute;
+  top: -12rem;
+  bottom: -6rem;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(32% 42% at 72% 46%, rgba(var(--glow-primary-rgb), 0.10), transparent 72%),
+    radial-gradient(28% 36% at 18% 30%, rgba(var(--glow-primary-rgb), 0.05), transparent 70%);
+}
+
+.hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.hero-pulse {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent-teal);
+}
+
+.hero-cta {
+  color: #06101c;
+  background: var(--text-primary);
+  transition: background var(--transition-smooth), transform var(--transition-fast);
+}
+.hero-cta:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+html.light .hero-cta {
+  color: #fff;
+  background: var(--text-primary);
+}
+html.light .hero-cta:hover {
+  background: #000;
+}
+
+/* --- CORTEX graph (hero) --- */
+.cx-orbit {
+  fill: none;
+  stroke: var(--border-default);
+  stroke-width: 1;
+  stroke-dasharray: 1 7;
+  stroke-linecap: round;
+}
+.cx-ring {
+  stroke: var(--border-hover);
+  stroke-width: 1;
+}
+.cx-ring-faint {
+  stroke-dasharray: 3 5;
+  opacity: 0.6;
+}
+.cx-spoke {
+  stroke: var(--border-default);
+  stroke-width: 1;
+  transition: stroke 300ms ease;
+}
+.cx-spoke.is-on {
+  stroke: rgba(var(--glow-primary-rgb), 0.55);
+}
+.cx-edge {
+  stroke: rgba(var(--glow-primary-rgb), 0.5);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-dasharray: 12 188;
+}
+.cx-core-ring {
+  fill: var(--bg-primary);
+  stroke: rgba(var(--glow-primary-rgb), 0.5);
+  stroke-width: 1;
+}
+.cx-core-dot {
+  fill: var(--accent-primary);
+}
+.cx-core-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  fill: var(--text-muted);
+}
+.cx-node {
+  cursor: pointer;
+  outline: none;
+}
+.cx-node-hit {
+  fill: transparent;
+}
+.cx-node-halo {
+  fill: var(--bg-primary);
+  stroke: var(--border-hover);
+  stroke-width: 1;
+  transition: stroke 250ms ease, filter 250ms ease;
+}
+.cx-node-dot {
+  fill: var(--text-muted);
+  transition: fill 250ms ease;
+}
+.cx-label {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  fill: var(--text-secondary);
+  transition: fill 250ms ease, opacity 250ms ease;
+}
+.cx-node-minor .cx-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0;
+}
+.cx-node.is-on .cx-node-halo,
+.cx-node:focus-visible .cx-node-halo {
+  stroke: var(--accent-primary);
+  filter: drop-shadow(0 0 10px rgba(var(--glow-primary-rgb), 0.55));
+}
+.cx-node.is-on .cx-node-dot {
+  fill: var(--accent-primary);
+}
+.cx-node.is-on .cx-label,
+.cx-node:focus-visible .cx-label {
+  fill: var(--text-primary);
+  opacity: 1;
+}
+.cx-node:focus-visible .cx-node-halo {
+  stroke-width: 2;
+}
+
+.cx-panel {
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  padding: 0.95rem 1.1rem;
+  background: color-mix(in srgb, var(--bg-surface-1) 80%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cx-edge {
+    animation: cx-flow 5s linear infinite;
+  }
+  .cx-core-glow {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: cx-breathe 6s ease-in-out infinite;
+  }
+  .hero-pulse::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--accent-teal);
+    animation: hero-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+}
+@keyframes cx-flow {
+  to {
+    stroke-dashoffset: -200;
+  }
+}
+@keyframes cx-breathe {
+  0%, 100% { transform: scale(0.94); opacity: 0.7; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+@keyframes hero-ping {
+  75%, 100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* --- Metrics under the hero: no boxes, hairline dividers, room to breathe --- */
+.metrics-strip {
+  border-top: 1px solid var(--border-default);
+}
+@media (min-width: 768px) {
+  .metrics-strip > li + li {
+    border-left: 1px solid var(--border-default);
+  }
+}
+@media (max-width: 767px) {
+  .metrics-strip > li + li {
+    border-top: 1px solid var(--border-default);
+  }
+}
+.metric-cell {
+  display: block;
+  height: 100%;
+  padding: 1.75rem 0.25rem;
+}
+@media (min-width: 768px) {
+  .metric-cell {
+    padding: 2.25rem 2rem;
+  }
+  .metrics-strip > li:first-child .metric-cell {
+    padding-left: 0;
+  }
+}
+
+.hero-name {
+  color: var(--text-primary);
+}
+
+/* Large measured numbers stay in the sans face (with tabular figures): mono at this size reads heavy. */
+.metric-value {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.section-kicker {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.section-kicker::after {
+  content: "";
+  display: inline-block;
+  vertical-align: middle;
+  width: 2.5rem;
+  height: 1px;
+  margin-left: 0.75rem;
+  background: linear-gradient(to right, var(--border-hover), transparent);
+}
+
+/* Sections fade in as they scroll into view where the browser supports scroll-driven animation; elsewhere, and for
+   anyone who prefers reduced motion, they are simply there. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 30%;
+    }
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- Editorial project cards (home) --- */
+.feature-card {
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  background: var(--bg-surface-1);
+  transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+}
+.feature-card:hover,
+.feature-card:focus-within {
+  border-color: var(--border-hover);
+  box-shadow: 0 24px 60px -32px rgba(var(--glow-primary-rgb), 0.35);
+}
+.feature-visual {
+  background:
+    radial-gradient(70% 80% at 50% 40%, rgba(var(--glow-primary-rgb), 0.07), transparent 70%),
+    var(--bg-primary);
+  border-bottom: 1px solid var(--border-default);
+}
+@media (min-width: 1024px) {
+  .feature-visual {
+    border-bottom: 0;
+    border-right: 1px solid var(--border-default);
+  }
+  .feature-visual.lg\:order-2 {
+    border-right: 0;
+    border-left: 1px solid var(--border-default);
+  }
+}
+.feature-dt {
+  margin-bottom: 0.2rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.pipeline::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 16px;
+  bottom: 16px;
+  width: 1px;
+  background: linear-gradient(var(--border-hover), rgba(var(--glow-primary-rgb), 0.5), var(--border-hover));
+}
+.pipeline-node {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border-radius: 999px;
+  border: 1px solid var(--border-hover);
+  background: var(--bg-surface-1);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  transition: border-color var(--transition-smooth), color var(--transition-smooth);
+}
+.feature-card:hover .pipeline-node {
+  border-color: rgba(var(--glow-primary-rgb), 0.55);
+  color: var(--text-primary);
+}
+
+/* Open-source project logos: the organisation's own avatar, kept small and framed so light and dark logos both sit well. */
+.oss-logo {
+  flex: none;
+  border-radius: 7px;
+  box-shadow: 0 0 0 1px var(--border-default);
+  background: var(--bg-surface-1);
+}
+
+/* "Show N more" under each open-source project: a native <details>, so it works without JavaScript and by keyboard. */
+.oss-more {
+  border-top: 1px solid color-mix(in srgb, var(--border-default) 60%, transparent);
+}
+.oss-more > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: color var(--transition-base), background var(--transition-base);
+}
+.oss-more > summary::-webkit-details-marker {
+  display: none;
+}
+.oss-more > summary:hover,
+.oss-more > summary:focus-visible {
+  color: var(--accent-primary);
+  background: var(--bg-surface-2);
+}
+.oss-more-open,
+.oss-more[open] .oss-more-closed {
+  display: none;
+}
+.oss-more[open] .oss-more-open {
+  display: inline;
+}
+.oss-more-icon {
+  transition: transform var(--transition-base);
+}
+.oss-more[open] .oss-more-icon {
+  transform: rotate(180deg);
+}
+.oss-more[open] > summary {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-default) 60%, transparent);
+}
+
+/* ============================================
+   PROJECT PAGES: the projects list and each project's page
+   Same language as the home page: hairlines, neutral numbers, mono labels, one accent.
+   ============================================ */
+
+/* Hero facts: result, period, last commit. Hairline dividers, no boxes. On phones the result spans the row and the
+   period and last commit sit side by side under it; from 640px all three share one row. */
+.project-facts {
+  border-top: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
+}
+.project-facts > div {
+  padding: 1.25rem 0;
+}
+.project-facts dt {
+  margin-bottom: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.project-facts > .fact-result {
+  grid-column: 1 / -1;
+  border-bottom: 1px solid var(--border-default);
+}
+.project-facts > .fact-period {
+  padding-right: 1rem;
+}
+.project-facts > .fact-commit {
+  padding-left: 1rem;
+  border-left: 1px solid var(--border-default);
+}
+@media (min-width: 640px) {
+  .project-facts > div,
+  .project-facts > .fact-period,
+  .project-facts > .fact-commit {
+    padding: 1.6rem 1.75rem;
+  }
+  .project-facts > div:first-child {
+    padding-left: 0;
+  }
+  .project-facts > div + div {
+    border-left: 1px solid var(--border-default);
+  }
+  .project-facts > .fact-result {
+    grid-column: auto;
+    border-bottom: 0;
+  }
+}
+
+/* Reading lists: a short rule as the marker, generous line height, a comfortable measure set by the column. */
+.prose-list {
+  display: grid;
+  gap: 1.1rem;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.prose-list > li {
+  position: relative;
+  padding-left: 1.5rem;
+}
+.prose-list > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.82em;
+  width: 0.7rem;
+  height: 1px;
+  background: var(--text-muted);
+}
+.prose-list-tight {
+  gap: 0.8rem;
+  font-size: 15px;
+}
+
+/* Rows on /projects: the second tier, scannable as a list rather than a grid of equal boxes. */
+.project-rows > li {
+  padding: 1.35rem 0.25rem;
+  border-bottom: 1px solid var(--border-default);
+  transition: background var(--transition-base);
+}
+.project-rows > li:hover,
+.project-rows > li:focus-within {
+  background: linear-gradient(to right, transparent, var(--bg-surface-1) 12%, var(--bg-surface-1) 88%, transparent);
+}
+
+/* Evidence: numbered claims, each with its source file as a chip underneath. */
+.evidence-list {
+  display: grid;
+}
+.evidence-list > li {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 1.25rem 0;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.evidence-list > li + li {
+  border-top: 1px solid var(--border-default);
+}
+.evidence-list > li:first-child {
+  padding-top: 0;
+}
+.evidence-index {
+  padding-top: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-surface-1);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  transition: border-color var(--transition-base), color var(--transition-base);
+}
+.source-chip:hover,
+.source-chip:focus-visible {
+  border-color: var(--border-hover);
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   SYSTEM, DECISIONS AND INVESTIGATIONS PAGES
+   ============================================ */
+
+/* Facts strip under a page header: two by two on phones and tablets, one row of four from 1024px. Hairlines only. */
+.facts-strip {
+  border-top: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
+}
+.facts-strip > div {
+  min-width: 0;
+  padding: 1.4rem 1.25rem;
+}
+.facts-strip > div:nth-child(odd) {
+  padding-left: 0;
+}
+.facts-strip > div:nth-child(even) {
+  border-left: 1px solid var(--border-default);
+}
+.facts-strip > div:nth-child(n + 3) {
+  border-top: 1px solid var(--border-default);
+}
+.facts-strip dt {
+  margin-bottom: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+@media (min-width: 1024px) {
+  .facts-strip > div,
+  .facts-strip > div:nth-child(odd) {
+    padding: 1.6rem 1.5rem;
+    border-top: 0;
+    border-left: 1px solid var(--border-default);
+  }
+  .facts-strip > div:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+/* Now: the status as a mono label beside each item. */
+.now-list > li {
+  display: grid;
+  gap: 0.4rem 1.5rem;
+  padding: 1.2rem 0;
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+.now-list > li + li {
+  border-top: 1px solid var(--border-default);
+}
+.now-list > li:first-child {
+  padding-top: 0;
+}
+@media (min-width: 640px) {
+  .now-list > li {
+    grid-template-columns: 9rem minmax(0, 1fr);
+  }
+}
+.now-status {
+  padding-top: 0.2rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.now-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent-primary);
+}
+.now-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Recent activity: date, repository, event. Stacks to two lines on phones. */
+.activity-list > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.25rem 1rem;
+  align-items: baseline;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--border-default);
+}
+.activity-list > li > a {
+  grid-column: 1 / -1;
+}
+@media (min-width: 768px) {
+  .activity-list > li {
+    grid-template-columns: 7rem 12rem minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  .activity-list > li > a {
+    grid-column: auto;
+  }
+}
+
+/* --- Records (decisions and investigations) --- */
+.record-list > li {
+  border-bottom: 1px solid var(--border-default);
+}
+/* A list followed by another section's own top rule ends without a line of its own (Deployments groups). */
+.record-list.is-grouped > li:last-child {
+  border-bottom: 0;
+}
+.record-details > summary {
+  list-style: none;
+}
+.record-details > summary::-webkit-details-marker {
+  display: none;
+}
+/* Closed: a row. The summary is the whole clickable row; the outcome and chevron sit on the right. */
+.record-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 1.35rem 0.25rem;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: background var(--transition-base);
+}
+@media (min-width: 640px) {
+  .record-summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2rem;
+  }
+}
+.record-summary:hover {
+  background: linear-gradient(to right, transparent, var(--bg-surface-1) 10%, var(--bg-surface-1) 90%, transparent);
+}
+.record-summary:hover h2 {
+  color: var(--accent-primary);
+}
+.record-summary h2 {
+  transition: color var(--transition-base);
+}
+/* Open: the record laid out as labelled fields in a reading column. */
+.record-body {
+  display: grid;
+  gap: 1.6rem;
+  padding: 0.5rem 0.25rem 2rem;
+}
+.record-field {
+  display: grid;
+  gap: 0.45rem;
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.record-field > h3,
+.record-field > h4 {
+  padding-top: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+@media (min-width: 768px) {
+  .record-field {
+    grid-template-columns: 9.5rem minmax(0, 44rem);
+    gap: 2rem;
+  }
+}
+.record-numbers > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.5rem;
+  align-items: baseline;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 14px;
+}
+.record-numbers > div:first-child {
+  padding-top: 0;
+}
+.record-numbers dd {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  text-align: right;
+}
+.record-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border-default);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+@media (min-width: 768px) {
+  .record-footer {
+    margin-left: 11.5rem;
+  }
+}
+
+/* A project's own logo beside its name on its page. App icons fill the tile, and the rounded corners crop any stray
+   edge pixels; transparent marks sit inset on a quiet surface so they read on both themes. */
+.project-logo {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px var(--border-default);
+}
+.project-logo.is-mark {
+  padding: 8px;
+  object-fit: contain;
+  background: var(--bg-surface-1);
+}
+@media (min-width: 768px) {
+  .project-logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+  }
+  .project-logo.is-mark {
+    padding: 10px;
+  }
+}
+
+/* A scroll area that scrolls (wheel, touch, keyboard) without showing a scrollbar: the /ask conversation. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

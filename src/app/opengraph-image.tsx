@@ -1,8 +1,9 @@
 import { ImageResponse } from "next/og";
 import { SITE_HOST } from "@/lib/site";
+import { OG, OgTopRow } from "@/lib/ogCard";
 
 // Generated at build time (no edge runtime), so the page can stay static.
-export const alt = "Ujjwal Jain: full-stack engineer, backend and GenAI";
+export const alt = "Ujjwal Jain: computer science, backend, systems and applied AI";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -15,53 +16,28 @@ export default async function Image() {
                     width: "100%",
                     display: "flex",
                     flexDirection: "column",
-                    justifyContent: "center",
-                    padding: "80px",
-                    backgroundColor: "#0B0F14",
-                    fontFamily: "monospace",
+                    padding: "64px 76px 56px",
+                    backgroundColor: OG.bg,
+                    backgroundImage: `radial-gradient(circle at 82% 30%, rgba(99, 165, 255, 0.16), rgba(9, 13, 18, 0) 50%)`,
                 }}
             >
-                <div
-                    style={{
-                        width: "60px",
-                        height: "4px",
-                        backgroundColor: "#4F8CFF",
-                        marginBottom: "40px",
-                        borderRadius: "2px",
-                    }}
-                />
+                <OgTopRow eyebrow="PORTFOLIO" />
 
-                <div
-                    style={{
-                        fontSize: "84px",
-                        fontWeight: 700,
-                        color: "#E5E7EB",
-                        letterSpacing: "-0.02em",
-                        lineHeight: 1.05,
-                        marginBottom: "20px",
-                    }}
-                >
+                <div style={{ display: "flex", flex: 1 }} />
+
+                <div style={{ display: "flex", fontSize: "22px", color: OG.muted, letterSpacing: "0.16em", marginBottom: "22px" }}>
+                    COMPUTER SCIENCE · BACKEND · SYSTEMS · APPLIED AI
+                </div>
+                <div style={{ display: "flex", fontSize: "96px", fontWeight: 700, color: OG.text, letterSpacing: "-0.04em", lineHeight: 1 }}>
                     Ujjwal Jain
                 </div>
-
-                <div style={{ fontSize: "34px", color: "#4F8CFF", marginBottom: "28px" }}>
-                    Full-stack &middot; Backend &middot; GenAI
+                <div style={{ display: "flex", fontSize: "34px", color: OG.secondary, lineHeight: 1.4, marginTop: "26px", maxWidth: "900px" }}>
+                    I like understanding how things work beneath the surface, and building them myself.
                 </div>
 
-                <div style={{ fontSize: "26px", color: "#9CA3AF", lineHeight: 1.45, maxWidth: "860px" }}>
-                    Products built end to end: APIs, data pipelines and LLM features with guardrails, plus the interfaces around them.
-                </div>
+                <div style={{ display: "flex", flex: 1 }} />
 
-                <div
-                    style={{
-                        position: "absolute",
-                        bottom: "56px",
-                        left: "80px",
-                        fontSize: "20px",
-                        color: "#9CA3AF",
-                        letterSpacing: "0.08em",
-                    }}
-                >
+                <div style={{ display: "flex", borderTop: `1px solid ${OG.border}`, paddingTop: "24px", fontSize: "20px", color: OG.muted, letterSpacing: "0.04em" }}>
                     {SITE_HOST}
                 </div>
             </div>

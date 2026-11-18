@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { BrainCircuit, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { CortexMark } from "@/components/brand/CortexMark";
 import { cn } from "@/lib/utils";
 import { CONTACT_LINKS, NAV_ITEMS, isActivePath } from "@/components/layout/nav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -65,7 +66,7 @@ export function MobileNav() {
             <header className="mobile-topbar">
                 <Link href="/" className="flex items-center gap-2 min-h-11">
                     <div className="w-7 h-7 rounded-md bg-(--accent-primary) flex items-center justify-center" aria-hidden="true">
-                        <BrainCircuit className="w-4 h-4 text-white" />
+                        <CortexMark className="w-[18px] h-[18px] text-(--background)" />
                     </div>
                     <span className="text-sm font-semibold tracking-wider text-foreground">CORTEX</span>
                 </Link>
@@ -104,14 +105,14 @@ export function MobileNav() {
                             role="dialog"
                             aria-modal="true"
                             aria-label="Navigation"
-                            className="fixed top-0 left-0 bottom-0 w-72 max-w-[85vw] bg-(--bg-surface-1) border-r border-(--border-default) z-101 flex flex-col"
+                            className="fixed top-0 left-0 bottom-0 w-72 max-w-[85vw] bg-(--bg-primary) border-r border-(--border-default) z-101 flex flex-col"
                             initial={{ x: -288 }}
                             animate={{ x: 0 }}
                             exit={{ x: -288 }}
                             transition={{ type: "spring", stiffness: 400, damping: 35 }}
                         >
                             <div className="p-4 border-b border-(--border-default) flex items-center justify-between">
-                                <div className="text-sm font-semibold tracking-wider text-foreground">CORTEX</div>
+                                <div className="text-[13px] font-semibold tracking-[0.18em] text-foreground">CORTEX</div>
                                 <button
                                     type="button"
                                     onClick={close}
@@ -123,7 +124,7 @@ export function MobileNav() {
                             </div>
 
                             <nav aria-label="Primary" className="flex-1 py-4 overflow-y-auto">
-                                <ul className="space-y-1 px-2">
+                                <ul className="space-y-0.5">
                                     {NAV_ITEMS.map((item) => {
                                         const active = isActivePath(pathname, item.href);
                                         const Icon = item.icon;
@@ -133,12 +134,8 @@ export function MobileNav() {
                                                     href={item.href}
                                                     onClick={close}
                                                     aria-current={active ? "page" : undefined}
-                                                    className={cn(
-                                                        "flex items-center gap-3 px-3 min-h-11 rounded-lg text-[15px] transition-colors",
-                                                        active
-                                                            ? "bg-(--bg-surface-2) text-(--accent-primary)"
-                                                            : "text-(--text-secondary) hover:bg-(--bg-surface-2) hover:text-foreground"
-                                                    )}
+                                                    // Same look as the sidebar (.nav-item in globals.css), with a taller touch target.
+                                                    className={cn("nav-item min-h-11 text-[14px]", active && "active")}
                                                 >
                                                     <Icon className="w-4 h-4" aria-hidden="true" />
                                                     <span>/{item.label}</span>
@@ -155,7 +152,7 @@ export function MobileNav() {
                                         <a
                                             href={l.href}
                                             {...(l.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                                            className="flex items-center px-3 min-h-11 rounded-lg text-[14px] font-mono text-(--text-secondary) hover:bg-(--bg-surface-2) hover:text-(--accent-primary)"
+                                            className="flex items-center px-3 min-h-11 rounded-lg text-[13px] font-mono text-(--text-muted) hover:text-foreground transition-colors"
                                         >
                                             {l.label}
                                         </a>

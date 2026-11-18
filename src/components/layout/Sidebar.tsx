@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BrainCircuit } from "lucide-react";
+import { CortexMark } from "@/components/brand/CortexMark";
 import { cn } from "@/lib/utils";
 import { CONTACT_LINKS, NAV_ITEMS, isActivePath } from "@/components/layout/nav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -13,25 +13,28 @@ export function Sidebar() {
 
     return (
         <aside className="sidebar" aria-label="Sidebar">
-            <div className="p-4 border-b border-(--border-default)">
-                <Link href="/" className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-(--accent-primary) flex items-center justify-center" aria-hidden="true">
-                        <BrainCircuit className="w-5 h-5 text-white" />
+            <div className="px-5 pt-6 pb-5">
+                <Link href="/" className="group flex items-center gap-3">
+                    <div
+                        className="w-9 h-9 rounded-xl bg-(--accent-primary) flex items-center justify-center transition-transform group-hover:scale-[1.04]"
+                        aria-hidden="true"
+                    >
+                        <CortexMark className="w-[22px] h-[22px] text-(--background)" />
                     </div>
-                    <div>
-                        <div className="text-sm font-semibold tracking-wider text-foreground">CORTEX</div>
-                        <div className="text-[11px] text-(--text-muted) font-mono">Ujjwal Jain</div>
+                    <div className="leading-tight">
+                        <div className="text-[13px] font-semibold tracking-[0.18em] text-foreground">CORTEX</div>
+                        <div className="mt-0.5 text-[12px] text-(--text-muted)">Ujjwal Jain</div>
                     </div>
                 </Link>
             </div>
 
-            <div className="px-3 pt-3">
+            <div className="px-4">
                 <PaletteButton className="w-full" />
             </div>
 
-            <nav aria-label="Primary" className="flex-1 py-4">
-                <div className="text-label px-4 mb-2">MODULES</div>
-                <ul className="space-y-1">
+            <nav aria-label="Primary" className="flex-1 pt-7 pb-4">
+                <div className="px-5 mb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-(--text-muted)">Modules</div>
+                <ul className="space-y-0.5">
                     {NAV_ITEMS.map((item) => {
                         const active = isActivePath(pathname, item.href);
                         const Icon = item.icon;
@@ -51,14 +54,14 @@ export function Sidebar() {
                 </ul>
             </nav>
 
-            <div className="border-t border-(--border-default) p-2">
-                <ul className="flex flex-wrap gap-x-4 gap-y-1 px-3 py-2 text-[13px] font-mono">
+            <div className="border-t border-(--border-default) px-3 py-3">
+                <ul className="grid grid-cols-2 gap-x-2 px-2 pb-1 text-[12.5px] font-mono">
                     {CONTACT_LINKS.map((l) => (
                         <li key={l.label}>
                             <a
                                 href={l.href}
                                 {...(l.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                                className="inline-flex items-center min-h-8 px-1 text-(--text-secondary) hover:text-(--accent-primary)"
+                                className="inline-flex items-center min-h-8 text-(--text-muted) hover:text-foreground transition-colors"
                             >
                                 {l.label}
                             </a>
