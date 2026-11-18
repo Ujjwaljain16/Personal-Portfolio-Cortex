@@ -1,5 +1,5 @@
 {
-    "syncedAt": "2026-11-17T14:23:37.549Z",
+    "syncedAt": "2026-11-18T13:57:33.609Z",
     "merged": [
         {
             "repo": "kubernetes-sigs/gateway-api",
@@ -160,7 +160,7 @@
             "number": 46163,
             "title": "Apply a deletion policy to user references",
             "url": "https://github.com/apache/superset/pull/46163",
-            "note": "Opened 2026-11-11, last activity 2026-11-17. Waiting for review."
+            "note": "Opened Nov 11, 2026, last activity Nov 18, 2026. Waiting for review."
         },
         {
             "repo": "metacoglabs/hypergraph",
@@ -169,12 +169,16 @@
             "number": 106,
             "title": "Make a retried request id wait for the original commit",
             "url": "https://github.com/metacoglabs/hypergraph/pull/106",
-            "note": "Opened 2026-10-15, last activity 2026-10-15. Waiting for review."
+            "note": "Opened Oct 15, 2026. Waiting for review."
         }
     ],
     "repos": {
         "Ujjwaljain16/RecoveryOS": {
             "committed": "2026-10-15",
+            "archived": false
+        },
+        "Ujjwaljain16/Warrant": {
+            "committed": "2026-11-17",
             "archived": false
         },
         "Ujjwaljain16/MiniDB": {
@@ -191,14 +195,6 @@
         },
         "Ujjwaljain16/FlashFlow": {
             "committed": "2026-09-07",
-            "archived": false
-        },
-        "Ujjwaljain16/BHTTP-1-HTTP-in-Binary": {
-            "committed": "2026-10-15",
-            "archived": false
-        },
-        "Ujjwaljain16/GitIssue": {
-            "committed": "2026-10-15",
             "archived": false
         },
         "Ujjwaljain16/TypeAheadX": {
