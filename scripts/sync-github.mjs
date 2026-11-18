@@ -20,7 +20,7 @@ const checkOnly = process.argv.includes("--check");
 /** Repositories shown on the site that are not in src/data/projects.ts (for example work in progress mentioned under "Now"). */
 const EXTRA_REPOS = ["Ujjwaljain16/LEXIS"];
 /** Repositories whose active work is on a branch other than the default one (the default branch is a released version). */
-const DEV_BRANCH = { "Ujjwaljain16/SSE-Observatory": "v2" };
+const DEV_BRANCH = {};  // for example { "owner/repo": "v2" } while v2 is developed beside a released main
 
 function token() {
     if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;

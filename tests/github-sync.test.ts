@@ -114,8 +114,14 @@ describe("normalize", () => {
         );
         expect(merged).toEqual([]);
         expect(open.map((p: { number: number }) => p.number)).toEqual([23, 20]);
-        expect(open[1].note).toBe("Opened 2026-11-01, last activity 2026-11-10. Waiting for review.");
+        expect(open[1].note).toBe("Opened Nov 1, 2026, last activity Nov 10, 2026. Waiting for review.");
         expect(open[0].note).toContain("Changes requested.");
+    });
+
+    it("says the date once when a pull request was opened and last active on the same day", () => {
+        const base = { state: "OPEN", mergedAt: null, reviewDecision: "REVIEW_REQUIRED" };
+        const { open } = normalize([node({ ...base, number: 30, updatedAt: "2026-11-01T18:00:00Z" })], NOW);
+        expect(open[0].note).toBe("Opened Nov 1, 2026. Waiting for review.");
     });
 
     it("renders byte-identical text for identical data, so an unchanged day makes no commit", () => {
@@ -163,11 +169,16 @@ describe("sourceUrl and sourceLabel", () => {
 });
 
 describe("SSE-Observatory v2 content", () => {
-    it("never describes v2 as released or live, and says the hosted demo is v1", async () => {
+    it("says v2.0.0 is released, links the release, and keeps the unfinished and unmeasured things in the limitations", async () => {
         const { getProject } = await import("@/data/projects");
         const p = getProject("sse-observatory")!;
-        const text = [p.period, ...p.limitations, ...p.evidence.map((e) => e.text)].join(" ");
-        expect(text).toMatch(/not (merged to main or )?released|not on main/i);
-        expect(p.links.some((l) => /v1/.test(l.label))).toBe(true);
+        expect(p.period).toMatch(/v2\.0\.0 released/);
+        expect(p.links.some((l) => /releases\/tag\/v2\.0\.0$/.test(l.href))).toBe(true);
+        const limits = p.limitations.join(" ");
+        // sse-doctor has been on npm since 15 Nov 2026: the page links it and no longer calls it unpublished.
+        expect(p.links.some((l) => l.href.endsWith("/package/sse-doctor"))).toBe(true);
+        expect(limits).not.toMatch(/not published to npm/i);
+        expect(limits).toMatch(/flakiness/i);
+        expect(p.evidence.map((e) => e.text).join(" ")).toMatch(/not demonstrated/i);
     });
 });

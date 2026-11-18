@@ -87,10 +87,16 @@ export function summaryFromBody(body) {
 
 const DAY = 86_400_000;
 const date = (iso) => iso.slice(0, 10);
+// For text people read ("Oct 15, 2026"), the same format as the rest of the site, in UTC so a timestamp never shifts a day.
+const DATE_FORMAT = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+const readableDate = (iso) => DATE_FORMAT.format(new Date(iso));
 
 function reviewNote(pr) {
     const decision = { APPROVED: "Approved, waiting to merge.", CHANGES_REQUESTED: "Changes requested." }[pr.reviewDecision];
-    return `Opened ${date(pr.createdAt)}, last activity ${date(pr.updatedAt)}. ${decision ?? "Waiting for review."}`;
+    const opened = readableDate(pr.createdAt);
+    const active = readableDate(pr.updatedAt);
+    const when = opened === active ? `Opened ${opened}.` : `Opened ${opened}, last activity ${active}.`;
+    return `${when} ${decision ?? "Waiting for review."}`;
 }
 
 /**

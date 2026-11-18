@@ -144,7 +144,9 @@ async function worker() {
             if (r.skipped) skipped.push({ url, why: r.skipped });
             else if (!r.ok) dead.push({ url, from, why: r.why, fix: r.fix });
         } catch (e) {
-            dead.push({ url, from, why: `unreachable: ${e instanceof Error ? e.message : "unknown error"}` });
+            // A site that drops the connection of an automated client is blocking it, the same as answering 403.
+            if (BOT_BLOCKING.has(new URL(url).host)) skipped.push({ url, why: `${new URL(url).host} drops automated connections` });
+            else dead.push({ url, from, why: `unreachable: ${e instanceof Error ? e.message : "unknown error"}` });
         }
         if (++done % 100 === 0) console.log(`  checked ${done}/${urls.size}`);
     }
