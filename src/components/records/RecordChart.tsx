@@ -6,10 +6,11 @@ import type { BarsChart, Chart, RangesChart, Tone } from "@/data/charts";
  * printed as text, so nothing depends on colour or on seeing the bars.
  */
 
+// The site's palette: teal for good, a softened red and amber, blue for neutral. Every value is also printed as text.
 const TONE_BAR: Record<Tone, string> = {
-    good: "bg-(--success)",
-    bad: "bg-(--danger)",
-    warn: "bg-(--warning)",
+    good: "bg-(--accent-teal)",
+    bad: "bg-(--danger)/80",
+    warn: "bg-(--warning)/85",
     neutral: "bg-(--accent-primary)",
 };
 
