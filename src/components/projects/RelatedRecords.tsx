@@ -1,40 +1,31 @@
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { OUTCOME } from "@/components/records/RecordCard";
+import { OutcomeLabel } from "@/components/records/RecordCard";
+import { takeaway } from "@/lib/takeaway";
 import type { EngineeringRecord } from "@/data/records";
 
-/** The first sentence of a record's outcome, trimmed to a readable length. */
-export function takeaway(r: EngineeringRecord): string {
-    const text = (r.kind === "decision" ? r.consequences : r.result) ?? "";
-    const first = text.split(/(?<=[.!?])\s+(?=[A-Z])/)[0]?.trim() ?? "";
-    if (first.length <= 220) return first;
-    const cut = first.slice(0, 217);
-    return `${cut.slice(0, cut.lastIndexOf(" "))}...`;
-}
+export { takeaway };
 
-/** The decisions and findings that shaped a project, each with its outcome and the one-line result. */
+/** The decisions and findings that shaped a project, each with its kind, outcome and the one-line result. */
 export function RelatedRecords({ records }: { records: EngineeringRecord[] }) {
     return (
-        <ul className="space-y-4">
-            {records.map((r) => {
-                const outcome = OUTCOME[r.kind === "decision" ? (r.status ?? "adopted") : (r.verdict ?? "inconclusive")];
-                return (
-                    <li key={r.id} className="space-y-1">
-                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                            <Link
-                                href={`/${r.kind === "decision" ? "decisions" : "investigations"}#${r.id}`}
-                                className="text-[15px] font-medium text-(--accent-primary) hover:underline"
-                            >
-                                {r.title}
-                            </Link>
-                            <span className={cn("shrink-0 text-[11px] font-mono font-bold tracking-wider", outcome.className)}>
-                                {outcome.label}
-                            </span>
-                        </div>
-                        <p className="text-[14px] leading-relaxed text-(--text-secondary)">{takeaway(r)}</p>
-                    </li>
-                );
-            })}
+        <ul className="divide-y divide-(--border-default)">
+            {records.map((r) => (
+                <li key={r.id} className="group relative py-5 first:pt-0">
+                    <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-(--text-muted)">
+                            {r.kind === "decision" ? "Decision" : "Investigation"}
+                        </span>
+                        <OutcomeLabel record={r} />
+                    </p>
+                    <Link
+                        href={`/${r.kind === "decision" ? "decisions" : "investigations"}#${r.id}`}
+                        className="mt-2 block text-[16px] font-medium leading-snug text-foreground group-hover:text-(--accent-primary) after:absolute after:inset-0 after:content-[''] transition-colors"
+                    >
+                        {r.title}
+                    </Link>
+                    <p className="mt-1.5 text-[14.5px] leading-relaxed text-(--text-secondary)">{takeaway(r)}</p>
+                </li>
+            ))}
         </ul>
     );
 }
