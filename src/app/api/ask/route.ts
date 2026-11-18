@@ -6,6 +6,7 @@ import { friendlyStreamError, streamWithFallback } from "@/lib/answer";
 import { selectCorpus } from "@/lib/corpus";
 import { buildWikiQuestion, pickRepos } from "@/lib/askRouting";
 import { buildSystemPrompt, type NotesStatus } from "@/lib/askPrompt";
+import { projects } from "@/data/projects";
 
 // Allow enough time for MCP retrieval + LLM streaming
 export const maxDuration = 60;
@@ -16,28 +17,24 @@ const MAX_MESSAGES = 24; // client-side history length (12 exchanges)
 const MAX_QUESTION_CHARS = 500; // one user turn
 const HISTORY_USER_TURNS = 2; // only the latest user turns reach the model
 const MAX_NOTES_CHARS = 12_000; // repository notes passed to the model
-const NOTES_BUDGET_MS = 10_000; // past this, answer from the verified portfolio alone
-const MAX_OUTPUT_TOKENS = 800;
+const NOTES_BUDGET_MS = 18_000; // one lookup takes about 12s; past this, answer from the verified portfolio alone
+// Gemini 2.5 counts its hidden "thinking" against the output limit, so thinking gets a fixed budget and the total
+// leaves the visible answer about 1,500 tokens. With an 800-token total and uncapped thinking, answers to the longer
+// Digital Ujjwal instructions were cut off after a sentence or two.
+const THINKING_BUDGET = 512;
+const MAX_OUTPUT_TOKENS = 2048;
 // Vercel kills the function at maxDuration (60s) with no warning: whatever has already been
 // flushed to the visitor is all they get, silently cut off mid-sentence. This is well short of
 // that, so the code itself ends the stream first, with a clear error instead of a silent one.
 const SAFE_DEADLINE_MS = 50_000;
 
-// Repository lookups only ever touch these public repositories. A repository the
-// lookup service has not indexed is skipped (see src/lib/wiki.ts), so listing one
-// early is safe: it starts working as soon as it is indexed.
-const WIKI_REPOS = [
-    "Ujjwaljain16/RecoveryOS",
-    "Ujjwaljain16/MiniDB",
-    "Ujjwaljain16/VaultTabs",
-    "Ujjwaljain16/CampusSync",
-    "Ujjwaljain16/Fuze",
-    "Ujjwaljain16/SpentSmart",
-    "Ujjwaljain16/SSE-Observatory",
-    "Ujjwaljain16/AgentBrake",
-    "Ujjwaljain16/FlashFlow",
-    "Ujjwaljain16/LEXIS",
-];
+// Repository lookups go to every project on the site (not the smaller "Also built" repositories), so a question about any of them can get
+// code-level detail. A repository the lookup service has not indexed is skipped (see src/lib/wiki.ts). Private
+// repositories are left out on purpose: this endpoint is public, and their code must not be described to visitors.
+const PRIVATE_REPOS = new Set(["Ujjwaljain16/migratedb"]);
+const WIKI_REPOS = [...new Set([...projects.map((p) => p.repo), "Ujjwaljain16/LEXIS"])].filter(
+    (repo) => !PRIVATE_REPOS.has(repo),
+);
 
 // Tried in order. Gemini often answers "high demand" (503) on one model while another
 // is fine, so a model that does not start responding is skipped. See src/lib/answer.ts.
@@ -182,7 +179,7 @@ export async function POST(req: Request) {
         const question = parsed.questions[parsed.questions.length - 1];
         const previous = parsed.questions.length > 1 ? parsed.questions[0] : null;
         const userContent = previous
-            ? `Earlier question: ${previous}\n\nCurrent question: ${question}`
+            ? `Earlier question (context only: it was already answered; do not answer, mention or repeat anything about it): ${previous}\n\nQuestion to answer now: ${question}`
             : question;
 
         // 2. Repository notes: reword the question for the one or two repositories it names and
@@ -216,6 +213,7 @@ export async function POST(req: Request) {
                 messages: [{ role: "user", content: userContent }],
                 temperature: 0.3,
                 maxOutputTokens: MAX_OUTPUT_TOKENS,
+                providerOptions: { google: { thinkingConfig: { thinkingBudget: THINKING_BUDGET } } },
                 abortSignal: deadlineSignal,
                 onError: ({ error }) => logError("stream", error),
             },

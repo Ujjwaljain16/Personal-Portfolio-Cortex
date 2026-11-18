@@ -10,6 +10,7 @@ export const profile = {
     years: "2024–2028",
     cgpa: "8.82",
     github: "https://github.com/Ujjwaljain16",
+    location: "Bengaluru, India",
 } as const;
 
 /** The education line shown on the home page. */

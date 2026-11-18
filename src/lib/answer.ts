@@ -6,6 +6,8 @@ interface AnswerParams {
     messages: ModelMessage[];
     temperature?: number;
     maxOutputTokens?: number;
+    /** Provider settings, e.g. a cap on Gemini's thinking tokens (see src/app/api/ask/route.ts). */
+    providerOptions?: Parameters<typeof streamText>[0]["providerOptions"];
     abortSignal?: AbortSignal;
     onError?: (event: { error: unknown }) => void;
 }

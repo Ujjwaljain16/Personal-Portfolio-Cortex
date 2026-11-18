@@ -7,6 +7,7 @@ import { deployments } from "@/data/deployments";
 import { nowItems, nowSyncedAt, nowUpdated } from "@/data/now";
 import { profile } from "@/data/profile";
 import { aboutMe } from "@/data/about";
+import { playbook } from "@/data/playbook";
 import { mentionedProjects } from "@/lib/askRouting";
 import type { EngineeringRecord } from "@/data/records";
 
@@ -76,9 +77,46 @@ const aboutBlock = () =>
     [
         "## ABOUT",
         `${profile.name}. ${profile.role}.`,
-        `Education: ${profile.degree}, ${profile.school}, ${profile.years}. CGPA ${profile.cgpa}.`,
+        `Education: ${profile.degree}, ${profile.school}, ${profile.years}. CGPA ${profile.cgpa}. Based in ${profile.location}.`,
+        "A student building personal, course, team and hackathon projects and contributing to open source; no full-time industry employment is recorded here.",
         "Everything below was checked against the source repositories. Things that are unfinished, unmeasured or later found to be wrong are stated as such.",
     ].join("\n");
+
+/**
+ * How I approach problems, as patterns drawn from the records (src/data/playbook.ts). Always sent, so "how would you
+ * approach X?" questions can be answered from my own documented work and cite it.
+ */
+const playbookBlock = () =>
+    [
+        "## HOW I APPROACH PROBLEMS: PATTERNS IN MY DOCUMENTED WORK (each is an interpretation of the linked records, which are the evidence; use it for how I would approach something, and cite the records)",
+        list(
+            playbook.map((p) => {
+                const shownIn = p.recordIds.map((id) => records.find((x) => x.id === id)).filter((r) => r !== undefined).map((r) => `[${recordPath(r)}]`);
+                return `${p.title}: ${p.detail} Shown in: ${shownIn.join(" ")}`;
+            }),
+        ),
+    ].join("\n");
+
+/**
+ * Which projects use which technology, from each project's checked stack. Always sent, so a question like "do you
+ * know React?" is answered from the projects that use it even when it names no project.
+ */
+function skillsBlock(): string {
+    const byTech = new Map<string, { name: string; uses: string[] }>();
+    for (const p of projects) {
+        for (const t of p.tech) {
+            const key = t.toLowerCase();
+            const entry = byTech.get(key) ?? { name: t, uses: [] };
+            entry.uses.push(`${p.name} [/projects/${p.id}]`);
+            byTech.set(key, entry);
+        }
+    }
+    const rows = [...byTech.values()].sort((a, b) => b.uses.length - a.uses.length || a.name.localeCompare(b.name));
+    return [
+        "## TECHNOLOGIES AND WHERE I USED THEM (from each project's checked stack; using a technology in a project is evidence of hands-on use, not of expertise)",
+        list(rows.map((r) => `${r.name}: ${r.uses.join(", ")}`)),
+    ].join("\n");
+}
 
 const smallerBlock = () => (alsoBuilt.length ? ["## SMALLER PROJECTS", list(alsoBuilt.map((a) => `${a.name} (${a.repo}): ${a.line}`))].join("\n") : "");
 
@@ -127,6 +165,8 @@ export function buildCorpus(): string {
     return [
         aboutBlock(),
         aboutMeBlock(),
+        playbookBlock(),
+        skillsBlock(),
         ...projects.map(projectBlock),
         smallerBlock(),
         ...records.map(recordBlock),
@@ -158,6 +198,8 @@ interface Pieces {
     index: string;
     about: string;
     aboutMe: string;
+    playbook: string;
+    skills: string;
     smaller: string;
 }
 
@@ -173,6 +215,8 @@ function pieces(): Pieces {
         index: indexBlock(),
         about: aboutBlock(),
         aboutMe: aboutMeBlock(),
+        playbook: playbookBlock(),
+        skills: skillsBlock(),
         smaller: smallerBlock(),
     });
 }
@@ -232,6 +276,8 @@ export function selectCorpus(question: string, previous: string | null = null): 
     const wantsOpenSource = /open.?source|pull request|superset|vitest|appwrite|contribut|merged/.test(asked) || asked.includes(" pr ") || asked.includes(" prs ");
     const wantsDeploy = /deploy|published|npm|hosted|release|live demo|where .* run/.test(asked);
     const wantsNow = /right now|currently|working on|latest|recent|these days|at the moment/.test(asked);
+    // Hiring and self-assessment: answer from evidence, including what went wrong.
+    const wantsSelfAssessment = /weakness|strength|good fit|fit for|hire|hiring|intern|job|role|compare|experience|good at|bad at|mistake|wrong|fail|gap/.test(asked);
 
     const detail: string[] = [];
     let size = 0;
@@ -252,9 +298,19 @@ export function selectCorpus(question: string, previous: string | null = null): 
     if (wantsOpenSource) add(openSourceBlock());
     if (wantsDeploy) add(deploymentsBlock());
     if (wantsNow) add(nowBlock());
+    if (wantsSelfAssessment) {
+        // The documented misses: records whose outcome was not simply adopted or confirmed.
+        const misses = p.recordItems.filter((x) => !includedRecords.includes(x.record.id) && !["adopted", "confirmed"].includes((x.record.kind === "decision" ? x.record.status : x.record.verdict) ?? ""));
+        for (const m of misses.slice(0, 6)) {
+            const before = size;
+            add(m.text);
+            if (size > before) includedRecords.push(m.record.id);
+        }
+        add(openSourceBlock());
+    }
     if (named.length === 0 && projectIds.length === 0) add(p.smaller);
 
-    const text = [p.about, p.aboutMe, p.index, "## DETAIL (the parts most relevant to this question)", ...detail].filter(Boolean).join("\n\n");
+    const text = [p.about, p.aboutMe, p.playbook, p.skills, p.index, "## DETAIL (the parts most relevant to this question)", ...detail].filter(Boolean).join("\n\n");
     return { text, projects: projectIds, records: includedRecords, posts: post ? [post.post.slug] : [] };
 }
 

@@ -21,7 +21,19 @@ export interface AboutFact {
     text: string;
 }
 
-// Empty on purpose until there are real, curated facts. Add them as { category, text }, one or two
-// plain sentences each, in the same unhyped voice as the rest of the site. An empty list means
-// /ask simply has no personal-context section.
-export const aboutMe: AboutFact[] = [];
+// Only things in my own words: the first two are the home page's introduction, which I wrote; the last is
+// my current focus as I stated it. Add more as { category, text }, one or two plain sentences each.
+export const aboutMe: AboutFact[] = [
+    {
+        category: "In my own words",
+        text: "I like understanding how things work beneath the surface, and building them myself.",
+    },
+    {
+        category: "How I explore ideas",
+        text: "From database internals and distributed systems to backend infrastructure and applied AI, I explore ideas by turning them into working software, testing their limits, and learning from what breaks.",
+    },
+    {
+        category: "Current focus",
+        text: "Learning system design and data structures and algorithms.",
+    },
+];
