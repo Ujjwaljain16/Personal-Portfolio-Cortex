@@ -1066,23 +1066,6 @@ export const projects: Project[] = [
             { label: "Release v2.2.2 (APK)", href: "https://github.com/Ujjwaljain16/SpentSmart/releases/tag/v2.2.2" },
             { label: "Source on GitHub", href: gh("Ujjwaljain16/SpentSmart") },
         ],
-        gallery: {
-            layout: "wide",
-            items: [
-                {
-                    src: "/projects/spentsmart/v2-light.webp",
-                    alt: "Six screens of the 2.2.0 app in the light theme: home with safe to spend, activity, monthly insights with a month-end estimate, budgets, quick add parsing a phrase, and the assistant's key setup.",
-                    width: 1850,
-                    height: 667,
-                },
-                {
-                    src: "/projects/spentsmart/v2-dark.webp",
-                    alt: "The same six screens in the dark theme.",
-                    width: 1850,
-                    height: 667,
-                },
-            ],
-        },
         next: [
             "Re-run the nine Maestro flows against main and add them to CI.",
             "Test sync on two real phones, not only in the automated two-phone test.",
