@@ -321,11 +321,20 @@ export const projects: Project[] = [
             "Storage: slotted-page heap files, a disk-backed B+ tree (split, merge, borrow, bulk load) and an LRU-K buffer pool.",
             "Query path: SQL is parsed with sql-parser-cst, then goes through my own binder, a cost-based planner (ANALYZE statistics, EXPLAIN) and Volcano-style plus vectorized executors.",
             "Transactions: strict two-phase locking with a wait-for-graph deadlock detector, and write-ahead logging with ARIES-style analysis, redo and undo recovery plus checkpoints.",
+            "In the browser: an in-memory disk and log, page-access events from the buffer pool, and a 99 KB (gzipped) build that runs the live demo on this site in a web worker.",
         ],
         evidence: [
             {
-                text: "133 tests in 26 suites pass. They include a crash matrix that simulates failures between a WAL flush and a page flush, a 1,000-operation SQL fuzz test against a reference model, and deadlock tests.",
+                text: "On the browser-demo branch, 214 tests in 32 suites pass (133 in 26 on main). They include a crash matrix that simulates failures between a WAL flush and a page flush, a 1,000-operation SQL fuzz test against a reference model, and deadlock tests.",
                 source: "MiniDB_Projects/Team_ARIES_Recovery/tests/integration/crash_matrix.test.ts",
+            },
+            {
+                text: "Building the live demo turned up queries that returned wrong rows without an error. Each is now fixed with a regression test: index range scans (id > 1995 returned 0 of 5 rows), joins reading the wrong columns, every table sharing one heap, CREATE INDEX skipping existing rows, and ORDER BY being ignored (it is now rejected).",
+                source: "MiniDB_Projects/Team_ARIES_Recovery/tests/integration/sql_correctness.test.ts@326ca8312834f49a1890cdda5837c68e3aa8a15f",
+            },
+            {
+                text: "An in-memory disk manager and write-ahead log let the same engine run without Node's file system. The live demo runs the build of commit 326ca83.",
+                source: "MiniDB_Projects/Team_ARIES_Recovery/src/storage/MemDiskManager.ts@326ca8312834f49a1890cdda5837c68e3aa8a15f",
             },
             {
                 text: "A 683-line disk-backed B+ tree with split, merge, borrow and bulk-load, and its root persisted through the catalog.",
@@ -347,7 +356,9 @@ export const projects: Project[] = [
         limitations: [
             "An educational engine, not production software, built with a teammate for a course.",
             "No MVCC. The catalog file is not protected by the WAL. Recovery does not write compensation log records.",
-            "Aborting a transaction does not undo its changes yet, a second crash right after recovery loses committed rows in a test, and the planner can pick an index for range predicates the index scan can't execute. All were found while researching this page and are not fixed.",
+            "Aborting a transaction does not undo its changes yet, and a second crash right after recovery loses committed rows in a test. Both were found while researching this page and are not fixed.",
+            "The fixes made for the live demo are on the browser-demo branch and not yet merged into main.",
+            "Joins are nested loops only, so a large join without a selective filter takes seconds. ORDER BY, GROUP BY, aggregates and UPDATE are not implemented; they are rejected with an error.",
             "The real project sits in a nested folder of the repository, so the repo root can be confusing.",
         ],
         tech: ["TypeScript", "Node.js", "Jest", "sql-parser-cst"],
@@ -355,7 +366,8 @@ export const projects: Project[] = [
         next: [
             "Make aborting a transaction undo its changes.",
             "Fix recovery so a second crash straight after recovery does not lose committed rows.",
-            "Stop the planner choosing an index for range predicates the index scan cannot run.",
+            "Merge the browser-demo branch into main.",
+            "Add a hash join or an index nested-loop join.",
             "Put the catalog file under the write-ahead log.",
         ],
         repo: "Ujjwaljain16/MiniDB",
