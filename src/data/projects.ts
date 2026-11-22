@@ -737,6 +737,14 @@ export const projects: Project[] = [
     },
     {
         id: "agentbrake",
+        demo: {
+            mp4: "/projects/agentbrake/demo.mp4",
+            webm: "/projects/agentbrake/demo.webm",
+            poster: "/projects/agentbrake/demo-poster.jpg",
+            size: [1040, 500],
+            caption:
+                "The repository's own demo (docs/media/demo.gif at 91658ed), converted to video and otherwise unchanged. Four scripted attacks from the Gauntlet go through an allow-list + regex setup and through AgentBrake, then the scoreboard. It is not a screen recording: the repo's demo script draws it from the proxy's recorded output (npm run demo:gif), and the attacks are scripted, with no model in the loop.",
+        },
         name: "AgentBrake",
         tier: "more",
         tagline: "An MCP stdio proxy that checks every agent tool call and tracks where data read by earlier calls goes, to stop exfiltration, SSRF and path traversal.",
