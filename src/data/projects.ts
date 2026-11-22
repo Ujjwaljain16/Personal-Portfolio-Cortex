@@ -380,7 +380,7 @@ export const projects: Project[] = [
         repo: "Ujjwaljain16/MiniDB",
         links: [
             // Absolute because project links must be https; this is the site's own /minidb page.
-            { label: "Run it in your browser", href: "https://ujjwaljain.vercel.app/minidb" },
+            { label: "Run it in your browser", href: "https://www.ujjwaljain16.me/minidb" },
             { label: "Source on GitHub", href: gh("Ujjwaljain16/MiniDB") },
             { label: "Demo recording (GIF, 11 MB)", href: "https://github.com/Ujjwaljain16/MiniDB/blob/HEAD/demodb.gif" },
         ],
