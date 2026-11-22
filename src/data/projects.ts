@@ -233,6 +233,14 @@ export const projects: Project[] = [
     },
     {
         id: "warrant",
+        demo: {
+            mp4: "/projects/warrant/demo.mp4",
+            webm: "/projects/warrant/demo.webm",
+            poster: "/projects/warrant/demo-poster.jpg",
+            size: [1000, 600],
+            caption:
+                "The repository's own 30-second demo (docs/media/demo.gif, added in 34d0671), converted to video and otherwise unchanged. It is generated, not screen-recorded: the terminal panes are condensed from the JSON reports that warrant run and warrant verify-log printed when the demo script ran the examples, the bars come from the study's summary file, and the titles are written by hand (tools/demo/README.md in the repo says which is which).",
+        },
         name: "Warrant",
         tier: "flagship",
         tagline: "Evidence-gated execution for AI agents: a task counts as done only when the host has checked it, with a hash-chained log, a fault-injection benchmark and a study of real models' \"done\" claims.",
@@ -690,6 +698,14 @@ export const projects: Project[] = [
     },
     {
         id: "typeaheadx",
+        demo: {
+            mp4: "/projects/typeaheadx/demo.mp4",
+            webm: "/projects/typeaheadx/demo.webm",
+            poster: "/projects/typeaheadx/demo-poster.jpg",
+            size: [960, 836],
+            caption:
+                "The repository's own recording (docs/assets/demo-redis-node-killed.gif, added in e34b977), converted to video and otherwise unchanged: the real UI against the running service while one of the three Redis nodes is stopped with docker stop and later started again. The bar at the bottom is part of the original recording; it reports the server-side time per request and the HTTP errors, which stay at 0.",
+        },
         name: "TypeAheadX",
         tier: "more",
         tagline: "Distributed autocomplete over three Redis nodes, hardened by breaking it: node loss, a frozen database and concurrent writes, each measured before and after.",
