@@ -317,6 +317,13 @@ export const projects: Project[] = [
     },
     {
         id: "minidb",
+        demo: {
+            mp4: "/projects/minidb/demo.mp4",
+            webm: "/projects/minidb/demo.webm",
+            poster: "/projects/minidb/demo-poster.jpg",
+            caption:
+                "Recorded on 23 Nov 2026 from the live demo on this site (engine build 326ca83) in a scripted browser, in real time; only the first second of page load is cut. A query by id reads three pages through the B+ tree index: with a 16-frame buffer pool all three are misses, and after switching to 64 frames, which holds all 48 pages, the same query hits all three. Then a filter on age, which has no index, scans the table, and an ORDER BY is rejected with an error. The white dot is a pointer drawn for the recording.",
+        },
         name: "MiniDB",
         tier: "flagship",
         tagline: "A relational database built from scratch: B+ tree, buffer pool, SQL, optimizer, locking and crash recovery.",
