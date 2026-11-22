@@ -63,16 +63,16 @@ export const charts: Record<string, Chart[]> = {
         {
             kind: "ranges",
             title: "Vectorized speedup over Volcano, by table size",
-            caption: "Five independent runs of the unmodified benchmark script. Each bar spans the lowest to the highest speedup seen.",
+            caption: "Six runs of the unmodified benchmark script: my re-run plus five independent ones. Each bar spans the lowest to the highest speedup seen.",
             unit: "x",
             max: 10,
             band: { from: 5, to: 10, label: "the stated goal of 5-10x" },
             rows: [
-                { label: "10,000 rows", min: 1.48, max: 2.22 },
-                { label: "50,000 rows", min: 1.12, max: 1.35 },
+                { label: "10,000 rows", min: 1.48, max: 2.26 },
+                { label: "50,000 rows", min: 1.12, max: 1.44 },
                 { label: "100,000 rows", min: 1.02, max: 1.32 },
             ],
-            source: "npx tsx benchmarks/volcano_vs_vectorized.ts, five runs (see the numbers above)",
+            source: "npx tsx benchmarks/volcano_vs_vectorized.ts, six runs (see the numbers above)",
         },
         {
             kind: "ranges",

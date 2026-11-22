@@ -321,7 +321,7 @@ export const projects: Project[] = [
         tier: "flagship",
         tagline: "A relational database built from scratch: B+ tree, buffer pool, SQL, optimizer, locking and crash recovery.",
         status: "prototype",
-        headline: { value: "1.2–2.2×", label: "vectorized over Volcano execution, against the 10\u00d7 I aimed for" },
+        headline: { value: "1.0–2.3×", label: "vectorized over Volcano execution, against the 5–10\u00d7 I aimed for" },
         origin: "Course capstone (two people)",
         period: "Jun 2026",
         problem:
@@ -358,7 +358,7 @@ export const projects: Project[] = [
                 source: "MiniDB_Projects/Team_ARIES_Recovery/src/concurrency/LockManager.ts",
             },
             {
-                text: "Benchmarks are scripts, not screenshots. The vectorized executor reached about 1.2 to 2.2× over the Volcano one, not the 10× I aimed for, and the benchmark doc explains why.",
+                text: "Benchmarks are scripts, not screenshots. The vectorized executor reached about 1.0 to 2.3× over the Volcano one, not the 5 to 10× I aimed for, and the benchmark doc explains why.",
                 source: "MiniDB_Projects/Team_ARIES_Recovery/docs/BENCHMARKS.md",
             },
         ],
