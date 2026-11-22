@@ -16,7 +16,7 @@ export const PROJECT_LOGOS: Record<string, { src: string; tile?: boolean; from: 
     minidb: { src: "/projects/minidb/logo.svg", tile: true, from: "made for this site; not in the MiniDB repository" },
     "sse-observatory": { src: "/projects/sse-observatory/logo.png", tile: true, from: "Ujjwaljain16/SSE-Observatory public/logo.png, resized" },
     vaulttabs: { src: "/projects/vaulttabs/logo.png", tile: true, from: "Ujjwaljain16/VaultTabs extension/public/icon-128.png" },
-    spentsmart: { src: "/projects/spentsmart/logo.png", tile: true, from: "Ujjwaljain16/SpentSmart assets/images/icon.png, resized" },
+    spentsmart: { src: "/projects/spentsmart/logo.png", tile: true, from: "Ujjwaljain16/SpentSmart apps/mobile/assets/images/icon.png (the v2.2.1 icon), resized" },
 };
 
 export function projectLogo(id: string): { src: string; tile: boolean } | undefined {

@@ -4199,6 +4199,116 @@ export const records: EngineeringRecord[] = [
         "verification": "git show 815e2a9, c5a0bcd, 4057dde; read UpiIntentModule.kt, app.plugin.js, ios/UpiIntentModule.swift, services/upi-app-launcher.ts and QRPaymentGenerator.tsx at HEAD; git shortlog on the v2.01 tag lineage shows 59 Ujjwaljain16 / 12 Ayush commits. Attribution: docs/CODEBASE_ANALYSIS.md and docs/PHONEPE_SECURITY_ANALYSIS.md appear to be AI-assistant-written; the manifest comment and the code are the primary evidence. Code commits are by Ujjwaljain16 with no Co-Authored-By trailer; the prototype is by Ayush (author of 12 commits on 2025-12-28/29)."
     },
     {
+        "id": "spentsmart-e2e-encrypted-sync",
+        "kind": "decision",
+        "project": "SpentSmart",
+        "projectId": "spentsmart",
+        "title": "End-to-end encrypted sync, so the server stores only ciphertext",
+        "date": "2026-11-21",
+        "dateSource": "commit 3510421 (the accepted decision record, 21 Nov 2026)",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "Users want their ledger on a second phone and a backup if they lose the first. The data is a complete record of someone's spending, so the server should not be able to read it. The v2 plan listed two privacy models for sync and the choice was confirmed on 21 Nov 2026.",
+        "decision": "Every record is encrypted on the phone with XChaCha20-Poly1305 under a per-user data key. The data key is wrapped by a key derived from a recovery key that the user writes down, and the server stores only the wrapped key and ciphertext. Merging happens on the phone, field by field, against the last synced copy, with a conflict record when both sides changed the same field. The server is Fastify with plain SQL and Postgres row-level security instead of the NestJS and Prisma stack the plan first named.",
+        "alternatives": [
+            {
+                "option": "Standard server-readable sync (the option the plan called the blueprint default)",
+                "whyNot": "The plan calls it simpler and says it enables server-side jobs, but the privacy pitch and policy would have to change. The plan names keeping 'your data never leaves your phone readable' as the product's point."
+            },
+            {
+                "option": "NestJS and Prisma for the server, as first planned",
+                "whyNot": "The decision record says that with end-to-end encryption the API is six tables of opaque rows and one compare-and-set query, so a smaller stack fits, and row-level security needs hand-written SQL anyway."
+            }
+        ],
+        "consequences": "The server cannot compute insights, send digests or answer the assistant, so all of that runs on the phone. Losing the recovery key and every signed-in phone means the synced data is gone, and the app says so before sync is turned on. Records keep a key version so a later key rotation can re-encrypt in the background. There is no external audit of the scheme, and sync between two real phones has not been tested.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "3510421",
+                "href": "https://github.com/Ujjwaljain16/SpentSmart/commit/3510421",
+                "note": "Adds the decision record, with the keys, what the server sees, the push and pull protocol and the merge table."
+            },
+            {
+                "type": "commit",
+                "label": "1e9bd7a",
+                "href": "https://github.com/Ujjwaljain16/SpentSmart/commit/1e9bd7a",
+                "note": "Adds sync-core: record encryption, the sync contracts and the three-way merge."
+            },
+            {
+                "type": "commit",
+                "label": "fe3b740",
+                "href": "https://github.com/Ujjwaljain16/SpentSmart/commit/fe3b740",
+                "note": "Adds the app's sync engine with merge, conflicts and an automated two-phone test."
+            },
+            {
+                "type": "doc",
+                "label": "docs/adr/0001-end-to-end-encrypted-sync.md@bfcad43",
+                "href": "https://github.com/Ujjwaljain16/SpentSmart/blob/bfcad43/docs/adr/0001-end-to-end-encrypted-sync.md",
+                "note": "The accepted decision record."
+            },
+            {
+                "type": "doc",
+                "label": "docs/v2/PLAN.md@bfcad43",
+                "href": "https://github.com/Ujjwaljain16/SpentSmart/blob/bfcad43/docs/v2/PLAN.md",
+                "note": "Section 7 lists the two privacy models and the decisions confirmed on 21 Nov 2026."
+            }
+        ],
+        "verification": "Read docs/adr/0001-end-to-end-encrypted-sync.md and docs/v2/PLAN.md section 7 at bfcad43; checked with the GitHub API that commits 3510421, 1e9bd7a and fe3b740 exist with those subjects and dates (21 Nov 2026). Not checked: that the app behaves as the record describes on a real phone; the server's health check returned ok on 23 Nov 2026."
+    },
+    {
+        "id": "spentsmart-remove-automatic-logging",
+        "kind": "decision",
+        "project": "SpentSmart",
+        "projectId": "spentsmart",
+        "title": "Remove automatic payment logging after a phone test showed it could not work reliably",
+        "date": "2026-11-22",
+        "dateSource": "commit 8509e20 (removal) and 508f74f (the reason, written down), 22 Nov 2026",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "The v2 app was meant to log UPI payments automatically. A notification listener, an SMS receiver and a upi://pay proxy were built and tested end to end on the emulator.",
+        "decision": "All three were removed after a test on a real phone on 22 Nov 2026, keeping the tile and widget. The code stays in git history from f7139d7 onwards in case the idea is revisited.",
+        "alternatives": [
+            {
+                "option": "Keep the notification listener and the SMS receiver",
+                "whyNot": "The architecture document gives the reasons: Google Pay posts no notification for payments made inside it, many accounts get no bank SMS, Android 15 and later can hide SMS text from listeners, Play Protect blocks installing apps that declare a listener from a download, and checkouts list only their own set of UPI apps."
+            }
+        ],
+        "consequences": "With automatic capture gone, a payment the user does not enter or scan is not recorded.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "8509e20",
+                "href": "https://github.com/Ujjwaljain16/SpentSmart/commit/8509e20",
+                "note": "Removes automatic logging and the upi proxy, and keeps the tile and widget."
+            },
+            {
+                "type": "commit",
+                "label": "508f74f",
+                "href": "https://github.com/Ujjwaljain16/SpentSmart/commit/508f74f",
+                "note": "Drops automatic logging from the docs and records why it was removed."
+            },
+            {
+                "type": "doc",
+                "label": "docs/ARCHITECTURE.md@bfcad43",
+                "href": "https://github.com/Ujjwaljain16/SpentSmart/blob/bfcad43/docs/ARCHITECTURE.md",
+                "note": "The section 'Removed: automatic logging' lists the reasons."
+            }
+        ],
+        "verification": "Read the 'Removed: automatic logging' section of docs/ARCHITECTURE.md at bfcad43; checked with the GitHub API that commits 8509e20 and 508f74f exist with those subjects (22 Nov 2026). Not checked: the individual platform claims (Google Pay notifications, Android 15 SMS hiding, Play Protect), which are the author's findings from the phone test."
+    },
+    {
         "id": "vitest-tsc-help-text-when-no-tsconfig",
         "kind": "investigation",
         "project": "Vitest",
