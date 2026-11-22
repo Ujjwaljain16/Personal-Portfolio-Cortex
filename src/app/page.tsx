@@ -12,7 +12,7 @@ import { countByProject, mergedPRs, openPRs, type MergedPR } from "@/data/openSo
 import { formatDate } from "@/lib/utils";
 import { ossLogo } from "@/data/ossLogos";
 import { jsonLd, personJsonLd } from "@/lib/seo";
-import { educationLine } from "@/data/profile";
+import { educationLine, profile } from "@/data/profile";
 
 const EXPLORE = [
     { href: "/projects", label: "Projects", desc: "Every project, with its evidence, source links and what isn't done." },
@@ -38,6 +38,8 @@ function groupByProject(prs: MergedPR[]): { project: string; stars: string; prs:
     }
     return [...groups.values()];
 }
+
+const listFormat = new Intl.ListFormat("en", { style: "long", type: "conjunction" });
 
 /** Merged pull requests shown per project before the rest fold away; the newest come first. */
 const PRS_SHOWN = 2;
@@ -92,23 +94,20 @@ export default async function HomePage() {
                             <div className="space-y-8">
                                 <p className="hero-kicker">
                                     <span className="hero-pulse" aria-hidden="true" />
-                                    Computer Science &middot; Backend &middot; Systems &middot; Applied AI
+                                    CS student &middot; Full stack &middot; Backend &middot; Applied AI
                                 </p>
                                 <div className="space-y-5">
                                     <h1 id="hero-heading" className="hero-name text-[2.75rem] leading-[1.02] sm:text-6xl font-semibold tracking-[-0.035em]">
                                         Ujjwal Jain
                                     </h1>
                                     <p className="max-w-[34rem] text-[19px] md:text-[22px] leading-[1.45] tracking-[-0.01em] text-foreground">
-                                        I like understanding how things work beneath the surface, and building them myself.
+                                        {mergedPRs.length} pull requests merged into{" "}
+                                        {listFormat.format([...prCounts].sort((a, b) => b.count - a.count).map((c) => c.project))}.{" "}
+                                        {featuredProjects.length} systems built and measured, each saying what isn&apos;t done yet.
                                     </p>
                                     <p className="max-w-[34rem] text-[15px] md:text-[16px] leading-relaxed text-(--text-secondary)">
-                                        From database internals and distributed systems to backend infrastructure and applied AI, I
-                                        explore ideas by turning them into working software, testing their limits, and learning from
-                                        what breaks.
-                                    </p>
-                                    <p className="max-w-[34rem] text-[15px] md:text-[16px] leading-relaxed text-(--text-secondary)">
-                                        This is a collection of things I&apos;ve built, problems I&apos;ve explored, and lessons
-                                        I&apos;ve picked up along the way.
+                                        I&apos;m a computer science student. I learn by building things end to end, measuring how they
+                                        behave, and writing down what broke.
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-3">
@@ -128,7 +127,15 @@ export default async function HomePage() {
                                         <FileDown className="w-4 h-4" aria-hidden="true" />
                                         Resume
                                     </a>
+                                    <a
+                                        href="mailto:jainujjwal1609@gmail.com"
+                                        className="inline-flex items-center gap-2 min-h-11 px-5 rounded-full border border-(--border-hover) text-[14px] text-foreground hover:border-(--text-muted) transition-colors"
+                                    >
+                                        <Mail className="w-4 h-4" aria-hidden="true" />
+                                        Email
+                                    </a>
                                 </div>
+                                <p className="text-[14px] text-foreground">{profile.lookingFor}.</p>
                                 <p className="text-[12.5px] font-mono text-(--text-muted)">{educationLine}</p>
                             </div>
 

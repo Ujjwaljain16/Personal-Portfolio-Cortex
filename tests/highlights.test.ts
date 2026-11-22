@@ -1,15 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { highlights } from "@/data/highlights";
-import { featuredProjects } from "@/data/projects";
+import { featuredProjects, getProject } from "@/data/projects";
 import { getRecord } from "@/data/records";
 
 describe("home page proof numbers", () => {
-    it("each links to a record that exists, or to a section of the home page", () => {
+    it("each links to a record or project page that holds it, or to a section of the home page", () => {
         expect(highlights.length).toBeGreaterThanOrEqual(3);
         for (const h of highlights) {
             const [path, anchor] = h.href.split("#");
             if (path === "/") {
                 expect(anchor, h.label).toBeTruthy();
+                continue;
+            }
+            if (path.startsWith("/projects/")) {
+                const p = getProject(path.slice("/projects/".length));
+                expect(p, h.href).toBeDefined();
+                expect(h.value, h.href).toBe(p!.headline?.value);
                 continue;
             }
             expect(["/decisions", "/investigations"], h.href).toContain(path);

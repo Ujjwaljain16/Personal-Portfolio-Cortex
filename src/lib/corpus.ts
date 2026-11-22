@@ -78,6 +78,7 @@ const aboutBlock = () =>
         "## ABOUT",
         `${profile.name}. ${profile.role}.`,
         `Education: ${profile.degree}, ${profile.school}, ${profile.years}. CGPA ${profile.cgpa}. Based in ${profile.location}.`,
+        `${profile.lookingFor}.`,
         "A student building personal, course, team and hackathon projects and contributing to open source; no full-time industry employment is recorded here.",
         "Everything below was checked against the source repositories. Things that are unfinished, unmeasured or later found to be wrong are stated as such.",
     ].join("\n");

@@ -11,6 +11,7 @@ export const profile = {
     cgpa: "8.82",
     github: "https://github.com/Ujjwaljain16",
     location: "Bengaluru, India",
+    lookingFor: "Looking for SDE internships: full-stack, backend, AI and forward-deployed engineer (FDE) roles",
 } as const;
 
 /** The education line shown on the home page. */

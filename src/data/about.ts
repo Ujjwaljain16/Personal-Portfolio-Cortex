@@ -30,7 +30,7 @@ export const aboutMe: AboutFact[] = [
     },
     {
         category: "How I explore ideas",
-        text: "From database internals and distributed systems to backend infrastructure and applied AI, I explore ideas by turning them into working software, testing their limits, and learning from what breaks.",
+        text: "I'm a computer science student. I learn by building things end to end, measuring how they behave, and writing down what broke and what isn't done yet.",
     },
     {
         category: "Current focus",

@@ -39,7 +39,7 @@ const MODES = [
         label: "Hiring",
         questions: [
             "Would you be a good fit for a backend engineering internship?",
-            "What's your strongest evidence that you understand distributed systems?",
+            "What's the hardest bug you've fixed in someone else's codebase?",
             "What are your weaknesses, with evidence?",
             "How do you compare with someone who has two years of industry experience?",
         ],
