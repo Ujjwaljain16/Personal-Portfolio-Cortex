@@ -218,13 +218,25 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                                     playsInline
                                     preload="none"
                                     poster={project.demo.poster}
-                                    className="w-full aspect-video rounded-2xl border border-(--border-default) bg-(--bg-surface-1)"
+                                    className={`rounded-2xl border border-(--border-default) bg-(--bg-surface-1) ${
+                                        project.demo.portrait ? "mx-auto block h-[min(78vh,42rem)] aspect-[9/20]" : "w-full aspect-video"
+                                    }`}
                                 >
                                     {project.demo.webm && <source src={project.demo.webm} type="video/webm" />}
                                     <source src={project.demo.mp4} type="video/mp4" />
                                     <a href={project.demo.mp4}>Download the demo video</a>
                                 </video>
-                                <figcaption className="text-[13px] leading-relaxed text-(--text-muted)">{project.demo.caption}</figcaption>
+                                <figcaption className="text-[13px] leading-relaxed text-(--text-muted)">
+                                    {project.demo.caption}
+                                    {project.demo.full && (
+                                        <>
+                                            {" "}
+                                            <a href={project.demo.full.mp4} className="text-(--accent-primary) hover:underline">
+                                                {project.demo.full.label}
+                                            </a>
+                                        </>
+                                    )}
+                                </figcaption>
                             </figure>
                         </Section>
                     )}

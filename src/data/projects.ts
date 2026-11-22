@@ -81,7 +81,16 @@ export interface Project {
      * A short screen recording of the running app, served from public/. The caption says how it was edited
      * (what was cut, what was sped up), so the clip is never faster than the real thing without saying so.
      */
-    demo?: { mp4: string; webm?: string; poster: string; caption: string };
+    demo?: {
+        mp4: string;
+        webm?: string;
+        poster: string;
+        caption: string;
+        /** A tall phone recording: shown at its own shape instead of 16:9. */
+        portrait?: boolean;
+        /** The same recording at normal speed, offered as a link. */
+        full?: { mp4: string; label: string };
+    };
     /**
      * One number for the project card, copied from this project's evidence or records, with the context that keeps it
      * honest (what was measured, and against what). A miss is as good a headline as a win.
@@ -1009,6 +1018,15 @@ export const projects: Project[] = [
     },
     {
         id: "spentsmart",
+        demo: {
+            mp4: "/projects/spentsmart/demo.mp4",
+            webm: "/projects/spentsmart/demo.webm",
+            poster: "/projects/spentsmart/demo-poster.jpg",
+            portrait: true,
+            full: { mp4: "/projects/spentsmart/demo-full.mp4", label: "Watch at normal speed (2 min 21 s, 8 MB)" },
+            caption:
+                "Recorded on 23 Nov 2026 in an Android emulator (Pixel 8 image) on the published v2.2.1 APK, installed fresh. The taps were scripted, the video is trimmed and played at 2× speed, and nothing else is edited. The 113 transactions are made up: a generated bank-statement CSV imported through the app's own import feature. It shows no real UPI payment (the emulator has no Google Pay or camera), no sync and no assistant, and only the light theme.",
+        },
         name: "SpentSmart",
         tier: "more",
         tagline: "A local-first Android expense tracker for UPI, with an encrypted database on the phone and optional end-to-end encrypted sync.",
