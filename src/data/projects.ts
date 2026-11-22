@@ -11,6 +11,25 @@
 export type ProjectTier = "flagship" | "more";
 export type ProjectStatus = "ongoing" | "shipped" | "prototype" | "in-progress";
 
+/**
+ * A short screen recording, served from public/. The caption says how it was made and edited (what was cut, what was
+ * sped up), so a clip is never faster or tidier than the real thing without saying so.
+ */
+export interface ProjectDemo {
+    mp4: string;
+    webm?: string;
+    poster: string;
+    caption: string;
+    /** Shown above the video when a project has more than one. */
+    title?: string;
+    /** A tall phone recording: shown at its own shape instead of 16:9. */
+    portrait?: boolean;
+    /** The video's width and height when it is not 16:9, so the player keeps its shape. */
+    size?: [number, number];
+    /** The same recording at normal speed, offered as a link. */
+    full?: { mp4: string; label: string };
+}
+
 export interface Evidence {
     text: string;
     /** Path inside `repo` (resolved to a GitHub blob link). */
@@ -81,16 +100,9 @@ export interface Project {
      * A short screen recording of the running app, served from public/. The caption says how it was edited
      * (what was cut, what was sped up), so the clip is never faster than the real thing without saying so.
      */
-    demo?: {
-        mp4: string;
-        webm?: string;
-        poster: string;
-        caption: string;
-        /** A tall phone recording: shown at its own shape instead of 16:9. */
-        portrait?: boolean;
-        /** The same recording at normal speed, offered as a link. */
-        full?: { mp4: string; label: string };
-    };
+    demo?: ProjectDemo;
+    /** Further recordings, shown after the first one, each with its own title. */
+    moreDemos?: ProjectDemo[];
     /**
      * One number for the project card, copied from this project's evidence or records, with the context that keeps it
      * honest (what was measured, and against what). A miss is as good a headline as a win.
@@ -321,6 +333,7 @@ export const projects: Project[] = [
             mp4: "/projects/minidb/demo.mp4",
             webm: "/projects/minidb/demo.webm",
             poster: "/projects/minidb/demo-poster.jpg",
+            size: [1280, 800],
             caption:
                 "Recorded on 23 Nov 2026 from the live demo on this site (engine build 326ca83) in a scripted browser, in real time; only the first second of page load is cut. A query by id reads three pages through the B+ tree index: with a 16-frame buffer pool all three are misses, and after switching to 64 frames, which holds all 48 pages, the same query hits all three. Then a filter on age, which has no index, scans the table, and an ORDER BY is rejected with an error. The white dot is a pointer drawn for the recording.",
         },
@@ -464,12 +477,25 @@ export const projects: Project[] = [
     {
         id: "sse-observatory",
         demo: {
+            title: "The web app: the Doctor's Failure lab",
             mp4: "/projects/sse-observatory/demo.mp4",
             webm: "/projects/sse-observatory/demo.webm",
             poster: "/projects/sse-observatory/demo-poster.jpg",
+            size: [1280, 800],
             caption:
                 "Recorded on 23 Nov 2026 from the hosted demo (v2.0.1) in a scripted browser, in real time; only the first second of page load is cut. It uses the Doctor's built-in Failure lab: a captured stream where a proxy keeps the connection alive while the origin is silent, then its healthy twin, both read in the browser with no server. The app notes that some lab captures were recorded at a quarter of real speed. The white dot is a pointer drawn for the recording.",
         },
+        moreDemos: [
+            {
+                title: "The command-line tool: sse-doctor probe",
+                mp4: "/projects/sse-observatory/sse-doctor.mp4",
+                webm: "/projects/sse-observatory/sse-doctor.webm",
+                poster: "/projects/sse-observatory/sse-doctor-poster.jpg",
+                size: [1280, 800],
+                caption:
+                    "sse-doctor 2.0.1 from npm, run on 23 Nov 2026. The text is exactly what it printed, replayed in a terminal; only the waits while each probe listened (10 s and 5 s) are shortened to 2.5 s. First a 10-second probe of Wikipedia's public stream of live edits, then one of the tool's own faulty test streams (served by sse-doctor fixtures serve in another terminal), where the server restarts the stream instead of resuming from Last-Event-ID.",
+            },
+        ],
         name: "SSE-Observatory",
         tier: "flagship",
         tagline:
@@ -537,7 +563,6 @@ export const projects: Project[] = [
         tech: ["TypeScript", "React", "Vite", "Web Workers", "SharedWorker", "IndexedDB", "Express", "Node.js CLI", "Vitest", "fast-check", "Playwright"],
         areas: ["tools"],
         next: [
-            "Decide whether and when to publish sse-doctor to npm.",
             "Finish what the campaign left open: the full paired benchmark harness and the heap-slope soak gate were not run, and real v1 recordings are still missing.",
             "Demonstrate the under-2%-CPU target end to end, or retire it.",
         ],
