@@ -334,7 +334,7 @@ export const projects: Project[] = [
         ],
         evidence: [
             {
-                text: "On the browser-demo branch, 214 tests in 32 suites pass (133 in 26 on main). They include a crash matrix that simulates failures between a WAL flush and a page flush, a 1,000-operation SQL fuzz test against a reference model, and deadlock tests.",
+                text: "214 tests in 32 suites pass (133 in 26 before the live-demo work). They include a crash matrix that simulates failures between a WAL flush and a page flush, a 1,000-operation SQL fuzz test against a reference model, and deadlock tests.",
                 source: "MiniDB_Projects/Team_ARIES_Recovery/tests/integration/crash_matrix.test.ts",
             },
             {
@@ -346,7 +346,7 @@ export const projects: Project[] = [
                 source: "MiniDB_Projects/Team_ARIES_Recovery/src/storage/MemDiskManager.ts@326ca8312834f49a1890cdda5837c68e3aa8a15f",
             },
             {
-                text: "A 683-line disk-backed B+ tree with split, merge, borrow and bulk-load, and its root persisted through the catalog.",
+                text: "A 791-line disk-backed B+ tree with split, merge, borrow and bulk-load, and its root persisted through the catalog.",
                 source: "MiniDB_Projects/Team_ARIES_Recovery/src/index/BPlusTree.ts",
             },
             {
@@ -366,7 +366,6 @@ export const projects: Project[] = [
             "An educational engine, not production software, built with a teammate for a course.",
             "No MVCC. The catalog file is not protected by the WAL. Recovery does not write compensation log records.",
             "Aborting a transaction does not undo its changes yet, and a second crash right after recovery loses committed rows in a test. Both were found while researching this page and are not fixed.",
-            "The fixes made for the live demo are on the browser-demo branch and not yet merged into main.",
             "Joins are nested loops only, so a large join without a selective filter takes seconds. ORDER BY, GROUP BY, aggregates and UPDATE are not implemented; they are rejected with an error.",
             "The real project sits in a nested folder of the repository, so the repo root can be confusing.",
         ],
@@ -375,7 +374,6 @@ export const projects: Project[] = [
         next: [
             "Make aborting a transaction undo its changes.",
             "Fix recovery so a second crash straight after recovery does not lose committed rows.",
-            "Merge the browser-demo branch into main.",
             "Add a hash join or an index nested-loop join.",
             "Put the catalog file under the write-ahead log.",
         ],
