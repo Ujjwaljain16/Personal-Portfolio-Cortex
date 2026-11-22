@@ -15,6 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${SITE_URL}/decisions`, priority: 0.7 },
         { url: `${SITE_URL}/investigations`, priority: 0.6 },
         { url: `${SITE_URL}/deployments`, priority: 0.6 },
+        { url: `${SITE_URL}/minidb`, priority: 0.7 },
         { url: `${SITE_URL}/system`, priority: 0.4 },
         { url: `${SITE_URL}/ask`, priority: 0.5 },
     ];

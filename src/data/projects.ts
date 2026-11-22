@@ -100,7 +100,7 @@ export interface AlsoBuilt {
     line: string;
 }
 
-const gh = (repo: string) => `https://github.com/${repo}`;
+const gh =(repo: string) => `https://github.com/${repo}`;
 
 /** SSE-Observatory v2.0.0: the commit main points at since the release on 15 Nov 2026 (merge of PR #68). Evidence is pinned to it. */
 const SSE_RELEASE = "7519e4852fe8ccc90c75daeb2625ce5436fdf324";
@@ -360,6 +360,8 @@ export const projects: Project[] = [
         ],
         repo: "Ujjwaljain16/MiniDB",
         links: [
+            // Absolute because project links must be https; this is the site's own /minidb page.
+            { label: "Run it in your browser", href: "https://ujjwaljain.vercel.app/minidb" },
             { label: "Source on GitHub", href: gh("Ujjwaljain16/MiniDB") },
             { label: "Demo recording (GIF, 11 MB)", href: "https://github.com/Ujjwaljain16/MiniDB/blob/HEAD/demodb.gif" },
         ],
