@@ -619,6 +619,14 @@ export const projects: Project[] = [
     // ─── More projects ─────────────────────────────────────────────────────
     {
         id: "flashflow",
+        demo: {
+            mp4: "/projects/flashflow/demo.mp4",
+            webm: "/projects/flashflow/demo.webm",
+            poster: "/projects/flashflow/demo-poster.jpg",
+            size: [1280, 800],
+            caption:
+                "FlashFlow's command-line tool, built from main at 14da821 and run on 23 Nov 2026. The text is exactly what it printed, replayed in a terminal in real time; each command finished in under 0.2 s. report classifies how the EWMA policy failed in a simulated flash crowd, explain walks through why and runs the same scenario under the other policies, and stress-map runs a small grid that the tool itself labels exploratory. All of it is simulation on one machine, not live traffic.",
+        },
         name: "FlashFlow",
         tier: "more",
         tagline: "A Go lab that replays routing policies on identical traffic and classifies why one of them collapses under load.",
