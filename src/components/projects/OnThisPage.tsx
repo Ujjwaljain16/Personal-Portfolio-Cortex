@@ -4,28 +4,26 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * The project page's contents, kept beside the text on wide screens. It marks the section being read: inner pages
- * scroll inside .main-panel, not the window, so that panel is the observer's root. Without JavaScript it is still a
- * plain list of in-page links.
+ * The project page's contents, kept beside the text on wide screens. It marks the section being read. Without
+ * JavaScript it is still a plain list of in-page links.
  */
 export function OnThisPage({ items }: { items: { id: string; label: string }[] }) {
     const [active, setActive] = useState(items[0]?.id);
     const ids = items.map((i) => i.id).join(",");
 
     useEffect(() => {
-        const root = document.querySelector(".main-panel");
         const sections = ids
             .split(",")
             .map((id) => document.getElementById(id))
             .filter((el): el is HTMLElement => !!el);
         if (!sections.length) return;
-        // A section counts as being read once its top passes the upper third of the panel.
+        // A section counts as being read once its top passes the upper third of the viewport.
         const observer = new IntersectionObserver(
             (entries) => {
                 const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
                 if (visible[0]) setActive(visible[0].target.id);
             },
-            { root, rootMargin: "0px 0px -66% 0px", threshold: 0 },
+            { rootMargin: "0px 0px -66% 0px", threshold: 0 },
         );
         sections.forEach((s) => observer.observe(s));
         return () => observer.disconnect();

@@ -117,9 +117,14 @@ body {
 }
 
 html, body {
-  height: 100%;
-  overflow: hidden;
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* The document is the scroller (scroll restoration, mobile address-bar collapse and keyboard
+   scrolling depend on it). clip, unlike hidden, does not create a scroll container, so
+   position: sticky keeps working. */
+body {
+  overflow-x: clip;
 }
 
 body {
@@ -220,25 +225,25 @@ body::before {
 .app-grid {
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .sidebar {
   background: var(--bg-primary);
   border-right: 1px solid var(--border-default);
-  height: 100%;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
 .main-panel {
-  height: 100%;
-  min-height: 0;
-  overflow-y: auto;
+  min-width: 0;
   padding: var(--space-4);
 }
 
@@ -381,13 +386,18 @@ body::before {
 /* ============================================
    RESPONSIVE
    The mobile top bar is the FIRST child of .app-grid, so it lands in the
-   first (auto) row; <main> takes the remaining space and scrolls.
+   first (auto) row and sticks while the document scrolls under it.
    ============================================ */
 
 @media (max-width: 768px) {
+  /* Keeps in-page anchors from landing under the sticky top bar. */
+  html {
+    scroll-padding-top: 4rem;
+  }
+
   .app-grid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
   }
 
   .sidebar {
@@ -404,6 +414,8 @@ body::before {
     padding-right: max(8px, env(safe-area-inset-right));
     background: var(--bg-surface-1);
     border-bottom: 1px solid var(--border-default);
+    position: sticky;
+    top: 0;
     z-index: 50;
   }
 
@@ -551,63 +563,6 @@ textarea:focus-visible {
 
   .tech-tag:hover {
     transform: none;
-  }
-}
-
-/* ============================================
-   BOOT — Fullscreen Landing
-   ============================================ */
-
-.boot-fullscreen {
-  height: 100vh;
-  height: 100dvh;
-  width: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: var(--bg-primary);
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
-}
-
-.boot-fullscreen::-webkit-scrollbar {
-  width: 6px;
-}
-.boot-fullscreen::-webkit-scrollbar-track {
-  background: transparent;
-}
-.boot-fullscreen::-webkit-scrollbar-thumb {
-  background-color: var(--border-default);
-  border-radius: 3px;
-}
-
-/* First-visit overlay. Hidden before first paint by the inline script in
-   layout.tsx (returning visitors, reduced motion) and by the <noscript> rule. */
-.boot-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-primary);
-  cursor: pointer;
-  transition: opacity 0.35s ease, visibility 0s linear 0.35s;
-}
-
-html[data-boot="skip"] .boot-overlay {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.boot-line {
-  opacity: 0;
-  animation: boot-line 0.25s ease forwards;
-}
-
-@keyframes boot-line {
-  to {
-    opacity: 1;
   }
 }
 

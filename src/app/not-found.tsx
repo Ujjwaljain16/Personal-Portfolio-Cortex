@@ -19,7 +19,7 @@ export default function NotFound() {
     }, []);
 
     return (
-        <div className="h-full flex items-center justify-center">
+        <main id="main" className="min-h-dvh flex items-center justify-center">
             <div className="text-center space-y-6 max-w-md px-4">
                 {/* Error icon */}
                 <div className="w-16 h-16 rounded-xl bg-(--danger)/10 border border-(--danger)/20 flex items-center justify-center mx-auto">
@@ -92,6 +92,6 @@ export default function NotFound() {
                     cortex.system // error-handler
                 </div>
             </div>
-        </div>
+        </main>
     );
 }

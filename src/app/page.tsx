@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, ChevronDown, FileDown, Github, Linkedin, Mail } from "lucide-react";
-import { BootOverlay } from "@/components/landing/BootSequence";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { SectionHeading } from "@/components/home/SectionHeading";
 import { highlights } from "@/data/highlights";
@@ -81,7 +80,6 @@ export default async function HomePage() {
     return (
         <>
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(personJsonLd()) }} />
-            <BootOverlay />
 
             <div className="max-w-6xl mx-auto px-5 md:px-10 pb-24">
                 <HomeHeader />

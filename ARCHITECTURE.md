@@ -50,8 +50,9 @@ repository still shows activity. `validate-data` warns if the timestamp is over 
 - One palette of CSS custom properties in `globals.css` (midnight dark theme by default, a light theme, and accent palettes
   picked from the palette button). Components use the tokens, never raw colours, so every palette and theme works without
   per-component overrides. Tailwind 4 reads the same tokens.
-- Inner pages scroll inside `.main-panel`, the home page inside `.boot-fullscreen`. `.main-panel > *` caps width at 72rem;
-  page frames set their own narrower width one level in.
+- The document scrolls on every page. Inner pages live in the `app/(site)` route group, whose layout adds the sticky
+  sidebar (the sticky top bar on phones); the home page sits outside it with its own header. `.main-panel > *` caps
+  width at 72rem; page frames set their own narrower width one level in.
 - Projects carry `areas` (AI, backend, infra and DevOps, internals, security, full stack, tools, mobile). The projects page
   filters on them client side through `data-areas`, so the full list still renders without JavaScript.
 - Project and open-source logos live in `public/projects/*` and `public/oss/*`, looked up through `src/data/projectLogos.ts`
