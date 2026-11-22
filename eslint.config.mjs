@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // A minified build of the MiniDB engine, copied in from its own repository.
+    "public/minidb/minidb-*.mjs",
   ]),
 ]);
 
