@@ -1,5 +1,5 @@
 {
-    "syncedAt": "2026-11-19T14:26:22.500Z",
+    "syncedAt": "2026-11-22T13:20:55.703Z",
     "merged": [
         {
             "repo": "kubernetes-sigs/gateway-api",
@@ -157,6 +157,15 @@
             "repo": "apache/superset",
             "project": "Apache Superset",
             "stars": "75k",
+            "number": 46446,
+            "title": "Let a save that only adds metrics or columns move the dataset version",
+            "url": "https://github.com/apache/superset/pull/46446",
+            "note": "Opened Nov 21, 2026. Waiting for review."
+        },
+        {
+            "repo": "apache/superset",
+            "project": "Apache Superset",
+            "stars": "75k",
             "number": 46163,
             "title": "Apply a deletion policy to user references",
             "url": "https://github.com/apache/superset/pull/46163",
@@ -178,7 +187,7 @@
             "archived": false
         },
         "Ujjwaljain16/Warrant": {
-            "committed": "2026-11-17",
+            "committed": "2026-11-21",
             "archived": false
         },
         "Ujjwaljain16/MiniDB": {
@@ -190,7 +199,7 @@
             "archived": false
         },
         "Ujjwaljain16/SSE-Observatory": {
-            "committed": "2026-11-18",
+            "committed": "2026-11-22",
             "archived": false
         },
         "Ujjwaljain16/FlashFlow": {
