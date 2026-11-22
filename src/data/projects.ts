@@ -456,6 +456,13 @@ export const projects: Project[] = [
     },
     {
         id: "sse-observatory",
+        demo: {
+            mp4: "/projects/sse-observatory/demo.mp4",
+            webm: "/projects/sse-observatory/demo.webm",
+            poster: "/projects/sse-observatory/demo-poster.jpg",
+            caption:
+                "Recorded on 23 Nov 2026 from the hosted demo (v2.0.1) in a scripted browser, in real time; only the first second of page load is cut. It uses the Doctor's built-in Failure lab: a captured stream where a proxy keeps the connection alive while the origin is silent, then its healthy twin, both read in the browser with no server. The app notes that some lab captures were recorded at a quarter of real speed. The white dot is a pointer drawn for the recording.",
+        },
         name: "SSE-Observatory",
         tier: "flagship",
         tagline:
