@@ -875,6 +875,13 @@ export const projects: Project[] = [
     },
     {
         id: "campusslot",
+        demo: {
+            mp4: "/projects/campusslot/demo.mp4",
+            webm: "/projects/campusslot/demo.webm",
+            poster: "/projects/campusslot/demo-poster.jpg",
+            caption:
+                "The repository's own recording of a live rollback drill, run on 6 Oct 2026 (committed in d5ec276). A release that listens on the wrong port is deployed with helm upgrade --atomic --timeout 60s while a script keeps calling the API: Kubernetes flags the new pod at T+5.7 s, Helm rolls back at T+63.3 s, and all 1,600 of the script's requests succeed. Real time; only the title slide is cut.",
+        },
         name: "CampusSlot",
         tier: "flagship",
         tagline: "A campus room-booking service built to show the delivery side: measured rollouts, a measured rollback, and query costs at scale.",
