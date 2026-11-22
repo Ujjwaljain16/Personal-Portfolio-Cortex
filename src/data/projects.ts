@@ -1030,7 +1030,7 @@ export const projects: Project[] = [
         tagline: "A local-first Android expense tracker for UPI, with an encrypted database on the phone and optional end-to-end encrypted sync.",
         status: "shipped",
         origin: "Personal project",
-        period: "Jan 2026 – Nov 2026 · 239 commits",
+        period: "Jan 2026 – Nov 2026 · 241 commits",
         problem: "Expense trackers usually read SMS or link bank accounts. Track UPI payments without either, keep the data on the phone, and make any sync optional and unreadable by the server.",
         approach: [
             "A Kotlin Expo module queries PackageManager for UPI apps and launches them by package. Paying a shop's QR is logged once; a friend's personal UPI ID goes through Google Pay's one-tap QR share, because UPI apps refuse direct intents to personal IDs.",
@@ -1040,8 +1040,9 @@ export const projects: Project[] = [
             "The sync server is Fastify with Postgres row-level security, on Render's free tier with Neon Postgres. An optional assistant uses the user's own Gemini key, and payee names and notes are hidden from it by default.",
         ],
         evidence: [
-            { text: "Five APK releases on GitHub: v1.0.0 (3 Jan 2026), v2.0.0, v2.01, v2.2.0 and v2.2.1, which was published on 22 Nov 2026 (UTC) and is the latest. The 2.2.x releases ship with a SHA-256 file." },
-            { text: "652 tests pass across five packages at commit bfcad43, the commit v2.2.1 is tagged on (finance 331, mobile 143, assistant 98, api 54, sync-core 26), and CI passed on that commit. Nine Maestro flows run locally on an emulator, not in CI, and have not been re-run since the intro tour was added." },
+            { text: "Six APK releases on GitHub: v1.0.0 (3 Jan 2026), v2.0.0, v2.01, v2.2.0, v2.2.1 and v2.2.2, which was published on 22 Nov 2026 (UTC) and is the latest. The 2.2.x releases ship with a SHA-256 file." },
+            { text: "2.2.2 is a bug-fix release found by testing the release APK on an emulator: the app opened its database a second time when Android recreated a screen, the older handle closed the shared connection, and every later query failed. The fix opens it once per runtime, and a regression test that failed before the fix covers it.", source: "apps/mobile/db/client.test.ts" },
+            { text: "654 tests pass across five packages at commit 4f6fd16, the commit v2.2.2 is tagged on (finance 331, mobile 145, assistant 98, api 54, sync-core 26), and CI passed on that commit. Nine Maestro flows run locally on an emulator, not in CI, and have not been re-run since the intro tour was added." },
             { text: "Quick-add accuracy, self-measured by running the parser on phrases the assistant wrote: 95% (38 of 40) on a blind set written before the parser was run on it, 85% (34 of 40) on a second held-out set, and 99.6% (254 of 255) on the set the parser was tuned on. A phrase counts only if amount, type and category are all right.", source: "packages/finance/src/quick-add.blind.ts" },
             { text: "The sync design is written down in an accepted decision record, and the key wrapping, record encryption and three-way merge each have unit tests.", source: "packages/sync-core/src/crypto.ts" },
             { text: "The sync server answered its health check on 23 Nov 2026 (spentsmart.onrender.com). It sleeps when idle, so the first request after a while is slow." },
@@ -1062,7 +1063,7 @@ export const projects: Project[] = [
             label: "of quick-add phrases parsed fully right (amount, type and category), self-measured; 99.6% on the 255 it was tuned on",
         },
         links: [
-            { label: "Release v2.2.1 (APK)", href: "https://github.com/Ujjwaljain16/SpentSmart/releases/tag/v2.2.1" },
+            { label: "Release v2.2.2 (APK)", href: "https://github.com/Ujjwaljain16/SpentSmart/releases/tag/v2.2.2" },
             { label: "Source on GitHub", href: gh("Ujjwaljain16/SpentSmart") },
         ],
         gallery: {

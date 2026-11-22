@@ -92,11 +92,11 @@ export const deployments: Deployment[] = [
         repo: "SpentSmart",
         summary: "Local-first Android expense tracker, distributed as APKs on GitHub Releases",
         impact:
-            "A React Native and Expo app with a custom Kotlin native module for UPI intents and an encrypted on-device database. Five APK releases are on GitHub; the latest is v2.2.1 (published 22 Nov 2026 UTC), with a SHA-256 file. It is sideloaded, not on the Play Store.",
+            "A React Native and Expo app with a custom Kotlin native module for UPI intents and an encrypted on-device database. Six APK releases are on GitHub; the latest is v2.2.2 (published 22 Nov 2026 UTC), with a SHA-256 file. It is sideloaded, not on the Play Store.",
         category: "device",
         runtime: "Mobile (Android)",
         host: "GitHub Releases",
-        liveUrl: "https://github.com/Ujjwaljain16/SpentSmart/releases/tag/v2.2.1",
+        liveUrl: "https://github.com/Ujjwaljain16/SpentSmart/releases/tag/v2.2.2",
         status: "device",
         tags: ["mobile", "local-first"],
         relatedRecordIds: ["spentsmart-native-upi-module", "spentsmart-e2e-encrypted-sync"],
