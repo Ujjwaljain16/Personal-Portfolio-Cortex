@@ -861,6 +861,14 @@ export const projects: Project[] = [
     },
     {
         id: "migratedb",
+        demo: {
+            mp4: "/projects/migratedb/demo.mp4",
+            webm: "/projects/migratedb/demo.webm",
+            poster: "/projects/migratedb/demo-poster.jpg",
+            size: [1280, 800],
+            caption:
+                "migratedb 1.0.1 installed from npm and run on 23 Nov 2026 against a throwaway local PostgreSQL 17, with four example migrations written for the demo; the fourth has a typo. The output was captured with its timing and replayed in a terminal unedited, and each command took under 0.3 s. A failed run is all or nothing: 001 to 003 are logged as applied, but the error in 004 rolls back the whole run, so status and \\dt show nothing applied. With the typo fixed all four apply, and rollback undoes the last one.",
+        },
         name: "migrateDB",
         tier: "more",
         tagline: "A TypeScript migration CLI and library with dependency-ordered execution, published to npm.",
