@@ -237,9 +237,9 @@ export const projects: Project[] = [
             mp4: "/projects/warrant/demo.mp4",
             webm: "/projects/warrant/demo.webm",
             poster: "/projects/warrant/demo-poster.jpg",
-            size: [1000, 600],
+            size: [1280, 800],
             caption:
-                "The repository's own 30-second demo (docs/media/demo.gif, added in 34d0671), converted to video and otherwise unchanged. It is generated, not screen-recorded: the terminal panes are condensed from the JSON reports that warrant run and warrant verify-log printed when the demo script ran the examples, the bars come from the study's summary file, and the titles are written by hand (tools/demo/README.md in the repo says which is which).",
+                "Real runs from a fresh clone at 7ad3fed, recorded on 23 Nov 2026: npm run example, npm run example:lying (both with --format text, the readable output) and warrant verify-log on the log the first run wrote. The output was captured with its timing and replayed in a terminal unedited; nothing was shortened, since all three commands take under two seconds together. The lying pipeline exits 1: its sort step exits 0 with unsorted output, the gate rejects it, and the step after it never runs.",
         },
         name: "Warrant",
         tier: "flagship",
@@ -765,9 +765,9 @@ export const projects: Project[] = [
             mp4: "/projects/agentbrake/demo.mp4",
             webm: "/projects/agentbrake/demo.webm",
             poster: "/projects/agentbrake/demo-poster.jpg",
-            size: [1040, 500],
+            size: [1280, 800],
             caption:
-                "The repository's own demo (docs/media/demo.gif at 91658ed), converted to video and otherwise unchanged. Four scripted attacks from the Gauntlet go through an allow-list + regex setup and through AgentBrake, then the scoreboard. It is not a screen recording: the repo's demo script draws it from the proxy's recorded output (npm run demo:gif), and the attacks are scripted, with no model in the loop.",
+                "A real run of npm run gauntlet from a fresh clone at 91658ed (after npm ci), recorded on 23 Nov 2026: it builds the project and sends 21 scripted attacks and 10 ordinary tasks through the real proxy, with no model involved. The output was captured with its timing and replayed in a terminal unedited, except that the 25 s of silence while it builds and runs is shortened to 2.5 s. No policy blocks 0 of 21 attacks, an allow-list with regex blocks 2, AgentBrake blocks 18; none of the three refuses an ordinary task. The three it misses (M01 to M03) are its documented limits.",
         },
         name: "AgentBrake",
         tier: "more",
