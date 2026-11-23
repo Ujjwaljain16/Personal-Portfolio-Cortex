@@ -1000,6 +1000,14 @@ export const projects: Project[] = [
     },
     {
         id: "vaulttabs",
+        demo: {
+            mp4: "/projects/vaulttabs/demo.mp4",
+            webm: "/projects/vaulttabs/demo.webm",
+            poster: "/projects/vaulttabs/demo-poster.jpg",
+            size: [1280, 800],
+            caption:
+                "Recorded on 23 Nov 2026 on a laptop, not on the live site: the code at 3c90ce2 running under its own end-to-end test setup (a local backend, a throwaway PostgreSQL, the built web app, and the real extension in a separate Chromium profile), driven by a script with a test account. The web app creates the account, the extension signs in as \"Laptop\" while three pages on a local test site open, and the web app then shows those tabs, decrypted in the browser. Last, two real queries on the test database: the stored snapshot is ciphertext, and no row contains a page title or URL in plain text. Cut between the four steps, with step labels added and the extension popup shown at 200% zoom; nothing is sped up.",
+        },
         name: "VaultTabs",
         tier: "more",
         tagline:
