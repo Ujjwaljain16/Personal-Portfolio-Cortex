@@ -4309,6 +4309,128 @@ export const records: EngineeringRecord[] = [
         "verification": "Read the 'Removed: automatic logging' section of docs/ARCHITECTURE.md at bfcad43; checked with the GitHub API that commits 8509e20 and 508f74f exist with those subjects (22 Nov 2026). Not checked: the individual platform claims (Google Pay notifications, Android 15 SMS hiding, Play Protect), which are the author's findings from the phone test."
     },
     {
+        "id": "ecommerce-transactional-outbox",
+        "kind": "decision",
+        "project": "E-commerce Backend",
+        "projectId": "ecommerce-backend",
+        "title": "Publish every event through a transactional outbox, then batch it when a load test showed a backlog",
+        "date": "2026-11-23",
+        "dateSource": "commits 199888e (outbox) and dad818e (batched publishing), both 23 Nov 2026",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "Checkout is a saga over Kafka: the order, catalog and payment services react to each other's events. If a service writes to Postgres and then publishes to Kafka as two separate steps, a crash between them loses the event, and an event can go out for a change that was rolled back.",
+        "decision": "Order and payment write each event to an outbox table in the same transaction as the state change, and a relay publishes the rows and marks them sent; FOR UPDATE SKIP LOCKED lets several replicas run the relay. After the first load test, the relay was changed to publish up to 500 events in one Kafka write, consumers commit offsets in the background, and each service runs one consumer per partition.",
+        "alternatives": [
+            {
+                "option": "Write to Postgres and publish to Kafka separately (dual write)",
+                "whyNot": "The decision record says this loses events on a crash between the two writes, or publishes events for changes that were rolled back."
+            },
+            {
+                "option": "Keep publishing one event at a time, waiting for each acknowledgement",
+                "whyNot": "The first load test created orders at about 230/s but confirmed them at about 85/s, with about 6,000 events waiting in the outbox."
+            }
+        ],
+        "consequences": "Delivery is at least once, so every consumer is idempotent: unique keys per order and event, and status updates that only apply to pending orders. A failed batch is retried whole. After the fixes, a 30-second run at about 1,800 requests/s left a backlog that cleared within 12 s; that is one run on one laptop.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "199888e",
+                "href": "https://github.com/Ujjwaljain16/E-commerce-Backend/commit/199888e",
+                "note": "Adds the Kafka client, event contracts and the transactional outbox."
+            },
+            {
+                "type": "commit",
+                "label": "0529ca1",
+                "href": "https://github.com/Ujjwaljain16/E-commerce-Backend/commit/0529ca1",
+                "note": "The order service records its events in the outbox and guards status transitions."
+            },
+            {
+                "type": "commit",
+                "label": "dad818e",
+                "href": "https://github.com/Ujjwaljain16/E-commerce-Backend/commit/dad818e",
+                "note": "Publishes outbox events in batches so the relay keeps up under load."
+            },
+            {
+                "type": "file",
+                "label": "pkg/outbox/outbox.go@59fd0d9",
+                "href": "https://github.com/Ujjwaljain16/E-commerce-Backend/blob/59fd0d98e008734926038f42582963a3ac27e570/pkg/outbox/outbox.go",
+                "note": "The relay."
+            },
+            {
+                "type": "doc",
+                "label": "decisions.md@59fd0d9",
+                "href": "https://github.com/Ujjwaljain16/E-commerce-Backend/blob/59fd0d98e008734926038f42582963a3ac27e570/decisions.md",
+                "note": "Sections 2 (the outbox) and 13 (throughput of the event pipeline)."
+            },
+            {
+                "type": "pr",
+                "label": "#12",
+                "href": "https://github.com/Ujjwaljain16/E-commerce-Backend/pull/12",
+                "note": "Merged 23 Nov 2026; completes the platform."
+            }
+        ],
+        "verification": "Read sections 2, 3 and 13 of decisions.md at 59fd0d9; checked with the GitHub API that commits 199888e, 0529ca1 and dad818e exist with those subjects (23 Nov 2026), that pkg/outbox/outbox.go exists at 59fd0d9, and that PR #12 merged as 59fd0d9. The load-test figures come from the README table and the author's notes, one run per configuration; the raw outputs are not in the repository."
+    },
+    {
+        "id": "ecommerce-server-side-pricing",
+        "kind": "decision",
+        "project": "E-commerce Backend",
+        "projectId": "ecommerce-backend",
+        "title": "Price orders from the catalog, not from the client, after finding anyone could buy anything for 0.01",
+        "date": "2026-11-23",
+        "dateSource": "commits 05b818d and 2ccb766, 23 Nov 2026",
+        "provenance": "recorded",
+        "rationaleSource": "stated",
+        "origin": "personal",
+        "authors": [
+            "Ujjwaljain16"
+        ],
+        "featured": false,
+        "context": "The first order service, built in January 2026, stored whatever price and name the client sent with each item.",
+        "decision": "CreateOrder ignores client-supplied prices and names. When the order reserves stock, catalog returns the authoritative name and unit price, and the order stores those.",
+        "alternatives": [
+            {
+                "option": "Keep trusting the client's price (the original implementation)",
+                "whyNot": "The decision record says it let anyone buy anything for 0.01."
+            }
+        ],
+        "consequences": "Every order now depends on catalog answering the reservation, which the checkout saga already needed. A unit test sends a price of 0.01 for an item the catalog prices at 25 and checks that the stored price and total use 25, and the end-to-end checkout test asserts catalog prices too.",
+        "status": "adopted",
+        "evidence": [
+            {
+                "type": "commit",
+                "label": "05b818d",
+                "href": "https://github.com/Ujjwaljain16/E-commerce-Backend/commit/05b818d",
+                "note": "Catalog reserves stock per order and returns the authoritative prices."
+            },
+            {
+                "type": "commit",
+                "label": "2ccb766",
+                "href": "https://github.com/Ujjwaljain16/E-commerce-Backend/commit/2ccb766",
+                "note": "Order prices and reserves items through catalog."
+            },
+            {
+                "type": "test",
+                "label": "order/saga_test.go@59fd0d9",
+                "href": "https://github.com/Ujjwaljain16/E-commerce-Backend/blob/59fd0d98e008734926038f42582963a3ac27e570/order/saga_test.go",
+                "note": "TestCreateOrder_UsesCatalogPricesNotClientPrices."
+            },
+            {
+                "type": "doc",
+                "label": "decisions.md@59fd0d9",
+                "href": "https://github.com/Ujjwaljain16/E-commerce-Backend/blob/59fd0d98e008734926038f42582963a3ac27e570/decisions.md",
+                "note": "Section 4, server-side pricing."
+            }
+        ],
+        "verification": "Read section 4 of decisions.md at 59fd0d9; checked with the GitHub API that commits 05b818d and 2ccb766 exist with those subjects (23 Nov 2026) and that order/saga_test.go exists at 59fd0d9. The test's assertions are as the author described them; the test was not run here."
+    },
+    {
         "id": "vitest-tsc-help-text-when-no-tsconfig",
         "kind": "investigation",
         "project": "Vitest",
