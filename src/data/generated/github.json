@@ -1,5 +1,5 @@
 {
-    "syncedAt": "2026-11-23T15:57:56.692Z",
+    "syncedAt": "2026-11-24T15:53:20.185Z",
     "merged": [
         {
             "repo": "metacoglabs/hypergraph",
@@ -180,6 +180,15 @@
             "title": "Apply a deletion policy to user references",
             "url": "https://github.com/apache/superset/pull/46163",
             "note": "Opened Nov 11, 2026, last activity Nov 18, 2026. Waiting for review."
+        },
+        {
+            "repo": "apache/airavata-custos",
+            "project": "Airavata Custos",
+            "stars": "22",
+            "number": 772,
+            "title": "Retry failed AMIE packets from the admin API",
+            "url": "https://github.com/apache/airavata-custos/pull/772",
+            "note": "Opened Nov 24, 2026. Waiting for review."
         }
     ],
     "repos": {
@@ -200,7 +209,7 @@
             "archived": false
         },
         "Ujjwaljain16/SSE-Observatory": {
-            "committed": "2026-11-23",
+            "committed": "2026-11-24",
             "archived": false
         },
         "Ujjwaljain16/FlashFlow": {
