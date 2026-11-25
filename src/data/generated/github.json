@@ -1,5 +1,5 @@
 {
-    "syncedAt": "2026-11-24T15:53:20.185Z",
+    "syncedAt": "2026-11-25T15:36:16.835Z",
     "merged": [
         {
             "repo": "metacoglabs/hypergraph",
@@ -180,6 +180,15 @@
             "title": "Apply a deletion policy to user references",
             "url": "https://github.com/apache/superset/pull/46163",
             "note": "Opened Nov 11, 2026, last activity Nov 18, 2026. Waiting for review."
+        },
+        {
+            "repo": "apache/airavata-custos",
+            "project": "Airavata Custos",
+            "stars": "22",
+            "number": 774,
+            "title": "Keep the SLURM usage window until every job is recorded",
+            "url": "https://github.com/apache/airavata-custos/pull/774",
+            "note": "Opened Nov 24, 2026. Waiting for review."
         },
         {
             "repo": "apache/airavata-custos",
