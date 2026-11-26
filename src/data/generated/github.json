@@ -1,5 +1,5 @@
 {
-    "syncedAt": "2026-11-25T15:36:16.835Z",
+    "syncedAt": "2026-11-26T15:13:19.642Z",
     "merged": [
         {
             "repo": "metacoglabs/hypergraph",
@@ -184,7 +184,7 @@
         {
             "repo": "apache/airavata-custos",
             "project": "Airavata Custos",
-            "stars": "22",
+            "stars": "23",
             "number": 774,
             "title": "Keep the SLURM usage window until every job is recorded",
             "url": "https://github.com/apache/airavata-custos/pull/774",
@@ -193,7 +193,7 @@
         {
             "repo": "apache/airavata-custos",
             "project": "Airavata Custos",
-            "stars": "22",
+            "stars": "23",
             "number": 772,
             "title": "Retry failed AMIE packets from the admin API",
             "url": "https://github.com/apache/airavata-custos/pull/772",
@@ -214,7 +214,7 @@
             "archived": false
         },
         "Ujjwaljain16/Fuze": {
-            "committed": "2026-11-14",
+            "committed": "2026-11-25",
             "archived": false
         },
         "Ujjwaljain16/SSE-Observatory": {
