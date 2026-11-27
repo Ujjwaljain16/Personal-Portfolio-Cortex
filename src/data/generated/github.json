@@ -1,5 +1,5 @@
 {
-    "syncedAt": "2026-11-26T15:13:19.642Z",
+    "syncedAt": "2026-11-27T15:04:18.424Z",
     "merged": [
         {
             "repo": "metacoglabs/hypergraph",
@@ -179,7 +179,7 @@
             "number": 46163,
             "title": "Apply a deletion policy to user references",
             "url": "https://github.com/apache/superset/pull/46163",
-            "note": "Opened Nov 11, 2026, last activity Nov 18, 2026. Waiting for review."
+            "note": "Opened Nov 11, 2026, last activity Nov 26, 2026. Waiting for review."
         },
         {
             "repo": "apache/airavata-custos",
